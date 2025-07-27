@@ -84,10 +84,6 @@ export class Stats implements Stats {
         for (let name in Memory.myRooms) {
             const roomName = Memory.myRooms[name]
             const room = Game.rooms[roomName];
-            console.log(roomName)
-
-            console.log(JSON.stringify(room))
-            console.log(JSON.stringify(Game.rooms))
             if(room === undefined) return;
             const startX = settings.stats.startX
             const startY = settings.stats.startY
