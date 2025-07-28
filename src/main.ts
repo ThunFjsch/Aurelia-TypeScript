@@ -5,6 +5,7 @@ import { logger } from "utils/logger/logger";
 import memHack from "./utils/memhack";
 import { envManager } from './utils/logger/envManager';
 import profiler, { Profiler } from "./utils/profiler/screeps-profiler"
+import { Planner } from "roomManager/basePlanner/planner";
 
 global.envManager = envManager;
 global.logger = logger;
@@ -55,6 +56,7 @@ declare global {
     isOwned: boolean;
     remotes: string[];
     hasRoads?: boolean;
+    distanceTransform?: number[][]
   }
 
   interface CreepMemory {
@@ -87,6 +89,7 @@ declare global {
 
 const stats = new Stats();
 const memoryService = new MemoryService()
+const planner = new Planner();
 
 // currently not working, could have been node
 if (settings.test.profiler) {
@@ -103,6 +106,17 @@ export const loop = profiler.wrap(memHack(() => {
   }
   stats.update()
   stats.visualiseStats()
+
+  for(let index in Memory.myRooms){
+    const name = Memory.myRooms[index]
+    const room = Game.rooms[name]
+    if(room === undefined) continue;
+    if(room.memory.distanceTransform != undefined){
+      planner.visualiseDT(room);
+    } else{
+      planner.startRoomPlanner(room)
+    }
+  }
 
   // Automatically delete memory of missing creeps
   for (const name in Memory.creeps) {
