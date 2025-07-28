@@ -1,3 +1,4 @@
+import { Point } from "utils/sharedTypes";
 import {  floodFill, makeSimpleIncrementalFill } from "./floodFill";
 
 interface dtObject {

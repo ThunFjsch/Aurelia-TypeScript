@@ -1,3 +1,5 @@
+import { Point } from "utils/sharedTypes";
+
 // Callback to decide if a tile can be visited / updated
 type ShouldVisit = (x: number, y: number, current: number, from: number) => boolean;
 // Callback to compute the new value

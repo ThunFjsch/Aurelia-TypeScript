@@ -111,7 +111,7 @@ export const logger = {
     if (isLogLevelEnabled('ERROR')) pushLog({ tick: Game.time, level: 'ERROR', message: msg, context: ctx });
   },
 
-  exportDecoded: (): string => {
+  export: (): string => {
     const logs = Memory.logs as CompressedLogEntry[] | undefined;
     if (!logs) return '[]';
     return JSON.stringify(logs.map(decodeLog), null, 2);
