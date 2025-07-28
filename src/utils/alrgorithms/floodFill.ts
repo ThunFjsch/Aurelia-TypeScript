@@ -8,7 +8,7 @@ export function floodFill(
     seeds: Point[],
     shouldVisit: ShouldVisit,
     updateValue: UpdateValue
-): number[][] {
+): void {
     const queue: Point[] = [...seeds];
 
     while (queue.length > 0) {
@@ -27,7 +27,6 @@ export function floodFill(
             }
         }
     }
-    return grid;
 }
 
 export function makeSimpleIncrementalFill() {
