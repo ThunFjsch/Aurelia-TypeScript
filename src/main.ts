@@ -56,6 +56,11 @@ declare global {
     isOwned: boolean;
     remotes: string[];
     hasRoads?: boolean;
+    basePlanner:BasePlanner
+  }
+
+  interface BasePlanner {
+    startlocation?: {x: number, y: number, score: number}
     distanceTransform?: number[][]
   }
 
@@ -111,7 +116,7 @@ export const loop = profiler.wrap(memHack(() => {
     const name = Memory.myRooms[index]
     const room = Game.rooms[name]
     if(room === undefined) continue;
-    if(room.memory.distanceTransform != undefined){
+    if(room.memory.basePlanner != undefined){
       planner.visualiseDT(room);
     } else{
       planner.startRoomPlanner(room)

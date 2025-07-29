@@ -1,8 +1,15 @@
 interface settings {
     test: Test;
     stats: Stats
-    avoidedRooms: string[]
-    env: string
+    avoidedRooms: string[];
+    env: string;
+    buildPlanner: buildPlanner
+}
+
+interface buildPlanner {
+    minDistanceFromController: number;
+    margin: number;
+    maxSelection: number;
 }
 
 interface Test{
@@ -29,5 +36,10 @@ export const settings: settings = {
         }
     },
     avoidedRooms: [],
-    env: 'development'
+    env: 'development',
+    buildPlanner: {
+        minDistanceFromController: 7,
+        margin: 5,
+        maxSelection: 10
+    }
 }

@@ -6,9 +6,9 @@ interface dtObject {
     dt: number[][];
 }
 
-export function getDistanceTransformMap(roomName: string, terrainMask: number): number[][] {
+export function getDistanceTransformMap(roomName: string, terrainMask: number, margin: number = 0): number[][] {
     const terrain = new Room.Terrain(roomName);
-    const dtObject: dtObject = getDistanceTransform(terrain, terrainMask);
+    const dtObject: dtObject = getDistanceTransform(terrain, terrainMask, margin);
     let dt: number[][] = dtObject.dt;
     let queuedEdges: Point[] = dtObject.queuedEdges;
 
@@ -16,16 +16,20 @@ export function getDistanceTransformMap(roomName: string, terrainMask: number): 
     const fill = makeSimpleIncrementalFill();
     floodFill(dt, queuedEdges, fill.shouldVisit, fill.updateValue);
 
-    Game.rooms[roomName].memory.distanceTransform = dt
+    Game.rooms[roomName].memory.basePlanner.distanceTransform = dt
     return dt;
 }
 
-function getDistanceTransform(terrain: RoomTerrain, terrainMask: number): dtObject {
+function getDistanceTransform(terrain: RoomTerrain, terrainMask: number, margin: number): dtObject {
     let dt: number[][] = []
     let queuedEdges: Point[] = [];
     for (let y = 0; y < 50; y++) {
         dt[y] = [];
         for (let x = 0; x < 50; x++) {
+            if (x < margin || x >= 50 - margin || y < margin || y >= 50 - margin) {
+                dt[y][x] = 0;
+                continue;
+            }
             const t = terrain.get(x, y);
             if (t === terrainMask) {
                 dt[y][x] = 0;
