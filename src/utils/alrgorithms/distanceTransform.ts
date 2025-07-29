@@ -1,9 +1,28 @@
 import { Point } from "utils/sharedTypes";
-import {  floodFill, makeSimpleIncrementalFill } from "./floodFill";
+import { floodFill, makeSimpleIncrementalFill } from "./floodFill";
+import { settings } from "config";
+import { getLowestScoreDTMap, pickStartingLocations } from "roomManager/basePlanner/startingLocation";
 
 interface dtObject {
     queuedEdges: Point[];
     dt: number[][];
+}
+
+export function getStartLocation(room: Room) {
+    // Get or create distance transform map
+    let dt: number[][] = []
+    if (room.memory.basePlanner.distanceTransform === undefined) {
+        dt = getDistanceTransformMap(room.name, TERRAIN_MASK_WALL, settings.buildPlanner.margin);
+    } else {
+        dt = room.memory.basePlanner.distanceTransform;
+    }
+
+    // pick Starting location
+    const potentialPositions = pickStartingLocations(dt, room)
+    let startLocations = getLowestScoreDTMap(potentialPositions);
+    room.memory.basePlanner.distanceTransform = startLocations.result;
+    //TODO: Not just select the middle array value
+    return startLocations.scoredPositions[5];
 }
 
 export function getDistanceTransformMap(roomName: string, terrainMask: number, margin: number = 0): number[][] {

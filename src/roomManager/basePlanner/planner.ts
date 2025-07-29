@@ -1,65 +1,77 @@
-import { getDistanceTransformMap } from "utils/alrgorithms/distanceTransform";
+import { getStartLocation } from "utils/alrgorithms/distanceTransform";
 import { CoreStamp } from "./stamps";
-import { settings } from "config";
-import { getLowestScoreDTMap, pickStartingLocations } from "./startingLocation";
+import { affirmingGreen, defaultTextStyle } from "utils/styling/stylings";
+import { priority } from "utils/sharedTypes";
+import { visulaizeStamps, visualiseDT } from "./planner-visuals";
+
+export type PlacedStructure = {
+    type: StructureConstant;
+    x: number;
+    y: number;
+    priority?: number;
+}
+
+interface ScoredPoint {
+    x: number;
+    y: number;
+    score: number
+}
 
 export class Planner {
-    startRoomPlanner(room: Room) {
-        room.memory.basePlanner = {}
-        // Get or create distance transform map
-        let dt: number[][] = []
-        if (room.memory.basePlanner.distanceTransform === undefined) {
-            dt = getDistanceTransformMap(room.name, TERRAIN_MASK_WALL, settings.buildPlanner.margin);
+    startRoomPlanner(room: Room, spawn?: StructureSpawn) {
+        room.memory.basePlanner = {};
+        let startlocation;
+        if (spawn === undefined) {
+            startlocation = getStartLocation(room);
         } else {
-            dt = room.memory.basePlanner.distanceTransform;
+            startlocation = { x: spawn.pos.x, y: spawn.pos.y, score: 0 }
         }
-
-        // pick Starting location
-        const potentialPositions = pickStartingLocations(dt, room)
-        let startLocations = getLowestScoreDTMap(potentialPositions);
-        room.memory.basePlanner.distanceTransform = startLocations.result;
-        //TODO: Not just select the middle array value
-        const startlocation = startLocations.scoredPositions[5];
         room.memory.basePlanner.startlocation = startlocation;
+
+        let stamps = this.placeCore(startlocation, spawn)
+        room.memory.basePlanner.stamps = stamps;
     }
 
+    placeCore(startLocation: ScoredPoint, spawn?: StructureSpawn) {
+        const placed: PlacedStructure[] = [];
 
-    visualiseDT(room: Room) {
-        if (!!room.memory.basePlanner.distanceTransform) {
+        const offset = spawn ? 1 : 0;
+        const centerX = startLocation.x - offset;
+        const centerY = startLocation.y - offset;
 
-            let maxValue = 0;
-            for (let y = 0; y < 50; y++) {
-                for (let x = 0; x < 50; x++) {
-                    maxValue = Math.max(maxValue, room.memory.basePlanner.distanceTransform[y][x]);
-                }
-            }
-
-            for (let y = 0; y < 50; y++) {
-                for (let x = 0; x < 50; x++) {
-                    const value = room.memory.basePlanner.distanceTransform[y][x]
-                    if (value === 0 || value === null) continue;
-                    room.visual.text(value.toString(), x, y)
-
-                    const color = getGradientColor(value, maxValue); // light cyan
-                    room.visual.rect(x, y, 1, 1, { fill: color })
-                }
+        for (const [structureType, positions] of Object.entries(CoreStamp.structures)) {
+            for (const rel of positions) {
+                placed.push({
+                    type: structureType as StructureConstant,
+                    x: centerX - CoreStamp.center.x + rel.x,
+                    y: centerY - CoreStamp.center.y + rel.y,
+                    priority: rel.priority ?? priority.medium
+                });
             }
         }
-        if(!!room.memory.basePlanner.startlocation){
-            room.visual.text(`${room.memory.basePlanner.startlocation.score}`, room.memory.basePlanner.startlocation.x, room.memory.basePlanner.startlocation.y, {color: '#008000'})
+
+        return placed;
+    }
+
+    placeUpgraderLocation(room: Room) {
+
+    }
+
+    visualizePlanner(room: Room) {
+        if (room.memory.basePlanner.stamps) {
+            visulaizeStamps(room, room.memory.basePlanner.stamps)
+        }
+
+        if (room.memory.basePlanner.distanceTransform) {
+            visualiseDT(room)
+        }
+
+        if (!!room.memory.basePlanner.startlocation) {
+            room.visual.text(`${room.memory.basePlanner.startlocation.score}`,
+                room.memory.basePlanner.startlocation.x,
+                room.memory.basePlanner.startlocation.y,
+                { ...defaultTextStyle, color: affirmingGreen })
         }
     }
 }
 
-// helper function for the visualiseDT function.
-function getGradientColor(value: number, max: number): string {
-    // Normalize to 0..1
-    const t = Math.min(1, value / max);
-
-    // Linear gradient from blue (low) to white (high)
-    const r = 255;
-    const g = Math.round(255 * t);
-    const b = Math.round(255 * t);
-
-    return `#${[r, g, b].map(c => c.toString(16).padStart(2, '0')).join('')}`;
-}

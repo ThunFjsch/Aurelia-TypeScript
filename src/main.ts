@@ -8,8 +8,8 @@ import { Planner } from "roomManager/basePlanner/planner";
 import { RoomManager } from "roomManager/roomManager";
 
 const stats = new Stats();
-const memoryService = new MemoryService()
-const planner = new Planner();
+const memoryService = new MemoryService();
+const roomManager = new RoomManager()
 
 // currently not working, could have been node
 if (settings.test.profiler) {
@@ -24,19 +24,11 @@ export const loop = profiler.wrap(memHack(() => {
     logger.info('Colony has respawned')
     memoryService.initGlobalMemory();
   }
+
   stats.update()
   stats.visualiseStats()
 
-  for(let index in Memory.myRooms){
-    const name = Memory.myRooms[index]
-    const room = Game.rooms[name]
-    if(room === undefined) continue;
-    if(room.memory.basePlanner != undefined){
-      planner.visualiseDT(room);
-    } else{
-      planner.startRoomPlanner(room)
-    }
-  }
+  roomManager.run()
 
   // Automatically delete memory of missing creeps
   for (const name in Memory.creeps) {
