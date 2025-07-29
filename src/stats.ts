@@ -1,4 +1,5 @@
 import { settings } from "config";
+import { drawTextBox } from "utils/styling/stylingHelper";
 
 export interface Stats {
     cpu: cpuStats;
@@ -68,7 +69,7 @@ export class Stats implements Stats {
                 used: heapStats.used_heap_size
             }
         }
-        return {used: 0}
+        return { used: 0 }
 
     }
 
@@ -82,21 +83,21 @@ export class Stats implements Stats {
         if (!Memory.globalReset) return;
 
         for (let name in Memory.myRooms) {
-            const roomName = Memory.myRooms[name]
+            const roomName = Memory.myRooms[name];
             const room = Game.rooms[roomName];
-            if(room === undefined) return;
-            const startX = settings.stats.startX
-            const startY = settings.stats.startY
-            const width = 10;
-            const height = 7;
-
-            room.visual.rect(startX, startY, width, height, settings.stats.boxStyle);
-            room.visual.text('Performance', new RoomPosition(startX + 3, startY + 1, room.name));
-            room.visual.text(`time: ${this.time.toString()}`, new RoomPosition(startX + 4, startY + 2, room.name));
-            room.visual.text('cpu: ' + this.cpu.used.toString() + " / " + this.cpu.limit.toString(), new RoomPosition(startX + 3, startY + 3, room.name));
-            room.visual.text(`Bucket: ${this.cpu.bucket}`, new RoomPosition(startX + 4, startY + 4, room.name));
-            room.visual.text(`Average(${this.avgSize}): ${this.cpu.avg}`, new RoomPosition(startX + 4, startY + 5, room.name))
-            room.visual.text(`used Heap: ${this.heap.used}`, new RoomPosition(startX + 5, startY + 6, room.name));
+            if (room === undefined) return;
+            let startX = settings.stats.startX;
+            let startY = settings.stats.startY;
+            const width = 11;
+            const info = [
+                'Performance',
+                `time: ${this.time.toString()}`,
+                'cpu: ' + this.cpu.used.toString() + " / " + this.cpu.limit.toString(),
+                `Bucket: ${this.cpu.bucket}`,
+                `Average(${this.avgSize}): ${this.cpu.avg}`,
+                `used Heap: ${this.heap.used}`
+            ]
+            drawTextBox(room, info, width, startX, startY);
         }
     }
 }

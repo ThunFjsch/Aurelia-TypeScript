@@ -1,3 +1,5 @@
+import { innerBoxStyle, outerBoxStyle } from "utils/styling/stylings";
+
 interface settings {
     test: Test;
     stats: Stats
@@ -19,7 +21,8 @@ interface Test{
 interface Stats{
     startX: number;
     startY: number;
-    boxStyle: PolyStyle;
+    innerBoxStyle: PolyStyle;
+    outerBoxStyle: PolyStyle;
 }
 
 export const settings: settings = {
@@ -29,11 +32,8 @@ export const settings: settings = {
     stats:{
         startX: 1,
         startY: 1,
-        boxStyle: {
-            fill: '#5BCEFA',
-            stroke: '#F5A9B8',
-            strokeWidth: 0.4
-        }
+        innerBoxStyle: innerBoxStyle,
+        outerBoxStyle: outerBoxStyle
     },
     avoidedRooms: [],
     env: 'development',
