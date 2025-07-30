@@ -1,6 +1,30 @@
 import { getGradientColor, structureSymbols } from "utils/styling/stylingHelper";
-import { defaultTextStyle } from "utils/styling/stylings";
+import { affirmingGreen, defaultTextStyle } from "utils/styling/stylings";
 import { PlacedStructure } from "./planner";
+
+
+    export function visualizePlanner(room: Room) {
+        if (room.memory.basePlanner.stamps) {
+            visulaizeStamps(room, room.memory.basePlanner.stamps)
+        }
+
+        if (room.memory.basePlanner.distanceTransform) {
+            visualiseDT(room)
+        }
+
+        if (!!room.memory.basePlanner.startlocation) {
+            room.visual.text(`${room.memory.basePlanner.startlocation.score}`,
+                room.memory.basePlanner.startlocation.x,
+                room.memory.basePlanner.startlocation.y,
+                { ...defaultTextStyle, color: affirmingGreen })
+        }
+        if (room.memory.basePlanner.upgradeLocations) {
+            const upgradeLocation = room.memory.basePlanner.upgradeLocations
+            for(let point of upgradeLocation){
+                room.visual.text('🟨', new RoomPosition(point.x,point.y, room.name));
+            }
+        }
+    }
 
 export function visulaizeStamps(room: Room, placedStructures: PlacedStructure[]) {
     for (const structure of placedStructures) {

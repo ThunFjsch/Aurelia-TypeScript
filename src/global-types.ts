@@ -2,6 +2,7 @@ import { PlacedStructure } from "roomManager/basePlanner/planner";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Profiler } from "utils/profiler/screeps-profiler";
+import { Point } from "utils/sharedTypes";
 
 export function assignGlobals(): void {
     global.envManager = envManager;
@@ -60,7 +61,8 @@ declare global {
     interface BasePlanner {
         startlocation?: { x: number, y: number, score: number }
         distanceTransform?: number[][];
-        stamps?: PlacedStructure[]
+        stamps?: PlacedStructure[];
+        upgradeLocations?: Point[];
     }
 
     interface CreepMemory {

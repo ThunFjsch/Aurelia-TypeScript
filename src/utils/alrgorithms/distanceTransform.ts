@@ -1,47 +1,48 @@
 import { Point } from "utils/sharedTypes";
 import { floodFill, makeSimpleIncrementalFill } from "./floodFill";
-import { settings } from "config";
-import { getLowestScoreDTMap, pickStartingLocations } from "roomManager/basePlanner/startingLocation";
 
 interface dtObject {
     queuedEdges: Point[];
     dt: number[][];
 }
 
-export function getStartLocation(room: Room) {
-    // Get or create distance transform map
-    let dt: number[][] = []
-    if (room.memory.basePlanner.distanceTransform === undefined) {
-        dt = getDistanceTransformMap(room.name, TERRAIN_MASK_WALL, settings.buildPlanner.margin);
-    } else {
-        dt = room.memory.basePlanner.distanceTransform;
-    }
-
-    // pick Starting location
-    const potentialPositions = pickStartingLocations(dt, room)
-    let startLocations = getLowestScoreDTMap(potentialPositions);
-    room.memory.basePlanner.distanceTransform = startLocations.result;
-    //TODO: Not just select the middle array value
-    return startLocations.scoredPositions[5];
-}
-
-export function getDistanceTransformMap(roomName: string, terrainMask: number, margin: number = 0): number[][] {
-    const terrain = new Room.Terrain(roomName);
-    const dtObject: dtObject = getDistanceTransform(terrain, terrainMask, margin);
-    let dt: number[][] = dtObject.dt;
-    let queuedEdges: Point[] = dtObject.queuedEdges;
-
-    // references of dt and queuedEdges are modified
+export function getDistanceTransformMap(
+    terrain: RoomTerrain,
+    terrainMask: number,
+    margin: number = 0,
+    occupied?: boolean[][]
+): number[][] {
+    const { dt, queuedEdges } = getDistanceTransform(terrain, terrainMask, margin, occupied);
     const fill = makeSimpleIncrementalFill();
     floodFill(dt, queuedEdges, fill.shouldVisit, fill.updateValue);
-
-    Game.rooms[roomName].memory.basePlanner.distanceTransform = dt
     return dt;
 }
 
-function getDistanceTransform(terrain: RoomTerrain, terrainMask: number, margin: number): dtObject {
-    let dt: number[][] = []
-    let queuedEdges: Point[] = [];
+
+
+/**
+ * Calculates a distance transform map from terrain walls and optionally occupied positions (e.g. stamps).
+ *
+ * @param roomNameOrTerrain - Room name or preloaded RoomTerrain object
+ * @param terrainMask - Usually TERRAIN_MASK_WALL
+ * @param margin - Optional boundary to exclude from flood fill (e.g. 1 to avoid room edges)
+ * @param occupied - Optional boolean grid [50][50] of blocked tiles (e.g. stamps, controller upgrades)
+ */
+export function getDistanceTransform(
+    roomNameOrTerrain: string | RoomTerrain,
+    terrainMask: number,
+    margin: number = 0,
+    occupied?: boolean[][]
+): dtObject {
+    const terrain: RoomTerrain =
+        typeof roomNameOrTerrain === "string"
+            ? new Room.Terrain(roomNameOrTerrain)
+            : roomNameOrTerrain;
+
+    const dt: number[][] = [];
+    const seedPositions: Point[] = [];
+
+    // First pass: build base map, and collect seed points (walls + occupied)
     for (let y = 0; y < 50; y++) {
         dt[y] = [];
         for (let x = 0; x < 50; x++) {
@@ -49,16 +50,26 @@ function getDistanceTransform(terrain: RoomTerrain, terrainMask: number, margin:
                 dt[y][x] = 0;
                 continue;
             }
-            const t = terrain.get(x, y);
-            if (t === terrainMask) {
+
+            const isWall = terrain.get(x, y) === terrainMask;
+            const isOccupied = occupied?.[y]?.[x] ?? false;
+
+            if (isWall || isOccupied) {
                 dt[y][x] = 0;
-                queuedEdges = queueTerrain(x, y, dt, queuedEdges);
+                seedPositions.push({ x, y });
             } else {
                 dt[y][x] = Infinity;
             }
         }
     }
-    return { queuedEdges, dt }
+
+    // Second pass: seed adjacent walkable tiles to start the floodFill
+    let queuedEdges: Point[] = [];
+    for (const { x, y } of seedPositions) {
+        queuedEdges = queueTerrain(x, y, dt, queuedEdges);
+    }
+
+    return { queuedEdges, dt };
 }
 
 function queueTerrain(x: number, y: number, dt: number[][], queuedTerrains: Point[]): Point[] {
