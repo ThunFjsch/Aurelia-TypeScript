@@ -3,9 +3,11 @@ import { Stats } from './stats'
 import { MemoryService } from "services/memory.service";
 import { logger } from "utils/logger/logger";
 import memHack from "./utils/memhack";
-import profiler, { Profiler } from "./utils/profiler/screeps-profiler"
-import { Planner } from "roomManager/basePlanner/planner";
+import profiler, { Profiler } from "./utils/profiler/screeps-profiler";
 import { RoomManager } from "roomManager/roomManager";
+import { assignGlobals } from "global-types";
+
+assignGlobals();
 
 const stats = new Stats();
 const memoryService = new MemoryService();

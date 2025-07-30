@@ -3,8 +3,10 @@ import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Profiler } from "utils/profiler/screeps-profiler";
 
-global.envManager = envManager;
-global.logger = logger;
+export function assignGlobals(): void {
+    global.envManager = envManager;
+    global.logger = logger;
+}
 
 declare global {
     /*
