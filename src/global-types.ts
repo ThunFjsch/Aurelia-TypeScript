@@ -1,4 +1,4 @@
-import { PlacedStructure } from "roomManager/basePlanner/planner";
+import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Profiler } from "utils/profiler/screeps-profiler";
@@ -59,7 +59,7 @@ declare global {
     }
 
     interface BasePlanner {
-        startlocation?: { x: number, y: number, score: number }
+        startlocation: { x: number, y: number, score: number }
         distanceTransform?: number[][];
         stamps?: PlacedStructure[];
         upgradeLocations?: Point[];
