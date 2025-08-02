@@ -1,6 +1,6 @@
 import { settings } from "config";
 import { CoreStamp } from "./stamps";
-import { getDistanceTransformMap } from "utils/alrgorithms/distanceTransform";
+import { getDistanceTransformMap } from "utils/algorithms/distanceTransform";
 import { ScoredPoint } from "./planner-interfaces";
 import { distanceFormula } from "./planner-helper";
 

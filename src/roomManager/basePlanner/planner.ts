@@ -1,4 +1,4 @@
-import { getDistanceTransformMap } from "utils/alrgorithms/distanceTransform";
+import { getDistanceTransformMap } from "utils/algorithms/distanceTransform";
 import { Point } from "utils/sharedTypes";
 import { StartingLocation } from "./planner-startingLocation";
 import { ScoredPoint } from "./planner-interfaces";

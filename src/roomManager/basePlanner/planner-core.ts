@@ -1,7 +1,7 @@
 import { Point, priority } from "utils/sharedTypes";
 import { PlacedStructure, ScoredPoint } from "./planner-interfaces";
 import { canPlaceStamp, CoreStamp, scoreStampAt, Stamp, stampPlan } from "./stamps";
-import { getDistanceTransformMap } from "utils/alrgorithms/distanceTransform";
+import { getDistanceTransformMap } from "utils/algorithms/distanceTransform";
 
 export class PlannerCore {
     placeCore(start: ScoredPoint, spawn?: StructureSpawn): PlacedStructure[] {
