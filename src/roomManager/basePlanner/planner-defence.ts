@@ -14,10 +14,10 @@ export class PlannerDefence {
         this.infrastructure = Infrastructure;
     }
 
-    run(room: Room) {
+    run(room: Room, center: Point) {
         const walls = this.placeWalls(room);
         if (walls === undefined) return;
-        const towers = this.planTowers(room, walls);
+        const towers = this.planTowers(room, walls, 6);
 
         for (const tower of towers) {
             const info: PlacedStructure = {
@@ -137,46 +137,61 @@ export class PlannerDefence {
 
         return closest;
     }
+planTowers(
+    room: Room,
+    wallPositions: Point[],
+    desiredCount: number = 6,
+    minSpacing: number = 6
+): RoomPosition[] {
+    const terrain = new Room.Terrain(room.name);
+    const baseCenter = new RoomPosition(25, 25, room.name); // Use your actual anchor
 
-    planTowers(room: Room, wallPositions: Point[], desiredCount: number = 6): RoomPosition[] {
-        const terrain = new Room.Terrain(room.name);
-        const baseCenter = new RoomPosition(25, 25, room.name); // Or use your base anchor
-        const candidates: RoomPosition[] = [];
+    const stamps = room.memory.basePlanner.stamps ?? [];
+    const occupied = new Set(stamps.map(s => `${s.x},${s.y}`));
 
-        // 1. Generate all walkable internal positions
-        for (let x = 2; x < 48; x++) {
-            for (let y = 2; y < 48; y++) {
-                const pos = new RoomPosition(x, y, room.name);
+    const candidates: RoomPosition[] = [];
 
-                if (
-                    terrain.get(x, y) !== TERRAIN_MASK_WALL &&
-                    room.lookForAt(LOOK_STRUCTURES, pos).length === 0
-                ) {
-                    candidates.push(pos);
-                }
-            }
+    // Step 1: Collect candidates
+    for (let x = 2; x < 48; x++) {
+        for (let y = 2; y < 48; y++) {
+            const key = `${x},${y}`;
+            if (occupied.has(key)) continue;
+            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+
+            const pos = new RoomPosition(x, y, room.name);
+            if (room.lookForAt(LOOK_STRUCTURES, pos).length > 0) continue;
+
+            candidates.push(pos);
         }
-
-        // 2. Score candidates
-        const scored: { pos: RoomPosition; score: number }[] = candidates.map(pos => {
-            // Distance to wall entrances
-            const wallDistScore = Math.min(...wallPositions.map(w => distanceFormula(pos.x, pos.y, w.x, w.y)));
-
-            // Distance to base center
-            const centerScore = 25 - pos.getRangeTo(baseCenter);
-
-            return {
-                pos,
-                score: wallDistScore + centerScore // You can tweak this formula
-            };
-        });
-
-        // 3. Sort by descending score and pick top N
-        const topTowers = _.sortBy(scored, s => -s.score)
-            .slice(0, desiredCount)
-            .map(s => s.pos);
-
-        return topTowers;
     }
+
+    // Step 2: Score them
+    const scored: { pos: RoomPosition; score: number }[] = candidates.map(pos => {
+        const distToCenter = pos.getRangeTo(baseCenter);
+        const distToNearestWall = Math.min(...wallPositions.map(w => distanceFormula(pos.x,pos.y, w.x, w.y)));
+
+        const balanceScore = -Math.abs(distToCenter - distToNearestWall);
+        const proximityScore = -(distToCenter + distToNearestWall) * 0.1;
+
+        const totalScore = balanceScore + proximityScore;
+
+        return { pos, score: totalScore };
+    });
+
+    // Step 3: Select top-scoring positions while enforcing spacing
+    const selected: RoomPosition[] = [];
+
+    const sorted = _.sortBy(scored, s => -s.score);
+    for (const { pos } of sorted) {
+        if (
+            selected.every(existing => existing.getRangeTo(pos) >= minSpacing)
+        ) {
+            selected.push(pos);
+            if (selected.length >= desiredCount) break;
+        }
+    }
+
+    return selected;
+}
 
 }

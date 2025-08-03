@@ -35,7 +35,7 @@ export class Planner {
         const occupied = core.getOccupiedGrid(room, false);
         room.memory.basePlanner.distanceTransform = getDistanceTransformMap(room.getTerrain(), TERRAIN_MASK_WALL, 0, occupied);
 
-        defence.run(room);
+        defence.run(room, startLocation);
     }
 
     private initializeMemory(room: Room, spawn?: StructureSpawn) {
