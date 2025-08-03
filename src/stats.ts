@@ -1,6 +1,3 @@
-import { settings } from "config";
-import { drawTextBox } from "utils/styling/stylingHelper";
-
 export interface Stats {
     cpu: cpuStats;
     heap: heapStats
@@ -23,6 +20,12 @@ export interface cpuStats {
 
 export interface heapStats {
     used: number;
+}
+
+export interface StatInfo{
+    time: number;
+    cpu: cpuStats;
+    heap: heapStats
 }
 
 export class Stats implements Stats {
@@ -70,7 +73,6 @@ export class Stats implements Stats {
             }
         }
         return { used: 0 }
-
     }
 
     getCpuAverage(): number {
@@ -79,25 +81,12 @@ export class Stats implements Stats {
         return Math.ceil(sumOfUsed / this.avgSize);
     }
 
-    visualiseStats() {
-        if (!Memory.globalReset) return;
-
-        for (let name in Memory.myRooms) {
-            const roomName = Memory.myRooms[name];
-            const room = Game.rooms[roomName];
-            if (room === undefined) return;
-            let startX = settings.stats.startX;
-            let startY = settings.stats.startY;
-            const width = 11;
-            const info = [
-                'Performance',
-                `time: ${this.time.toString()}`,
-                'cpu: ' + this.cpu.used.toString() + " / " + this.cpu.limit.toString(),
-                `Bucket: ${this.cpu.bucket}`,
-                `Average(${this.avgSize}): ${this.cpu.avg}`,
-                `used Heap: ${this.heap.used}`
-            ]
-            drawTextBox(room, info, width, startX, startY);
+    getStatInfo(): StatInfo{
+        return {
+            time: this.time,
+            cpu: this.cpu,
+            heap: this.heap
         }
     }
+
 }

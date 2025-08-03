@@ -6,12 +6,14 @@ import memHack from "./utils/memhack";
 import profiler, { Profiler } from "./utils/profiler/screeps-profiler";
 import { RoomManager } from "roomManager/roomManager";
 import { assignGlobals } from "global-types";
+import { Visualizer } from "visuals/visualizer";
 
 assignGlobals();
 
 const stats = new Stats();
 const memoryService = new MemoryService();
-const roomManager = new RoomManager()
+const roomManager = new RoomManager();
+const visualizer = new Visualizer()
 
 // currently not working, could have been node
 if (settings.test.profiler) {
@@ -28,14 +30,20 @@ export const loop = profiler.wrap(memHack(() => {
   }
 
   stats.update()
-  stats.visualiseStats()
-
   roomManager.run()
 
   // Automatically delete memory of missing creeps
   for (const name in Memory.creeps) {
     if (!(name in Game.creeps)) {
       delete Memory.creeps[name];
+    }
+  }
+
+  if (settings.visuals.allowVisuals) {
+    for (let index in Memory.myRooms) {
+      const roomName = Memory.myRooms[index];
+      const room = Game.rooms[roomName];
+      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.getCpuAverage())
     }
   }
 }));

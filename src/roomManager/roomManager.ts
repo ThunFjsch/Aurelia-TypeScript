@@ -1,5 +1,4 @@
 import { Planner } from "./basePlanner/planner";
-import { visualizePlanner } from "./basePlanner/planner-visuals";
 
 export interface RoomManager{
     ownedRooms: string[]
@@ -18,8 +17,6 @@ export class RoomManager{
 
             if(room.memory.basePlanner === undefined){
                 planner.startRoomPlanner(room, spawn)
-            } else{
-                visualizePlanner(room)
             }
         }
     }

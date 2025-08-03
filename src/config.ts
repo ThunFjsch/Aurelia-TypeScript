@@ -6,6 +6,7 @@ interface settings {
     avoidedRooms: string[];
     env: string;
     buildPlanner: buildPlanner
+    visuals: Visuals;
 }
 
 interface buildPlanner {
@@ -25,6 +26,14 @@ interface Stats{
     outerBoxStyle: PolyStyle;
 }
 
+interface Visuals{
+    allowVisuals: boolean;
+    basePlanning: boolean;
+    showStamps: boolean;
+    distanceTransform: boolean;
+    showStats: boolean;
+}
+
 export const settings: settings = {
     test: {
         profiler: false
@@ -41,5 +50,12 @@ export const settings: settings = {
         minDistanceFromController: 7,
         margin: 5,
         maxSelection: 10
+    },
+    visuals: {
+        allowVisuals: true,
+        basePlanning: true,
+        showStamps: true,
+        distanceTransform: false,
+        showStats: true
     }
 }

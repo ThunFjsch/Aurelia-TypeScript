@@ -1,24 +1,24 @@
 import { getGradientColor, structureSymbols } from "utils/styling/stylingHelper";
 import { affirmingGreen, defaultTextStyle } from "utils/styling/stylings";
-import { PlacedStructure } from "./planner-interfaces";
-
+import { PlacedStructure } from "../roomManager/basePlanner/planner-interfaces";
+import { settings } from "config";
 
     export function visualizePlanner(room: Room) {
-        if (room.memory.basePlanner.upgradeLocations) {
+        if (room.memory.basePlanner.upgradeLocations && settings.visuals.showStamps) {
             const upgradeLocation = room.memory.basePlanner.upgradeLocations
             for(let point of upgradeLocation){
-                room.visual.text('🟨', new RoomPosition(point.x,point.y, room.name));
+                room.visual.text('🟨', new RoomPosition(point.x,point.y, room.name)), {opacity: 0.5};
             }
         }
-        if (room.memory.basePlanner.stamps) {
+        if (room.memory.basePlanner.stamps && settings.visuals.showStamps) {
             visulaizeStamps(room, room.memory.basePlanner.stamps)
         }
 
-        if (room.memory.basePlanner.distanceTransform) {
-            visualiseDT(room)
+        if (room.memory.basePlanner.distanceTransform  && settings.visuals.distanceTransform) {
+            visualiseDT(room);
         }
 
-        if (!!room.memory.basePlanner.startlocation) {
+        if (!!room.memory.basePlanner.startlocation && settings.visuals.showStamps) {
             room.visual.text(`${room.memory.basePlanner.startlocation.score}`,
                 room.memory.basePlanner.startlocation.x,
                 room.memory.basePlanner.startlocation.y,
@@ -26,14 +26,14 @@ import { PlacedStructure } from "./planner-interfaces";
         }
     }
 
-export function visulaizeStamps(room: Room, placedStructures: PlacedStructure[]) {
+function visulaizeStamps(room: Room, placedStructures: PlacedStructure[]) {
     for (const structure of placedStructures) {
         const symbol = structureSymbols[structure.type] ?? '?';
         room.visual.text(symbol, structure.x, structure.y, { ...defaultTextStyle, align:"center"})
     }
 }
 
-export function visualiseDT(room: Room) {
+function visualiseDT(room: Room) {
     if (!!room.memory.basePlanner.distanceTransform) {
 
         let maxValue = 0;
