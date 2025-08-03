@@ -31,7 +31,7 @@ export class Infrastructure {
             .map(s => new RoomPosition(s.x, s.y, room.name));
     }
 
-    private connectToRoadNetwork(room: Room, from: Point, roads: RoomPosition[]): PlacedStructure[] {
+    connectToRoadNetwork(room: Room, from: Point, roads: RoomPosition[]): PlacedStructure[] {
         const fromPos = new RoomPosition(from.x, from.y, room.name);
         const target = roads.length ? fromPos.findClosestByRange(roads) : null;
         if (!target) return [];

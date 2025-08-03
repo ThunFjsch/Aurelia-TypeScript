@@ -5,11 +5,12 @@ import { ScoredPoint } from "./planner-interfaces";
 import { Infrastructure } from "./planner-infrastructure";
 import { PlannerCore } from "./planner-core";
 import { distanceFormula } from "./planner-helper";
+import { PlannerDefence } from "./planner-defence";
 
 const infrastructure = new Infrastructure();
 const core = new PlannerCore();
 const starter = new StartingLocation();
-
+const defence = new PlannerDefence(infrastructure);
 
 export class Planner {
     startRoomPlanner(room: Room, spawn?: StructureSpawn) {
@@ -17,7 +18,7 @@ export class Planner {
 
         const startLocation = room.memory.basePlanner.startlocation;
         const centers: Point[] = [];
-        centers.push({x: startLocation.x, y: startLocation.y});
+        centers.push({ x: startLocation.x, y: startLocation.y });
 
         const coreStamps = core.placeCore(startLocation, spawn);
         room.memory.basePlanner.stamps = coreStamps;
@@ -33,11 +34,13 @@ export class Planner {
 
         const occupied = core.getOccupiedGrid(room, false);
         room.memory.basePlanner.distanceTransform = getDistanceTransformMap(room.getTerrain(), TERRAIN_MASK_WALL, 0, occupied);
+
+        defence.run(room);
     }
 
     private initializeMemory(room: Room, spawn?: StructureSpawn) {
         room.memory.basePlanner = {
-            startlocation: {x:0,y:0, score: 0}
+            startlocation: { x: 0, y: 0, score: 0 }
         };
 
         let startLocation: ScoredPoint;
@@ -49,8 +52,6 @@ export class Planner {
 
         room.memory.basePlanner.startlocation = startLocation;
     }
-
-
 
     private placeUpgraderLocation(room: Room, start: Point): { center: Point; spots: Point[] } {
         const controller = room.controller;

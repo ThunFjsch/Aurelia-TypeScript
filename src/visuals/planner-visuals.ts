@@ -24,6 +24,11 @@ import { settings } from "config";
                 room.memory.basePlanner.startlocation.y,
                 { ...defaultTextStyle, color: affirmingGreen })
         }
+        if(room.memory.basePlanner.cuts){
+            for(const wall of room.memory.basePlanner.cuts){
+                room.visual.circle(wall.x, wall.y, {fill: affirmingGreen, opacity: 0.5});
+            }
+        }
     }
 
 function visulaizeStamps(room: Room, placedStructures: PlacedStructure[]) {

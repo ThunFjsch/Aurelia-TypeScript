@@ -43,7 +43,7 @@ export const loop = profiler.wrap(memHack(() => {
     for (let index in Memory.myRooms) {
       const roomName = Memory.myRooms[index];
       const room = Game.rooms[roomName];
-      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.getCpuAverage())
+      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize)
     }
   }
 }));

@@ -56,6 +56,6 @@ export const settings: settings = {
         basePlanning: true,
         showStamps: true,
         distanceTransform: false,
-        showStats: true
+        showStats: false
     }
 }

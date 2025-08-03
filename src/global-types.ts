@@ -63,6 +63,7 @@ declare global {
         distanceTransform?: number[][];
         stamps?: PlacedStructure[];
         upgradeLocations?: Point[];
+        cuts?: Point[]
     }
 
     interface CreepMemory {
