@@ -52,6 +52,7 @@ declare global {
     }
 
     interface RoomMemory {
+        respawn?: boolean;
         isOwned: boolean;
         remotes: string[];
         hasRoads?: boolean;

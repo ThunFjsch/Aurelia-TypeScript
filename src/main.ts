@@ -12,7 +12,7 @@ assignGlobals();
 
 const stats = new Stats();
 const memoryService = new MemoryService();
-const roomManager = new RoomManager();
+const roomManager = new RoomManager(memoryService);
 const visualizer = new Visualizer()
 
 // currently not working, could have been node
