@@ -35,14 +35,15 @@ declare global {
         my?: boolean;
         id: Id<Source>;
         pos?: RoomPosition;
+        roomName: string;
         spots: number;
         energy: number;
         ePerTick: number;
-        container: RoomPosition;
         maxIncome: number;
         maxWorkParts: number;
         maxHaulerParts: number;
         distance?: number;
+        path?: RoomPosition[]
     }
 
     interface Spot {

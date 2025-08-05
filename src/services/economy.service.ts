@@ -11,10 +11,10 @@ export class EconomyService {
         }
         const eToSpawnMiners = bodyCost / (CREEP_LIFE_TIME - route.cost)
         const haulerParts = energyPerTick * 2 * route.cost / CARRY_CAPACITY
-        const eToSpawnHaulers = haulerParts * (room.memory.hasRoads? 75: 100);
+        const eToSpawnHaulers = (haulerParts * (room.memory.hasRoads? 75: 100)) / CREEP_LIFE_TIME;
         const containerRepair = room.controller?.my ? 1 : 0.5;  // Container repair cost changes if the room is under my controle
         const reserveCreepCost =  650;  // [CLAIM, MOVE]
-        const reserverCost = (room.name === spawn.room.name) ? 0 : reserveCreepCost;    // if my room no reserver needed
+        const reserverCost = (room.name === spawn.room.name) ? 0 : (reserveCreepCost / CREEP_CLAIM_LIFE_TIME);    // if my room no reserver needed
         const netIncome = energyPerTick - eToSpawnMiners - eToSpawnHaulers - containerRepair - reserverCost;
         return netIncome
     }

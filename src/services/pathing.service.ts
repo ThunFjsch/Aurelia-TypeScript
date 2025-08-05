@@ -2,7 +2,7 @@ import { settings } from "config";
 import { logger } from "utils/logger/logger";
 
 export class PathingService {
-    findPath(current: RoomPosition, goal: RoomPosition): PathFinderPath | undefined{
+     findPath(current: RoomPosition, goal: RoomPosition): PathFinderPath | undefined{
         const currentRoom = current.roomName;
 
         let allowedRooms = {
@@ -71,7 +71,7 @@ export class PathingService {
             },
         });
         if(path.incomplete){
-            logger.warn(`Error completing path to ${current.roomName} from ${goal.roomName}, goal position: ${JSON.stringify(goal)}`)
+            logger.warn(`Error completing path ${JSON.stringify(current)}, goal position: ${JSON.stringify(goal)}`)
         }
         return path;
     }
