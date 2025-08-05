@@ -23,8 +23,8 @@ export class EconomyService {
         return ePerTick * 2 * route.cost / CARRY_CAPACITY;
     }
 
-    getBodyPartAmount(body: BodyPartConstant[], bodypart: BodyPartConstant): number {
-        return body.filter(part => part === bodypart).length
+    getBodyPartAmount(body: BodyPartDefinition[], bodypart: BodyPartConstant): number {
+        return body.filter(part => part.type === bodypart).length
     }
 
     getBodyCost(body: BodyPartConstant[]): number {
@@ -33,5 +33,17 @@ export class EconomyService {
             cost += BODYPART_COST[body[i]];
         }
         return cost;
+    }
+
+    getCurrentRoomIncome(room: Room){
+        let currentIncome = 0;
+        for(const name in Game.creeps){
+            const creep = Game.creeps[name];
+
+            if(creep.memory.role === 'miner' && creep.memory.room === room.name){
+                currentIncome += (this.getBodyPartAmount(creep.body, WORK) * 2);
+            }
+        }
+        return currentIncome
     }
 }

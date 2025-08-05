@@ -7,6 +7,7 @@ interface settings {
     env: string;
     buildPlanner: buildPlanner
     visuals: Visuals;
+    objective: ObjectiveSettings
 }
 
 interface buildPlanner {
@@ -32,6 +33,12 @@ interface Visuals{
     showStamps: boolean;
     distanceTransform: boolean;
     showStats: boolean;
+    showObjectives: boolean;
+}
+
+interface ObjectiveSettings{
+    startX: number;
+    startY: number;
 }
 
 export const settings: settings = {
@@ -56,6 +63,11 @@ export const settings: settings = {
         basePlanning: true,
         showStamps: true,
         distanceTransform: false,
-        showStats: false
+        showStats: true,
+        showObjectives: true
+    },
+    objective: {
+        startX: 15,
+        startY: 1
     }
 }

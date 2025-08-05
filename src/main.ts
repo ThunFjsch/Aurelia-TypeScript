@@ -7,12 +7,14 @@ import profiler, { Profiler } from "./utils/profiler/screeps-profiler";
 import { RoomManager } from "roomManager/roomManager";
 import { assignGlobals } from "global-types";
 import { Visualizer } from "visuals/visualizer";
+import { ObjectiveManager } from "objectives/objectiveManager";
 
 assignGlobals();
 
 const stats = new Stats();
 const memoryService = new MemoryService();
-const roomManager = new RoomManager(memoryService);
+const objectiveManager = new ObjectiveManager();
+const roomManager = new RoomManager(memoryService, objectiveManager);
 const visualizer = new Visualizer()
 
 // currently not working, could have been node
@@ -43,7 +45,7 @@ export const loop = profiler.wrap(memHack(() => {
     for (let index in Memory.myRooms) {
       const roomName = Memory.myRooms[index];
       const room = Game.rooms[roomName];
-      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize)
+      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room))
     }
   }
 }));

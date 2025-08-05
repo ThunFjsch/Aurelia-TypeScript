@@ -1,5 +1,5 @@
-export const interfaceFill = '#5BCEFA'; // Blue Trans Colour
-export const interfaceBorder = '#F5A9B8';   // Pasterl Pink Trans Colour
+export const interfaceFill = '#F5A9B8'; // Blue Trans Colour
+export const interfaceBorder = '#5BCEFA';   // Pasterl Pink Trans Colour
 export const affirmingGreen = '#008000'
 
 export const innerBoxStyle: PolyStyle = {
