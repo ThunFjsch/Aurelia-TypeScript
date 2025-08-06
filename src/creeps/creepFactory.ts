@@ -55,6 +55,7 @@ export const CreepFactory = {
     const def = creepRoles[role];
     const body = def.buildBody(ctx);
     const memory: CreepMemory = {
+      home: '',role:'',
       ...def.memory,
       ...ctx.source && { sourceId: ctx.source.id }
     };

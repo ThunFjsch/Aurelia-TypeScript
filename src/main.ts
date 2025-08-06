@@ -8,6 +8,7 @@ import { RoomManager } from "roomManager/roomManager";
 import { assignGlobals } from "global-types";
 import { Visualizer } from "visuals/visualizer";
 import { ObjectiveManager } from "objectives/objectiveManager";
+import { runRole } from "creeps/creeps";
 
 assignGlobals();
 
@@ -34,6 +35,11 @@ export const loop = profiler.wrap(memHack(() => {
   stats.update()
   roomManager.run()
 
+  for(const index in Game.creeps){
+    const creep = Game.creeps[index];
+    runRole(creep)
+  }
+
   // Automatically delete memory of missing creeps
   for (const name in Memory.creeps) {
     if (!(name in Game.creeps)) {
@@ -47,6 +53,10 @@ export const loop = profiler.wrap(memHack(() => {
       const room = Game.rooms[roomName];
       visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room))
     }
+  }
+
+  if(Game.shard.name === 'shard0' && Game.cpu.bucket === 10000){
+    Game.cpu.generatePixel();
   }
 }));
 

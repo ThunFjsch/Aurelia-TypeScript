@@ -6,6 +6,7 @@ export interface BaseObjective {
     priority: number;
     maxHaulerParts: number;
     maxIncome: number;
+    distance?: number;
 }
 
 export interface MiningObjective extends BaseObjective {
@@ -15,7 +16,6 @@ export interface MiningObjective extends BaseObjective {
     requiredWorkParts: number;
     energyPerTick: number;
     maxWorkParts: number;
-    distance?: number;
     spots: number;
     path?: RoomPosition[];
 }

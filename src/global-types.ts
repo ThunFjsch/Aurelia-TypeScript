@@ -69,10 +69,15 @@ declare global {
     }
 
     interface CreepMemory {
-        role?: string;
-        room?: string;
-        sourceId?: string;
+        role: string;
+        home: string;
         working?: boolean;
+        blocking?: number
+    }
+
+    interface MinerMemory extends CreepMemory{
+        route: RoomPosition[];
+        sourceId: string;
     }
 
     interface ProfilerMemory {

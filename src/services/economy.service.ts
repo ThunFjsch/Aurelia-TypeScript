@@ -1,4 +1,5 @@
 import { minerBuilder } from "creeps/creepFactory";
+import { roleContants } from "objectives/objectiveInterfaces";
 
 export class EconomyService {
     getMaxSourceIncome(route: PathFinderPath, energyPerTick: number, spawn: StructureSpawn, room: Room): number {
@@ -6,21 +7,21 @@ export class EconomyService {
         let bodyCost = 0;
         if (energyPerTick === 10 && body.length === 3) {
             bodyCost = this.getBodyCost(body) * 3
-        } else{
+        } else {
             bodyCost = this.getBodyCost(body);
         }
         const eToSpawnMiners = bodyCost / (CREEP_LIFE_TIME - route.cost)
         const haulerParts = energyPerTick * 2 * route.cost / CARRY_CAPACITY
-        const eToSpawnHaulers = (haulerParts * (room.memory.hasRoads? 75: 100)) / CREEP_LIFE_TIME;
+        const eToSpawnHaulers = (haulerParts * (room.memory.hasRoads ? 75 : 100)) / CREEP_LIFE_TIME;
         const containerRepair = room.controller?.my ? 1 : 0.5;  // Container repair cost changes if the room is under my controle
-        const reserveCreepCost =  650;  // [CLAIM, MOVE]
+        const reserveCreepCost = 650;  // [CLAIM, MOVE]
         const reserverCost = (room.name === spawn.room.name) ? 0 : (reserveCreepCost / CREEP_CLAIM_LIFE_TIME);    // if my room no reserver needed
         const netIncome = energyPerTick - eToSpawnMiners - eToSpawnHaulers - containerRepair - reserverCost;
         return netIncome
     }
 
-    requiredHaulerParts(ePerTick: number, route: PathFinderPath): number {
-        return ePerTick * 2 * route.cost / CARRY_CAPACITY;
+    requiredHaulerParts(ePerTick: number, route: number): number {
+        return ePerTick * 2 * route / CARRY_CAPACITY;
     }
 
     getBodyPartAmount(body: BodyPartDefinition[], bodypart: BodyPartConstant): number {
@@ -35,12 +36,12 @@ export class EconomyService {
         return cost;
     }
 
-    getCurrentRoomIncome(room: Room){
+    getCurrentRoomIncome(room: Room) {
         let currentIncome = 0;
-        for(const name in Game.creeps){
+        for (const name in Game.creeps) {
             const creep = Game.creeps[name];
 
-            if(creep.memory.role === 'miner' && creep.memory.room === room.name){
+            if (creep.memory.role === roleContants.MINING && creep.memory.home === room.name) {
                 currentIncome += (this.getBodyPartAmount(creep.body, WORK) * 2);
             }
         }
