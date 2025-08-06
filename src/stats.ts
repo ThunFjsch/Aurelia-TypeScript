@@ -14,7 +14,7 @@ export interface Stats {
 export interface cpuStats {
     bucket: number;
     limit: number;
-    used: number;
+    used: string;
     avg: number;
 }
 
@@ -59,7 +59,7 @@ export class Stats implements Stats {
         return {
             bucket: Game.cpu.bucket,
             limit: Game.cpu.limit,
-            used: Math.ceil(Game.cpu.getUsed()),
+            used: Game.cpu.getUsed().toFixed(2),
             avg: this.getCpuAverage()
         }
     }

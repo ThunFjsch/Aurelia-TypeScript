@@ -1,7 +1,6 @@
 import { logger } from "utils/logger/logger";
 import { PathingService } from "./pathing.service";
 import { EconomyService } from "./economy.service";
-import { minerBuilder } from "creeps/creepFactory";
 
 const pathingService =  new PathingService();
 const economyService = new EconomyService();
@@ -29,7 +28,7 @@ export class ScoutingService {
             distance: route.path.length,
             path: route.path,
             maxIncome: economyService.getMaxSourceIncome(route, energyPerTick, spawn, room),
-            maxHaulerParts: economyService.requiredHaulerParts(energyPerTick, route),
+            maxHaulerParts: economyService.requiredHaulerParts(energyPerTick, route.cost),
             maxWorkParts: (energyPerTick / 2)
         }
         return sourceInfo;
