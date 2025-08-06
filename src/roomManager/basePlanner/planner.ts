@@ -6,6 +6,7 @@ import { Infrastructure } from "./planner-infrastructure";
 import { PlannerCore } from "./planner-core";
 import { distanceFormula } from "./planner-helper";
 import { PlannerDefence } from "./planner-defence";
+import { logger } from "utils/logger/logger";
 
 const infrastructure = new Infrastructure();
 const core = new PlannerCore();
@@ -36,6 +37,7 @@ export class Planner {
         room.memory.basePlanner.distanceTransform = getDistanceTransformMap(room.getTerrain(), TERRAIN_MASK_WALL, 0, occupied);
 
         defence.run(room, startLocation);
+        logger.info('Build Planner created build Plan');
     }
 
     private initializeMemory(room: Room, spawn?: StructureSpawn) {

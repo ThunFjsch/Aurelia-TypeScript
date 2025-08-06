@@ -137,61 +137,57 @@ export class PlannerDefence {
 
         return closest;
     }
-planTowers(
-    room: Room,
-    wallPositions: Point[],
-    desiredCount: number = 6,
-    minSpacing: number = 6
-): RoomPosition[] {
-    const terrain = new Room.Terrain(room.name);
-    const baseCenter = new RoomPosition(25, 25, room.name); // Use your actual anchor
 
-    const stamps = room.memory.basePlanner.stamps ?? [];
-    const occupied = new Set(stamps.map(s => `${s.x},${s.y}`));
+    planTowers(room: Room, wallPositions: Point[], desiredCount: number = 6, minSpacing: number = 6): RoomPosition[] {
+        const terrain = new Room.Terrain(room.name);
+        const baseCenter = new RoomPosition(25, 25, room.name); // Use your actual anchor
 
-    const candidates: RoomPosition[] = [];
+        const stamps = room.memory.basePlanner.stamps ?? [];
+        const occupied = new Set(stamps.map(s => `${s.x},${s.y}`));
 
-    // Step 1: Collect candidates
-    for (let x = 2; x < 48; x++) {
-        for (let y = 2; y < 48; y++) {
-            const key = `${x},${y}`;
-            if (occupied.has(key)) continue;
-            if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
+        const candidates: RoomPosition[] = [];
 
-            const pos = new RoomPosition(x, y, room.name);
-            if (room.lookForAt(LOOK_STRUCTURES, pos).length > 0) continue;
+        // Step 1: Collect candidates
+        for (let x = 2; x < 48; x++) {
+            for (let y = 2; y < 48; y++) {
+                const key = `${x},${y}`;
+                if (occupied.has(key)) continue;
+                if (terrain.get(x, y) === TERRAIN_MASK_WALL) continue;
 
-            candidates.push(pos);
+                const pos = new RoomPosition(x, y, room.name);
+                if (room.lookForAt(LOOK_STRUCTURES, pos).length > 0) continue;
+
+                candidates.push(pos);
+            }
         }
-    }
 
-    // Step 2: Score them
-    const scored: { pos: RoomPosition; score: number }[] = candidates.map(pos => {
-        const distToCenter = pos.getRangeTo(baseCenter);
-        const distToNearestWall = Math.min(...wallPositions.map(w => distanceFormula(pos.x,pos.y, w.x, w.y)));
+        // Step 2: Score them
+        const scored: { pos: RoomPosition; score: number }[] = candidates.map(pos => {
+            const distToCenter = pos.getRangeTo(baseCenter);
+            const distToNearestWall = Math.min(...wallPositions.map(w => distanceFormula(pos.x, pos.y, w.x, w.y)));
 
-        const balanceScore = -Math.abs(distToCenter - distToNearestWall);
-        const proximityScore = -(distToCenter + distToNearestWall) * 0.1;
+            const balanceScore = -Math.abs(distToCenter - distToNearestWall);
+            const proximityScore = -(distToCenter + distToNearestWall) * 0.1;
 
-        const totalScore = balanceScore + proximityScore;
+            const totalScore = balanceScore + proximityScore;
 
-        return { pos, score: totalScore };
-    });
+            return { pos, score: totalScore };
+        });
 
-    // Step 3: Select top-scoring positions while enforcing spacing
-    const selected: RoomPosition[] = [];
+        // Step 3: Select top-scoring positions while enforcing spacing
+        const selected: RoomPosition[] = [];
 
-    const sorted = _.sortBy(scored, s => -s.score);
-    for (const { pos } of sorted) {
-        if (
-            selected.every(existing => existing.getRangeTo(pos) >= minSpacing)
-        ) {
-            selected.push(pos);
-            if (selected.length >= desiredCount) break;
+        const sorted = _.sortBy(scored, s => -s.score);
+        for (const { pos } of sorted) {
+            if (
+                selected.every(existing => existing.getRangeTo(pos) >= minSpacing)
+            ) {
+                selected.push(pos);
+                if (selected.length >= desiredCount) break;
+            }
         }
-    }
 
-    return selected;
-}
+        return selected;
+    }
 
 }
