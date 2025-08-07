@@ -9,14 +9,10 @@ import { assignGlobals } from "global-types";
 import { Visualizer } from "visuals/visualizer";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { runRole } from "creeps/creeps";
+import { ResourceService } from "services/resource.service";
+import { visualizeResourceTasks } from "visuals/resTask-visuals";
 
 assignGlobals();
-
-const stats = new Stats();
-const memoryService = new MemoryService();
-const objectiveManager = new ObjectiveManager();
-const roomManager = new RoomManager(memoryService, objectiveManager);
-const visualizer = new Visualizer()
 
 // currently not working, could have been node
 if (settings.test.profiler) {
@@ -29,15 +25,14 @@ export const loop = profiler.wrap(memHack(() => {
   console.log(`Current game tick is ${Game.time}`);
   if (hasRespawned() || Memory.respawn) {
     logger.info('Colony has respawned')
-    memoryService.initGlobalMemory();
+    global.creepMemoryService.initGlobalMemory();
   }
 
-  stats.update()
-  roomManager.run()
+    global.creepRoomManager.run()
 
   for(const index in Game.creeps){
     const creep = Game.creeps[index];
-    runRole(creep)
+    runRole(creep, global.creepResource)
   }
 
   // Automatically delete memory of missing creeps
@@ -47,11 +42,20 @@ export const loop = profiler.wrap(memHack(() => {
     }
   }
 
+  global.creepStats.update();
+  console.log(global.creepObjectiveManager.objectCounter)
+
+  // for(const task of resource.taskList){
+  //   console.log(task.maxAssigned)
+  //   console.log(task.assigned.length)
+  // }
+
   if (settings.visuals.allowVisuals) {
+    visualizeResourceTasks(global.creepResource.taskList)
     for (let index in Memory.myRooms) {
       const roomName = Memory.myRooms[index];
       const room = Game.rooms[roomName];
-      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room))
+      global.creepVisualizer.visualizeRoom(room, global.creepStats.getStatInfo(), global.creepStats.avgSize, global.creepObjectiveManager.getRoomObjectives(room))
     }
   }
 

@@ -1,12 +1,25 @@
+import { ObjectiveManager } from "objectives/objectiveManager";
 import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
+import { RoomManager } from "roomManager/roomManager";
+import { MemoryService } from "services/memory.service";
+import { ResourceService } from "services/resource.service";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Profiler } from "utils/profiler/screeps-profiler";
 import { Point } from "utils/sharedTypes";
+import { Visualizer } from "visuals/visualizer";
+import { Stats } from "./stats"
 
 export function assignGlobals(): void {
     global.envManager = envManager;
     global.logger = logger;
+
+    global.creepMemoryService = new MemoryService();
+    global.creepStats = new Stats();
+    global.creepObjectiveManager = new ObjectiveManager();
+    global.creepResource = new ResourceService();
+    global.creepRoomManager = new RoomManager(global.creepMemoryService, global.creepObjectiveManager, global.creepResource);
+    global.creepVisualizer = new Visualizer()
 }
 
 declare global {
@@ -75,7 +88,7 @@ declare global {
         blocking?: number
     }
 
-    interface MinerMemory extends CreepMemory{
+    interface MinerMemory extends CreepMemory {
         route: RoomPosition[];
         sourceId: string;
     }
@@ -97,6 +110,13 @@ declare global {
             profiler?: Profiler;
             envManager: typeof envManager
             logger: typeof logger
+
+            creepStats: Stats;
+            creepMemoryService: MemoryService;
+            creepObjectiveManager: ObjectiveManager;
+            creepResource: ResourceService;
+            creepRoomManager: RoomManager;
+            creepVisualizer: Visualizer
         }
     }
 }

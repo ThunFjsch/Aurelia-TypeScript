@@ -8,9 +8,12 @@ const economy = new EconomyService()
 
 export class ObjectiveManager {
     objectives: Objective[];
+    objectCounter = 0;
 
     constructor() {
         this.objectives = []
+        this.objectCounter = ++this.objectCounter;
+        console.log(this.objectCounter)
     }
 
     // Adds mining Objectives to the Objectives list
@@ -46,14 +49,13 @@ export class ObjectiveManager {
     }
 
     // Adds and updates the Hauling Objective
-    private getHaulObjectives(room: Room) {
-        const objectiveToHaul = this.objectives.filter(objective => objective.home === room.name);
+    private getHaulObjectives(room: Room, list: Objective[]) {
         let haulerCapacity = 0
-        objectiveToHaul.map(objective => {
-            haulerCapacity += (objective.maxHaulerParts * CARRY_CAPACITY)
+        list.filter(objective => objective.home === room.name)
+            .map(objective => {
+            haulerCapacity += (objective.maxHaulerParts);
         })
         if (haulerCapacity === 0) return;
-
         const currentHaulObjective = this.objectives.find(objective => objective.type === roleContants.HAULING && objective.target === room.name);
         if (currentHaulObjective != undefined) {
             this.objectives.map(objective => {
@@ -71,7 +73,7 @@ export class ObjectiveManager {
         return {
             id: `${room.name} ${roleContants.HAULING}`,
             capacityRequired: haulerCapacity,
-            maxHaulerParts: haulerCapacity / CARRY_CAPACITY,
+            maxHaulerParts: haulerCapacity ,
             home: room.name,
             target: room.name,
             priority: priority.medium,
@@ -115,18 +117,24 @@ export class ObjectiveManager {
             type: roleContants.UPGRADING,
             priority: priority.medium,
             netEnergyIncome: energyPerTick,
-            maxHaulerParts: energyPerTick * route.cost / CARRY_CAPACITY
+            maxHaulerParts: energyPerTick * (route.cost / CARRY_CAPACITY),
+            path: route.path,
+            distance:route.cost
         }
     }
 
     syncRoomObjectives(room: Room): void {
         this.createMiningObjectives(room);
-        this.getHaulObjectives(room);
         this.getUpgradeObjectives(room);
+        this.getHaulObjectives(room, this.objectives    );
         // plus others;
     }
 
     getRoomObjectives(room: Room) {
         return this.objectives.filter(objective => objective.home === room.name)
+    }
+
+    getRoomHaulCapacity(room: Room){
+        return (this.objectives.filter(objective => objective.type === roleContants.HAULING && objective.home === room.name)[0] as HaulingObjective).maxHaulerParts
     }
 }

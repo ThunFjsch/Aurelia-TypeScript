@@ -1,28 +1,39 @@
 import { roleContants } from "objectives/objectiveInterfaces";
+import { ResourceService } from "services/resource.service";
 
-interface HaulerMemory extends CreepMemory {
+export interface HaulerMemory extends CreepMemory {
     target?: any
 }
 
 export class Hauling {
-    run(creep: Creep) {
+    run(creep: Creep, energyManager: ResourceService) {
+
         let memory = creep.memory as HaulerMemory
+        // delete memory.target
+        // creep.memory = memory;
         if (creep.store.energy < (creep.store.getCapacity() / 2)) {
             if (memory.target === undefined) {
-                memory.target = creep.room.find(FIND_DROPPED_RESOURCES).filter(res => res.resourceType === RESOURCE_ENERGY)[0];
+                memory.target = energyManager.assignToPickup(creep)
                 creep.memory = memory
+                return;
             }
-            const target = Game.getObjectById(memory.target.id) as Resource;
-            if (target === null) { delete memory.target; creep.memory = memory }
-            if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
-                creep.pickup(target);
+            const target = Game.getObjectById(memory.target) as Resource;
+            if (target === null || target === undefined) {
                 delete memory.target;
                 creep.memory = memory;
                 return
+            } else{
+                if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
+                    creep.pickup(target);
+                    delete memory.target;
+                    creep.memory = memory;
+                    return
+                }
+                if (memory.target != undefined) {
+                    creep.moveTo(target.pos.x, target.pos.y)
+                }
             }
-            if (memory.target != undefined) {
-                creep.moveTo(target.pos.x, target.pos.y)
-            }
+
         } else {
             if (memory.target === undefined) {
                 const structure = creep.room.find(FIND_MY_STRUCTURES).filter(struc => (struc.structureType === STRUCTURE_SPAWN || struc.structureType === STRUCTURE_EXTENSION) && struc.store.energy < struc.store.getCapacity(RESOURCE_ENERGY))

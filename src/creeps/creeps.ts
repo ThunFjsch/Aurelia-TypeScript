@@ -2,6 +2,7 @@ import { roleContants } from "objectives/objectiveInterfaces";
 import { Miner } from "./mining";
 import { Hauling } from "./hauling";
 import { Upgrader } from "./upgrading";
+import { ResourceService } from "services/resource.service";
 
 export function runCreeps(){
     Object.entries(Game.creeps).forEach((creep) => {
@@ -28,11 +29,11 @@ class Roles {
     }
 };
 
-export function runRole(creep: Creep){
+export function runRole(creep: Creep, energyManager: ResourceService){
         const roles: any = new Roles();
         const role: string = creep.memory.role;
         if(roles[role] != undefined){
-            roles[role].run(creep);
+            roles[role].run(creep, energyManager);
         }
         // else { creep.suicide() }
     }

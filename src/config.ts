@@ -60,14 +60,14 @@ export const settings: settings = {
     },
     visuals: {
         allowVisuals: true,
-        basePlanning: true,
+        basePlanning: false,
         showStamps: true,
         distanceTransform: false,
         showStats: true,
         showObjectives: true
     },
     objective: {
-        startX: 15,
+        startX: 14,
         startY: 1
     }
 }

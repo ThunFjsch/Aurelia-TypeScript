@@ -29,6 +29,7 @@ export interface UpgradeObjective extends BaseObjective {
     type: roleContants.UPGRADING;
     controllerId: Id<StructureController>;
     netEnergyIncome: number;
+    path: RoomPosition[]
 }
 
 // ... other objective types for defense, claiming, expansion, etc.
