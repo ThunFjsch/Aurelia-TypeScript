@@ -1,15 +1,7 @@
-import { ObjectiveManager } from "objectives/objectiveManager";
 import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
-import { RoomManager } from "roomManager/roomManager";
-import { MemoryService } from "services/memory.service";
-import { ResourceService } from "services/resource.service";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
-import { Profiler } from "utils/profiler/screeps-profiler";
 import { Point } from "utils/sharedTypes";
-import { Visualizer } from "visuals/visualizer";
-import { Stats } from "./stats"
-
 export function assignGlobals(): void {
     global.envManager = envManager;
     global.logger = logger;
@@ -101,7 +93,6 @@ declare global {
         interface Global {
             log: any;
             Memory?: Memory;
-            profiler?: Profiler;
             envManager: typeof envManager
             logger: typeof logger
 

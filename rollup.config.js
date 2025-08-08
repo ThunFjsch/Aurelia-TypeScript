@@ -24,7 +24,7 @@ export default {
 
   plugins: [
     clear({ targets: ["dist"] }),
-    resolve({ rootDir: "src" }),
+    resolve({ rootDir: "src", }),
     commonjs(),
     typescript({tsconfig: "./tsconfig.json"}),
     screeps({config: cfg, dryRun: cfg == null})

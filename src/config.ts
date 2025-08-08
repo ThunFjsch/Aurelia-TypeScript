@@ -44,7 +44,7 @@ interface ObjectiveSettings{
 
 export const settings: settings = {
     test: {
-        profiler: false
+        profiler: true
     },
     stats:{
         startX: 1,

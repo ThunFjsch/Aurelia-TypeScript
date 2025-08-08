@@ -3,13 +3,13 @@ import { Stats } from './stats'
 import { MemoryService } from "services/memory.service";
 import { logger } from "utils/logger/logger";
 import memHack from "./utils/memhack";
-import profiler, { Profiler } from "./utils/profiler/screeps-profiler";
 import { RoomManager } from "roomManager/roomManager";
 import { assignGlobals } from "global-types";
 import { Visualizer } from "visuals/visualizer";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { runRole } from "creeps/creeps";
 import { ResourceService } from "services/resource.service";
+import profiler from "screeps-profiler";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
