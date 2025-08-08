@@ -1,3 +1,4 @@
+import { spawn } from "child_process";
 import { HaulerMemory } from "creeps/hauling";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { priority, Priority } from "utils/sharedTypes";
@@ -17,7 +18,7 @@ export interface Task {
 export class ResourceService {
     taskList: Task[] = [];
 
-    run(room: Room, haulCapacity: number, avgHauler: number) {
+    run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[]) {
         this.cleanUp();
 
         let prio: Priority = priority.medium;
@@ -25,10 +26,67 @@ export class ResourceService {
 
         droppedRes
             .filter(res => res.resourceType === RESOURCE_ENERGY)
-            .sort((a, b) => b.amount - a.amount)
+            .sort((a, b) => a.amount - b.amount)
             .forEach(res => {
                 this.updateCreatePickups(res, avgHauler, haulCapacity, prio);
             });
+
+        creeps.filter(creep => creep.memory.role === roleContants.UPGRADING && creep.memory.home === room.name)
+              .forEach(creep =>{
+                this.updateCreateCreepTransfer(creep, avgHauler)
+              })
+
+        room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === 'spawn')
+            .forEach((structure) => {
+                this.updateCreateStructureTransfer(structure as StructureSpawn, avgHauler)
+            })
+    }
+
+
+    private updateCreateStructureTransfer(struc: StructureSpawn, avgHauler: number){
+        let trips: number = struc.store.getFreeCapacity(RESOURCE_ENERGY) / (avgHauler * CARRY_CAPACITY);
+        const amount = struc.store.getFreeCapacity(RESOURCE_ENERGY);
+        const existingTask = this.taskList.find(task => task.targetId === struc.id);
+        if(existingTask != undefined){
+            existingTask.maxAssigned = trips;
+            existingTask.amount = amount
+        } else{
+            // Create new task
+            const newTask: Task = {
+                id: struc.id,
+                targetId: struc.id,
+                assigned: [],
+                maxAssigned: trips,
+                priority: priority.medium,
+                type: 'transfer',
+                amount: amount
+            };
+
+            this.taskList.push(newTask);
+        }
+    }
+
+    private updateCreateCreepTransfer(creep: Creep, avgHauler: number){
+        let trips: number = creep.store.getCapacity() / (avgHauler * CARRY_CAPACITY);
+        const amount = creep.store.getFreeCapacity(RESOURCE_ENERGY);
+        const existingTask = this.taskList.find(task => task.targetId === creep.id);
+        if(existingTask != undefined){
+            existingTask.maxAssigned = trips;
+            existingTask.amount = amount
+        } else{
+            // Create new task
+            const newTask: Task = {
+                id: creep.id,
+                targetId: creep.id,
+                assigned: [],
+                maxAssigned: trips,
+                priority: priority.medium,
+                type: 'transfer',
+                amount: amount
+            };
+
+            this.taskList.push(newTask);
+        }
     }
 
     private updateCreatePickups(res: Resource, avgHauler: number, haulCapacity: number, prio: Priority) {
@@ -68,14 +126,29 @@ export class ResourceService {
         this.taskList = this.taskList.filter(task => Game.getObjectById(task.targetId) != null);
     }
 
-    assignToPickup(creep: Creep): string | undefined {
+    assignToTask(creep: Creep, type: ResRole): string | undefined {
         for (const task of this.taskList) {
-            if (task.assigned.length < task.maxAssigned) {
+            if (task.assigned.length < task.maxAssigned && task.type === type) {
                 task.assigned.push(creep.name);
-                console.log(`[Assign] ${creep.name} -> ${task.targetId} | Assigned: ${task.assigned.length}/${task.maxAssigned}`);
                 return task.targetId;
             }
         }
         return undefined;
+    }
+
+    removeFromTask(creep: Creep, target: Resource | Creep){
+        let i = 0;
+        this.taskList.forEach(task => {
+            if(task.id === target.id && task.assigned.find(ass => ass === creep.name)){
+                let currAssignee: string[] = []
+                this.taskList[i].assigned.forEach(ass => {
+                    if(ass != creep.name){
+                        currAssignee.push(ass)
+                    }
+                })
+                this.taskList[i].assigned = currAssignee
+            }
+            i++
+        })
     }
 }

@@ -41,7 +41,7 @@ export class EconomyService {
         for (const name in Game.creeps) {
             const creep = Game.creeps[name];
 
-            if (creep.memory.role === roleContants.MINING && creep.memory.home === room.name) {
+            if (creep.memory.role === roleContants.MINING && creep.memory.home === room.name && creep.memory.working) {
                 currentIncome += (this.getBodyPartAmount(creep.body, WORK) * 2);
             }
         }

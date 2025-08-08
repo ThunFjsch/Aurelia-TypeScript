@@ -34,6 +34,7 @@ interface Visuals{
     distanceTransform: boolean;
     showStats: boolean;
     showObjectives: boolean;
+    showResourceTasks: boolean;
 }
 
 interface ObjectiveSettings{
@@ -64,7 +65,8 @@ export const settings: settings = {
         showStamps: true,
         distanceTransform: false,
         showStats: true,
-        showObjectives: true
+        showObjectives: true,
+        showResourceTasks: true
     },
     objective: {
         startX: 14,

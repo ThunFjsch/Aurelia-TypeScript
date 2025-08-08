@@ -4,12 +4,15 @@ import { visualiseStats } from "./stats-visuals";
 import { StatInfo } from "stats";
 import { Objective } from "objectives/objectiveInterfaces";
 import { visualizeObjectives } from "./objective-visuals";
+import { visualizeResourceTasks } from "./resTask-visuals";
+import { ResourceService } from "services/resource.service";
 
 export class Visualizer {
-    visualizeRoom(room: Room, statInfo: StatInfo, cpuAverage: number, objectives: Objective[]) {
+    visualizeRoom(room: Room, statInfo: StatInfo, cpuAverage: number, objectives: Objective[], resourceService: ResourceService) {
         if (settings.visuals.basePlanning) visualizePlanner(room);
         if (settings.visuals.showStats) visualiseStats(statInfo, cpuAverage);
         if (settings.visuals.showObjectives) visualizeObjectives(objectives);
+        if(settings.visuals.showResourceTasks) visualizeResourceTasks(resourceService.taskList)
 
         //TODO: This is my idea  for a mascot. Did get some cord via gpt. But will try to get the cords with wolfram
         // Let blahaj Mascot be a real thing!

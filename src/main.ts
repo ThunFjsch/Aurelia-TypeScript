@@ -10,29 +10,41 @@ import { Visualizer } from "visuals/visualizer";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { runRole } from "creeps/creeps";
 import { ResourceService } from "services/resource.service";
-import { visualizeResourceTasks } from "visuals/resTask-visuals";
 
 assignGlobals();
 
+
+const memoryService = new MemoryService();
+const stats = new Stats();
+const objectiveManager = new ObjectiveManager();
+const resourceService = new ResourceService();
+const roomManager = new RoomManager(memoryService, objectiveManager, resourceService);
+const visualizer = new Visualizer()
+
+console.log(`Reset happened at ${Game.time}`)
+
 // currently not working, could have been node
-if (settings.test.profiler) {
-  profiler.enable();
-}
+// if (settings.test.profiler) {
+//   profiler.enable();
+// }
+
 
 // When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
 // This utility uses source maps to get the line numbers and file names of the original, TS source code
-export const loop = profiler.wrap(memHack(() => {
+export const loop = () => {
+  // export const loop = profiler.wrap(
+  // memHack(() => {
   console.log(`Current game tick is ${Game.time}`);
   if (hasRespawned() || Memory.respawn) {
     logger.info('Colony has respawned')
-    global.creepMemoryService.initGlobalMemory();
+    memoryService.initGlobalMemory();
   }
 
-    global.creepRoomManager.run()
-
-  for(const index in Game.creeps){
+  const creeps: Creep[] = []
+  for (const index in Game.creeps) {
     const creep = Game.creeps[index];
-    runRole(creep, global.creepResource)
+    creeps.push(creep);
+    runRole(creep, resourceService)
   }
 
   // Automatically delete memory of missing creeps
@@ -42,27 +54,22 @@ export const loop = profiler.wrap(memHack(() => {
     }
   }
 
-  global.creepStats.update();
-  console.log(global.creepObjectiveManager.objectCounter)
-
-  // for(const task of resource.taskList){
-  //   console.log(task.maxAssigned)
-  //   console.log(task.assigned.length)
-  // }
+  roomManager.run(creeps)
+  stats.update();
 
   if (settings.visuals.allowVisuals) {
-    visualizeResourceTasks(global.creepResource.taskList)
     for (let index in Memory.myRooms) {
       const roomName = Memory.myRooms[index];
       const room = Game.rooms[roomName];
-      global.creepVisualizer.visualizeRoom(room, global.creepStats.getStatInfo(), global.creepStats.avgSize, global.creepObjectiveManager.getRoomObjectives(room))
+      visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService)
     }
   }
 
-  if(Game.shard.name === 'shard0' && Game.cpu.bucket === 10000){
+  if (Game.shard.name === 'shard0' && Game.cpu.bucket === 10000) {
     Game.cpu.generatePixel();
   }
-}));
+}
+// }));
 
 /**
  * global.hasRespawned()

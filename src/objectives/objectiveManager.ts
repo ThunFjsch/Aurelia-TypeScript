@@ -8,12 +8,9 @@ const economy = new EconomyService()
 
 export class ObjectiveManager {
     objectives: Objective[];
-    objectCounter = 0;
 
     constructor() {
         this.objectives = []
-        this.objectCounter = ++this.objectCounter;
-        console.log(this.objectCounter)
     }
 
     // Adds mining Objectives to the Objectives list
@@ -63,8 +60,7 @@ export class ObjectiveManager {
                     objective = this.createHaulObjective(room, haulerCapacity);
                 }
             })
-        }
-        if (room.memory.isOwned) {
+        } else if (room.memory.isOwned) {
             this.objectives.push(this.createHaulObjective(room, haulerCapacity))
         }
     }

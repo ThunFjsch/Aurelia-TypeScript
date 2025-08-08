@@ -17,8 +17,8 @@ export function createCreepBody(objective: Objective, room: Room) {
         const preset = [CARRY, MOVE]
         body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room)
     } else if (objective.type === roleContants.UPGRADING) {
-        const preset = [WORK, CARRY, MOVE]
-        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK], room)
+        const preset = [WORK, WORK, CARRY, MOVE]
+        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room)
     }
     return body;
 }
@@ -26,7 +26,7 @@ export function createCreepBody(objective: Objective, room: Room) {
 export function generateBody(preset: BodyPartConstant[], cost: number, room: Room): BodyPartConstant[] {
     const energy = room.energyAvailable;
     let body: BodyPartConstant[] = [];
-    for (let i = cost; i < energy; i += cost) {
+    for (let i = cost; i <= energy; i += cost) {
         body.push(...preset)
     }
     return body;

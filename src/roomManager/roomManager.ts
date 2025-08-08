@@ -8,6 +8,7 @@ import { getWorkParts } from "./spawn/helper";
 import { visualizeResourceTasks } from "visuals/resTask-visuals";
 
 const spawnManager = new SpawnManager();
+
 export interface RoomManager {
     ownedRooms: string[]
 }
@@ -16,18 +17,18 @@ export class RoomManager {
     memoryService: MemoryService;
     objectiveManager: ObjectiveManager;
     creeps: Creep[] = [];
-    resource: ResourceService;
+    resourceService: ResourceService;
 
     constructor(MemoryService: MemoryService, ObjectiveManager: ObjectiveManager, Resource: ResourceService) {
         this.memoryService = MemoryService;
         this.objectiveManager = ObjectiveManager;
-        this.resource = Resource;
+        this.resourceService = Resource;
         Object.entries(Game.creeps).forEach((key) => {
             this.creeps.push(key[1])
         })
     }
 
-    run() {
+    run(creeps: Creep[]) {
         for (let index in Memory.myRooms) {
             const roomName = Memory.myRooms[index];
             const room = Game.rooms[roomName];
@@ -46,9 +47,9 @@ export class RoomManager {
             }
 
             this.objectiveManager.syncRoomObjectives(room)
-            spawnManager.run(this.objectiveManager.objectives, room)
+            spawnManager.run(this.objectiveManager.objectives, room, creeps)
 
-            this.resource.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room))
+            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room), creeps)
             }
     }
 

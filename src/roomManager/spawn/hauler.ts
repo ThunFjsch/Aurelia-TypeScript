@@ -8,7 +8,8 @@ export class SpawnHauler {
         this.eco = Economy
     }
 
-    checkHaulObj(objectives: HaulingObjective[], room: Room, unsorted: Objective[]) {
+    checkHaulObj(objectives: HaulingObjective[], room: Room, unsorted: Objective[], creeps: Creep[]) {
+        let retValue = undefined
         objectives.forEach(objective => {
             let currCarry = 0;
             for (const index in Game.creeps) {
@@ -18,14 +19,25 @@ export class SpawnHauler {
             }
 
             let dis = 0;
-            unsorted.forEach(objective => { if (objective.distance) dis += objective.distance })
+            unsorted.forEach(objective => {
+                let hasCreeps = 0;
+                creeps.forEach(creep => {
+                    if(creep.memory.role === objective.type && creep.memory.home === objective.home){
+                        hasCreeps++;
+                    }
+                })
+
+                if (objective.distance && hasCreeps > 0) dis += objective.distance
+            })
             const income = this.eco.getCurrentRoomIncome(room);
             const currentReq = this.eco.requiredHaulerParts(income, dis);
             // TODO: Delete magic number when more effective traffic management is implemented
-            if (currCarry < (1.5 * objective.maxHaulerParts) && currCarry < currentReq) {
-                return this.spawnHauler(objective, room);
+            if (currCarry < currentReq  && currCarry < objective.maxHaulerParts) {
+                console.log('spawn hauler')
+                retValue = this.spawnHauler(objective, room);
             }
         })
+        return undefined
     }
 
     spawnHauler(objective: Objective, room: Room) {
@@ -35,6 +47,11 @@ export class SpawnHauler {
             role: roleContants.HAULING,
             working: false
         }
-        room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.HAULING), { memory })
+        const spawn = room.find(FIND_MY_SPAWNS)[0];
+        if(spawn.spawning === null){
+            return spawn.spawnCreep(body, generateName(roleContants.HAULING), { memory })
+        } else{
+            return undefined;
+        }
     }
 }

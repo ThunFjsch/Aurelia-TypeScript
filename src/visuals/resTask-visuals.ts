@@ -17,7 +17,6 @@ export function visualizeResourceTasks(tasks: Task[]) {
         let startY = settings.objective.startY;
         const width = 13;
         let info: string[] = ["Type | Amount | Ass | Prio"]
-        info.push("--------------------------------------------")
         tasks.forEach((task) => {
             info.push(`${task.type} | ${task.amount}, | ${task.assigned.length}/${task.maxAssigned.toFixed(2)} | ${task.priority}`)
         });

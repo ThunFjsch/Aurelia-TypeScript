@@ -4,8 +4,18 @@ export class Miner {
         const source: Source = Game.getObjectById(memory.sourceId) as Source;
 
         if (source.energyCapacity > 0) {
-            if (creep.harvest(source) != OK) {
+            let harvest = -6;
+            if(creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
+                harvest = creep.harvest(source);
+            }
+            if (harvest != OK) {
                 creep.moveTo(source);
+            } else{
+                if(memory.working === false){
+                    memory.working = true;
+                    creep.memory = memory;
+                    return
+                }
             }
         }
     }

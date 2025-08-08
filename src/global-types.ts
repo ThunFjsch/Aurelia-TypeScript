@@ -14,12 +14,6 @@ export function assignGlobals(): void {
     global.envManager = envManager;
     global.logger = logger;
 
-    global.creepMemoryService = new MemoryService();
-    global.creepStats = new Stats();
-    global.creepObjectiveManager = new ObjectiveManager();
-    global.creepResource = new ResourceService();
-    global.creepRoomManager = new RoomManager(global.creepMemoryService, global.creepObjectiveManager, global.creepResource);
-    global.creepVisualizer = new Visualizer()
 }
 
 declare global {
@@ -111,12 +105,6 @@ declare global {
             envManager: typeof envManager
             logger: typeof logger
 
-            creepStats: Stats;
-            creepMemoryService: MemoryService;
-            creepObjectiveManager: ObjectiveManager;
-            creepResource: ResourceService;
-            creepRoomManager: RoomManager;
-            creepVisualizer: Visualizer
         }
     }
 }

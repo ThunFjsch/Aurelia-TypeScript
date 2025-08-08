@@ -7,13 +7,12 @@ export interface HaulerMemory extends CreepMemory {
 
 export class Hauling {
     run(creep: Creep, energyManager: ResourceService) {
-
         let memory = creep.memory as HaulerMemory
         // delete memory.target
         // creep.memory = memory;
-        if (creep.store.energy < (creep.store.getCapacity() / 2)) {
+        if (creep.store.energy < (creep.store.getCapacity() / 2) + 1) {
             if (memory.target === undefined) {
-                memory.target = energyManager.assignToPickup(creep)
+                memory.target = energyManager.assignToTask(creep, 'pickup')
                 creep.memory = memory
                 return;
             }
@@ -25,45 +24,32 @@ export class Hauling {
             } else{
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.pickup(target);
+                    energyManager.removeFromTask(creep, target)
                     delete memory.target;
                     creep.memory = memory;
                     return
-                }
-                if (memory.target != undefined) {
+                } else{
                     creep.moveTo(target.pos.x, target.pos.y)
                 }
             }
 
         } else {
             if (memory.target === undefined) {
-                const structure = creep.room.find(FIND_MY_STRUCTURES).filter(struc => (struc.structureType === STRUCTURE_SPAWN || struc.structureType === STRUCTURE_EXTENSION) && struc.store.energy < struc.store.getCapacity(RESOURCE_ENERGY))
-
-                if (structure.length > 0) {
-                    memory.target = structure[0];
-                    creep.memory = memory;
-                } else {
-                    const upgrader = creep.room.find(FIND_MY_CREEPS).filter(creep => creep.memory.role === roleContants.UPGRADING && creep.store.energy < (2 / creep.store.getCapacity(RESOURCE_ENERGY)))
-                    if (upgrader.length > 0) {
-                        memory.target = upgrader[0];
-                        creep.memory = memory;
-                    }
-                }
+                memory.target = energyManager.assignToTask(creep, "transfer")
+                creep.memory = memory
+                return
             } else {
-                const target = Game.getObjectById(memory.target.id) as StructureSpawn | Creep;
+                const target = Game.getObjectById(memory.target) as Creep;
                 if (target === null) {
                     delete memory.target;
                     creep.memory = memory
                     return
                 }
 
-                if (target.store.energy >= target.store.getCapacity(RESOURCE_ENERGY)) {
-                    delete memory.target;
-                    creep.memory = memory;
-                    return;
-                }
-
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.transfer(target, RESOURCE_ENERGY);
+
+                    energyManager.removeFromTask(creep, target)
                     delete memory.target;
                     creep.memory = memory;
                 }
