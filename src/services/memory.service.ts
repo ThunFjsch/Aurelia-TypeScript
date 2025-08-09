@@ -44,7 +44,12 @@ export class MemoryService {
             isOwned: true,
             remotes: [],
             hasRoads: false,
-            basePlanner: {startlocation:{x: 0, y:0, score: 0}}
+            basePlanner: {startlocation:{x: 0, y:0, score: 0}},
+            constructionOffice: {
+                finished: true,
+                lastJob: 0,
+                plans: []
+            }
         }
         planner.startRoomPlanner(room, spawn)
     }

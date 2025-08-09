@@ -3,6 +3,7 @@ import { Miner } from "./mining";
 import { Hauling } from "./hauling";
 import { Upgrader } from "./upgrading";
 import { ResourceService } from "services/resource.service";
+import { Building } from "./building";
 
 export function runCreeps(){
     Object.entries(Game.creeps).forEach((creep) => {
@@ -14,11 +15,12 @@ class Roles {
     mining: Miner;
     hauling: Hauling;
     upgrading: Upgrader;
+    building: Building;
     constructor(){
         this.mining = new Miner();
         this.hauling = new Hauling();
         this.upgrading = new Upgrader();
-        // this.builder = new Builder();
+        this.building = new Building();
         // this.maintainer= new Maintainer();
         // this.wallRepairer= new WallRepairer();
         // this.claimer = new Claimer();

@@ -5,7 +5,7 @@ import { SpawnManager } from "roomManager/spawn/spawnManager";
 import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn/helper";
-import { visualizeResourceTasks } from "visuals/resTask-visuals";
+import { constructionManager } from "./constructionManager";
 
 const spawnManager = new SpawnManager();
 
@@ -45,6 +45,7 @@ export class RoomManager {
 
                 planner.startRoomPlanner(room, spawn)
             }
+            constructionManager(room);
 
             this.objectiveManager.syncRoomObjectives(room)
             spawnManager.run(this.objectiveManager.objectives, room, creeps)
@@ -55,8 +56,8 @@ export class RoomManager {
 
     getRoomAvgHauler(room: Room) {
         const hauler = this.creeps.filter(creep => creep.memory.home === room.name && creep.memory.role === roleContants.HAULING);
-        let cap = 0;
-        let creeps = 0
+        let cap = 1;
+        let creeps = 1;
         hauler.forEach(creep => {
             cap += getWorkParts([creep], CARRY)
             creeps++;

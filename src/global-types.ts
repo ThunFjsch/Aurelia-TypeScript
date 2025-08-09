@@ -1,4 +1,5 @@
 import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
+import { RCL } from "roomManager/constructionManager";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Point } from "utils/sharedTypes";
@@ -56,7 +57,14 @@ declare global {
         isOwned: boolean;
         remotes: string[];
         hasRoads?: boolean;
-        basePlanner: BasePlanner
+        basePlanner: BasePlanner;
+        constructionOffice: ConstructionOffice
+    }
+
+    interface ConstructionOffice{
+        plans: PlacedStructure[];
+        finished: boolean;
+        lastJob: RCL
     }
 
     interface BasePlanner {
@@ -77,6 +85,11 @@ declare global {
     interface MinerMemory extends CreepMemory {
         route: RoomPosition[];
         sourceId: string;
+    }
+
+    interface BuilderMemory extends CreepMemory {
+        target: string | undefined;
+        route: RoomPosition[];
     }
 
     interface ProfilerMemory {

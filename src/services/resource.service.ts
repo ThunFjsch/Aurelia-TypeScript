@@ -26,24 +26,26 @@ export class ResourceService {
 
         droppedRes
             .filter(res => res.resourceType === RESOURCE_ENERGY)
-            .sort((a, b) => a.amount - b.amount)
+            .sort((a, b) => (a.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y)?? 1)) - (b.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y)?? 1)))
             .forEach(res => {
                 this.updateCreatePickups(res, avgHauler, haulCapacity, prio);
             });
 
-        creeps.filter(creep => creep.memory.role === roleContants.UPGRADING && creep.memory.home === room.name)
+            this.taskList.sort((a, b) => a.priority - b.priority)
+
+        creeps.filter(creep => (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING) && creep.memory.home === room.name)
               .forEach(creep =>{
                 this.updateCreateCreepTransfer(creep, avgHauler)
               })
 
-        room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === 'spawn')
+        room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN)
             .forEach((structure) => {
-                this.updateCreateStructureTransfer(structure as StructureSpawn, avgHauler)
+                this.updateCreateStructureTransfer(structure as StructureSpawn | StructureExtension, avgHauler, priority.high)
             })
     }
 
 
-    private updateCreateStructureTransfer(struc: StructureSpawn, avgHauler: number){
+    private updateCreateStructureTransfer(struc: StructureSpawn | StructureExtension, avgHauler: number, prio: Priority = priority.medium){
         let trips: number = struc.store.getFreeCapacity(RESOURCE_ENERGY) / (avgHauler * CARRY_CAPACITY);
         const amount = struc.store.getFreeCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === struc.id);
@@ -57,7 +59,7 @@ export class ResourceService {
                 targetId: struc.id,
                 assigned: [],
                 maxAssigned: trips,
-                priority: priority.medium,
+                priority: prio,
                 type: 'transfer',
                 amount: amount
             };
@@ -67,9 +69,13 @@ export class ResourceService {
     }
 
     private updateCreateCreepTransfer(creep: Creep, avgHauler: number){
-        let trips: number = creep.store.getCapacity() / (avgHauler * CARRY_CAPACITY);
+        let trips: number = creep.store.getFreeCapacity(RESOURCE_ENERGY) / (avgHauler * CARRY_CAPACITY);
         const amount = creep.store.getFreeCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === creep.id);
+        let prio: number = priority.low;
+        if(creep.memory.role === roleContants.BUILDING){
+            prio = priority.medium;
+        }
         if(existingTask != undefined){
             existingTask.maxAssigned = trips;
             existingTask.amount = amount
@@ -80,7 +86,7 @@ export class ResourceService {
                 targetId: creep.id,
                 assigned: [],
                 maxAssigned: trips,
-                priority: priority.medium,
+                priority: prio as Priority,
                 type: 'transfer',
                 amount: amount
             };

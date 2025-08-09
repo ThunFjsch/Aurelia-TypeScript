@@ -22,7 +22,7 @@ export class SpawnUpgrader {
             }
             const income = this.eco.getCurrentRoomIncome(room);
             const currNeed = this.eco.getCurrentRoomIncome(room) / 2.5;
-            if (currWork < currNeed && income > (maxIncome / 2)) {
+            if (currWork < currNeed && income > (maxIncome / 3)) {
                 retValue = this.spawnUpgrader(objective, room);
             }
         })

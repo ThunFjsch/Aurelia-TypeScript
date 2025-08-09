@@ -6,10 +6,11 @@ export class Upgrader {
     run(creep: Creep) {
         const memory = creep.memory as UpgraderMemory
         const controller: StructureController = Game.getObjectById(memory.controllerId) as StructureController;
+        const shouldWork = creep.store.energy > 0;
+
         if (creep.pos.getRangeTo(controller.pos.x, controller.pos.y) <= 2) {
-            creep.upgradeController(controller);
+            if(shouldWork) creep.upgradeController(controller);
         } else {
-            creep.upgradeController(controller);
             creep.moveTo(controller.pos.x, controller.pos.y, { reusePath: 15 })
         }
     }

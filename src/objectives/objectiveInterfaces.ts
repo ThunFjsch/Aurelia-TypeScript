@@ -6,7 +6,7 @@ export interface BaseObjective {
     priority: number;
     maxHaulerParts: number;
     maxIncome: number;
-    distance?: number;
+    distance: number;
 }
 
 export interface MiningObjective extends BaseObjective {
@@ -32,13 +32,22 @@ export interface UpgradeObjective extends BaseObjective {
     path: RoomPosition[]
 }
 
+export interface BuildingObjective extends BaseObjective{
+    type: roleContants.BUILDING;
+    path?: RoomPosition[];
+    targetId: string;
+    progress: number;
+    progressTotal:number;
+}
+
 // ... other objective types for defense, claiming, expansion, etc.
 
-export type Objective = MiningObjective | HaulingObjective | UpgradeObjective;
-export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING
+export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective;
+export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING
 
 export enum roleContants {
     MINING = 'mining',
     HAULING = 'hauling',
-    UPGRADING = 'upgrading'
+    UPGRADING = 'upgrading',
+    BUILDING = 'building'
 }

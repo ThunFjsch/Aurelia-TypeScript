@@ -6,6 +6,7 @@ import { Objective } from "objectives/objectiveInterfaces";
 import { visualizeObjectives } from "./objective-visuals";
 import { visualizeResourceTasks } from "./resTask-visuals";
 import { ResourceService } from "services/resource.service";
+import { constructionVisuals } from "./construction-visuals";
 
 export class Visualizer {
     visualizeRoom(room: Room, statInfo: StatInfo, cpuAverage: number, objectives: Objective[], resourceService: ResourceService) {
@@ -13,6 +14,7 @@ export class Visualizer {
         if (settings.visuals.showStats) visualiseStats(statInfo, cpuAverage);
         if (settings.visuals.showObjectives) visualizeObjectives(objectives);
         if(settings.visuals.showResourceTasks) visualizeResourceTasks(resourceService.taskList)
+        if(settings.visuals.showConstruction) constructionVisuals(room)
 
         //TODO: This is my idea  for a mascot. Did get some cord via gpt. But will try to get the cords with wolfram
         // Let blahaj Mascot be a real thing!
