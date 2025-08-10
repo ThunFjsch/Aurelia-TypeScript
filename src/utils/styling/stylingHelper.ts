@@ -47,6 +47,7 @@ export function drawTextBox(room: Room, info: string[], width: number, startX: n
 
     startX++; startY++;   // margin +· 1
     for(let i in info){
+        if(startX > 49 || startY > 49) return
         room.visual.text(info[i], new RoomPosition(startX, startY, room.name), { ...defaultTextStyle, align: 'left' });
         startY++;
     }

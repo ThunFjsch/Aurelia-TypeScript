@@ -13,7 +13,7 @@ export class Maintaining {
         const memory = creep.memory as MaintainerMemory;
 
         if (creep.store.energy < (creep.store.getCapacity() / 8) + 1) {
-            getEnergy(creep, memory, energyManager)
+            getEnergy(creep, memory as MaintainerMemory, energyManager)
         } else {
             if (memory.repairTarget === undefined) {
                 this.setNewTarget(creep, memory)

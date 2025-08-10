@@ -22,14 +22,14 @@ export class SpawnMiner {
                 currWorkParts = getWorkParts(assignedCreeps, WORK);
             }
             if (objective.maxWorkParts > currWorkParts && objective.spots > assignedCreeps.length) {
-                returnValue = this.spawnMiner(objective, room);
+                returnValue = this.spawnMiner(objective, room, currWorkParts);
             }
         })
         return undefined
     }
 
-    spawnMiner(objective: MiningObjective, room: Room) {
-        const body = createCreepBody(objective, room)
+    spawnMiner(objective: MiningObjective, room: Room, currWorkParts: number) {
+        const body = createCreepBody(objective, room, currWorkParts)
         if (objective.path === undefined) return;
         const memory: MinerMemory = {
             home: room.name,

@@ -21,7 +21,8 @@ export class SpawnUpgrader {
                 if (memory.role === roleContants.UPGRADING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
             }
             const income = this.eco.getCurrentRoomIncome(room);
-            const currNeed = this.eco.getCurrentRoomIncome(room) / 2.5;
+            const divider = 1.7
+            const currNeed = this.eco.getCurrentRoomIncome(room) / divider;
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 retValue = this.spawnUpgrader(objective, room);
             }

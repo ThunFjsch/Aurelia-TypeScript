@@ -1,27 +1,27 @@
 import { Objective, roleContants } from "objectives/objectiveInterfaces";
 
-export function createCreepBody(objective: Objective, room: Room) {
+export function createCreepBody(objective: Objective, room: Room, currWorkParts: number = 0) {
     let body: BodyPartConstant[] = [];
     const numberOfStarters = Object.entries(Game.creeps).filter((creep) => creep[1].memory.role === objective.type).length
     const energyCap = room.energyCapacityAvailable;
 
     if (objective.type === roleContants.MINING) {
-        if (numberOfStarters === 0 || energyCap < 400) {
-            body = [WORK, WORK, MOVE];
+        if (numberOfStarters === 0 || energyCap < 400 || currWorkParts === 0) {
+            return body = [WORK, WORK, MOVE];
         } else if (energyCap > 400 && energyCap < 550) {
-            body = [WORK, WORK, MOVE]
+            return body = [WORK, WORK, MOVE]
         } if (energyCap >= 550) {
-            body = [WORK, WORK, WORK, WORK, WORK, MOVE]
+            return body = [WORK, WORK, WORK, WORK, WORK, MOVE]
         }
     } else if (objective.type === roleContants.HAULING) {
         const preset = [CARRY, MOVE]
-        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room)
+        return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room)
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
-        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room)
+        return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room)
     } else if(objective.type === roleContants.BUILDING || objective.type === roleContants.MAINTAINING){
         const preset = [WORK, CARRY, CARRY, MOVE]
-        body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room)
+        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room)
     }
     return body;
 }

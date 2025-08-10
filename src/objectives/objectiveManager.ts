@@ -55,7 +55,7 @@ export class ObjectiveManager {
             })
         if (haulerCapacity === 0) return;
         const currentHaulObjective = this.objectives.find(objective => objective.type === roleContants.HAULING && objective.target === room.name);
-        const multiplier = 1.4;
+        const multiplier = 1.7;
         if (currentHaulObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.HAULING && objective.target === room.name) {
@@ -123,7 +123,6 @@ export class ObjectiveManager {
 
     private getConstructionObjectives(room: Room) {
         const objective = this.objectives.find(objective => objective.home === room.name && objective.type === roleContants.BUILDING);
-        if(objective === undefined) return;
         if(room.memory.constructionOffice.finished){
             for(const index in this.objectives){
                 const objective = this.objectives[index]
