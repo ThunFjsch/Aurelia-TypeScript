@@ -1,5 +1,6 @@
 import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
 import { RCL } from "roomManager/constructionManager";
+import { ContiainerType } from "services/resource.service";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Point } from "utils/sharedTypes";
@@ -58,7 +59,13 @@ declare global {
         remotes: string[];
         hasRoads?: boolean;
         basePlanner: BasePlanner;
-        constructionOffice: ConstructionOffice
+        constructionOffice: ConstructionOffice;
+        containers: ContainerMemory[]
+    }
+
+    interface ContainerMemory{
+        id: string;
+        type: ContiainerType;
     }
 
     interface ConstructionOffice{

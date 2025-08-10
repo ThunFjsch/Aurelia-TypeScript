@@ -6,8 +6,10 @@ import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn/helper";
 import { constructionManager } from "./constructionManager";
+import { Tower } from "structures/tower";
 
 const spawnManager = new SpawnManager();
+const towerControle = new Tower();
 
 export interface RoomManager {
     ownedRooms: string[]
@@ -45,13 +47,36 @@ export class RoomManager {
 
                 planner.startRoomPlanner(room, spawn)
             }
+
+            this.crudeDefence(room)
+
             constructionManager(room);
 
             this.objectiveManager.syncRoomObjectives(room)
             spawnManager.run(this.objectiveManager.objectives, room, creeps)
 
             this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room), creeps)
+        }
+    }
+
+    private crudeDefence(room: Room) {
+        const thread = this.isRoomUnderThread(room);
+        if (thread.underThread) {
+            const towers = room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_TOWER);
+            const hostiles = thread.hostiles;
+            if (towers != undefined && towers.length > 0) {
+                towers.forEach(tower => towerControle.run(tower as StructureTower, hostiles[0]));
             }
+        }
+    }
+
+    private isRoomUnderThread(room: Room) {
+        const hostiles = room.find(FIND_HOSTILE_CREEPS);
+        let underThread = false;
+        if (hostiles.length > 0) {
+            underThread = true
+        }
+        return { underThread, hostiles }
     }
 
     getRoomAvgHauler(room: Room) {
@@ -62,6 +87,6 @@ export class RoomManager {
             cap += getWorkParts([creep], CARRY)
             creeps++;
         });
-        return cap/creeps;
+        return cap / creeps;
     }
 }

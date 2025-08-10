@@ -14,7 +14,7 @@ import profiler from "screeps-profiler";
 const memoryService = new MemoryService();
 const stats = new Stats();
 const objectiveManager = new ObjectiveManager();
-const resourceService = new ResourceService();
+const resourceService = new ResourceService(memoryService);
 const roomManager = new RoomManager(memoryService, objectiveManager, resourceService);
 const visualizer = new Visualizer()
 

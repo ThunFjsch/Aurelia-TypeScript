@@ -57,5 +57,6 @@ export enum roleContants {
     HAULING = 'hauling',
     UPGRADING = 'upgrading',
     BUILDING = 'building',
-    MAINTAINING = 'maintaining'
+    MAINTAINING = 'maintaining',
+    FASTFILLER = "fastfiller"
 }

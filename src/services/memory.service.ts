@@ -1,5 +1,6 @@
 import { Planner } from "roomManager/basePlanner/planner";
 import { ScoutingService } from "./scouting.service";
+import { roleContants } from "objectives/objectiveInterfaces";
 
 const scoutingService = new ScoutingService()
 export class MemoryService {
@@ -49,9 +50,45 @@ export class MemoryService {
                 finished: true,
                 lastJob: 0,
                 plans: []
-            }
+            },
+            containers: []
         }
         planner.startRoomPlanner(room, spawn)
+    }
+
+    initContainerMemory(container: StructureContainer, room: Room){
+        const controller = room.controller
+        if(controller != undefined){
+            if(container.pos.inRangeTo(controller.pos.x, controller.pos.y, 4)){
+                const info: ContainerMemory = {
+                    id: container.id,
+                    type: roleContants.UPGRADING
+                }
+                room.memory.containers.push(info)
+                return
+            }
+        }
+        room.find(FIND_SOURCES).forEach(source => {
+            if(container.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
+                const info: ContainerMemory = {
+                    id: container.id,
+                    type: roleContants.MINING
+                }
+                room.memory.containers.push(info)
+                return
+            }
+        })
+        room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_EXTENSION)
+            .forEach(extension => {
+                if(container.pos.inRangeTo(extension.pos.x, extension.pos.y, 1)){
+                const info: ContainerMemory = {
+                    id: container.id,
+                    type: roleContants.FASTFILLER
+                }
+                room.memory.containers.push(info)
+                return
+            }
+            })
     }
 
 }
