@@ -39,7 +39,7 @@ export const loop = () => {
     for (const index in Game.creeps) {
       const creep = Game.creeps[index];
       creeps.push(creep);
-      runRole(creep, resourceService)
+      runRole(creep, resourceService, objectiveManager)
     }
 
     // Automatically delete memory of missing creeps

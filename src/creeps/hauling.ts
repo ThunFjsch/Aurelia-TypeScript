@@ -1,5 +1,6 @@
 import { roleContants } from "objectives/objectiveInterfaces";
 import { ResourceService } from "services/resource.service";
+import { getEnergy } from "./creepHelper";
 
 export interface HaulerMemory extends CreepMemory {
     target?: any
@@ -10,29 +11,8 @@ export class Hauling {
         let memory = creep.memory as HaulerMemory
         // delete memory.target
         // creep.memory = memory;
-        if (creep.store.energy < (creep.store.getCapacity() / 2) + 1) {
-            if (memory.target === undefined) {
-                memory.target = energyManager.assignToTask(creep, 'pickup')
-                creep.memory = memory
-                return;
-            }
-            const target = Game.getObjectById(memory.target) as Resource;
-            if (target === null || target === undefined) {
-                delete memory.target;
-                creep.memory = memory;
-                return
-            } else{
-                if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
-                    creep.pickup(target);
-                    energyManager.removeFromTask(creep, target)
-                    delete memory.target;
-                    creep.memory = memory;
-                    return
-                } else{
-                    creep.moveTo(target.pos.x, target.pos.y)
-                }
-            }
-
+        if (creep.store.energy < (creep.store.getCapacity() / 8) + 1) {
+            getEnergy(creep, memory, energyManager);
         } else {
             if (memory.target === undefined) {
                 memory.target = energyManager.assignToTask(creep, "transfer")

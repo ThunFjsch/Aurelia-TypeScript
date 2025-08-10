@@ -1,16 +1,18 @@
-import { BuildingObjective, HaulingObjective, MiningObjective, Objective, roleContants, UpgradeObjective } from "objectives/objectiveInterfaces";
+import { BuildingObjective, HaulingObjective, MaintenanceObjective, MiningObjective, Objective, roleContants, UpgradeObjective } from "objectives/objectiveInterfaces";
 import { EconomyService } from "services/economy.service";
 import { priority } from "utils/sharedTypes";
 import { SpawnHauler } from "./hauler";
 import { SpawnMiner } from "./miner";
 import { SpawnUpgrader } from "./upgrader";
 import { SpawnBuiilder } from "./builder";
+import { SpawnMaintainer } from "./maintenance";
 
 const eco = new EconomyService();
 const spawnMiner = new SpawnMiner();
 const spawnHauler = new SpawnHauler(eco);
 const spawnUpgrader = new SpawnUpgrader(eco);
 const spawnBuilder = new SpawnBuiilder(eco)
+const spawnMaintainer = new SpawnMaintainer();
 
 export class SpawnManager {
     run(objectives: Objective[], room: Room, creeps: Creep[]) {
@@ -25,6 +27,9 @@ export class SpawnManager {
 
             const build = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.BUILDING);
             if (build.length > 0 && retValue === undefined) retValue = spawnBuilder.checkBuildObj(build as BuildingObjective[], room)
+
+            const maintenance = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.MAINTAINING);
+            if (maintenance.length > 0 && retValue === undefined) retValue = spawnMaintainer.checkMaintenanceObj(maintenance as MaintenanceObjective[], room, creeps)
 
             const upgrade = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.UPGRADING);
             if (upgrade.length > 0 && retValue === undefined) retValue = spawnUpgrader.checkUpgradeObj(objectives, upgrade as UpgradeObjective[], room)

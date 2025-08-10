@@ -40,14 +40,22 @@ export interface BuildingObjective extends BaseObjective{
     progressTotal:number;
 }
 
+export interface MaintenanceObjective extends BaseObjective{
+    type:roleContants.MAINTAINING;
+    toRepair: string[];
+    maxWorkParts: number;
+    hitsOverLifeTime: number;
+}
+
 // ... other objective types for defense, claiming, expansion, etc.
 
-export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective;
-export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING
+export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective | MaintenanceObjective;
+export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING | roleContants.MAINTAINING
 
 export enum roleContants {
     MINING = 'mining',
     HAULING = 'hauling',
     UPGRADING = 'upgrading',
-    BUILDING = 'building'
+    BUILDING = 'building',
+    MAINTAINING = 'maintaining'
 }

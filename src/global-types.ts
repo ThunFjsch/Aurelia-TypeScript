@@ -92,6 +92,11 @@ declare global {
         route: RoomPosition[];
     }
 
+    interface MaintainerMemory extends CreepMemory {
+        target: string | undefined;
+        repairTarget: string | undefined;
+    }
+
     interface ProfilerMemory {
         map: Record<string, { time: number; calls: number }>;
         totalTime: number;

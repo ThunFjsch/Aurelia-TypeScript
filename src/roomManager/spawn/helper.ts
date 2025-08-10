@@ -19,7 +19,7 @@ export function createCreepBody(objective: Objective, room: Room) {
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
         body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room)
-    } else if(objective.type === roleContants.BUILDING){
+    } else if(objective.type === roleContants.BUILDING || objective.type === roleContants.MAINTAINING){
         const preset = [WORK, CARRY, CARRY, MOVE]
         body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room)
     }
