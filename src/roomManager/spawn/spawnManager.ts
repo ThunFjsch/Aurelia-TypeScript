@@ -26,7 +26,7 @@ export class SpawnManager {
             if (miners.length > 0 && retValue === undefined) retValue = spawnMiner.checkMiningObj(miners as MiningObjective[], room)
 
             const build = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.BUILDING);
-            if (build.length > 0 && retValue === undefined) retValue = spawnBuilder.checkBuildObj(build as BuildingObjective[], room)
+            if (build.length > 0 && retValue === undefined) retValue = spawnBuilder.checkBuildObj(build as BuildingObjective[], room, objectives)
 
             const maintenance = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.MAINTAINING);
             if (maintenance.length > 0 && retValue === undefined) retValue = spawnMaintainer.checkMaintenanceObj(maintenance as MaintenanceObjective[], room, creeps)

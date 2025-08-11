@@ -1,5 +1,5 @@
-import { BuildingObjective, roleContants } from "objectives/objectiveInterfaces";
-import { EconomyService } from "services/economy.service";
+import { BuildingObjective, Objective, roleContants } from "objectives/objectiveInterfaces";
+import { E_FOR_BUILDER, EconomyService } from "services/economy.service";
 import { getWorkParts, createCreepBody, generateName } from "./helper";
 
 export class SpawnBuiilder {
@@ -8,7 +8,7 @@ export class SpawnBuiilder {
         this.eco = Economy;
     }
 
-    checkBuildObj(objectives: BuildingObjective[], room: Room) {
+    checkBuildObj(objectives: BuildingObjective[], room: Room, allObjectives: Objective[]) {
         let retValue = undefined;
         objectives.forEach(objective => {
             let currWork = 0;
@@ -17,16 +17,16 @@ export class SpawnBuiilder {
                 const memory = Memory.creeps[creep.name]
                 if (memory.role === roleContants.BUILDING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
             }
-            const currNeed = this.eco.getCurrentRoomIncome(room) / 4;
+            const currNeed = this.eco.getCurrentRoomIncome(room, allObjectives) / E_FOR_BUILDER;
             if (currWork < currNeed) {
-                retValue = this.spawnUpgrader(objective, room);
+                retValue = this.spawnBuilder(objective, room);
             }
         })
         return retValue
     }
 
-    spawnUpgrader(objective: BuildingObjective, room: Room) {
-        const body = createCreepBody(objective, room)
+    spawnBuilder(objective: BuildingObjective, room: Room) {
+        const body = createCreepBody(objective, room);
         const memory: BuilderMemory = {
             home: room.name,
             role: roleContants.BUILDING,

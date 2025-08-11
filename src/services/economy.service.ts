@@ -1,5 +1,9 @@
 import { minerBuilder } from "creeps/creepFactory";
-import { roleContants } from "objectives/objectiveInterfaces";
+import { Objective, roleContants } from "objectives/objectiveInterfaces";
+
+export const E_FOR_UPGRADER = 1.7;
+export const E_FOR_BUILDER = 1.8;
+export const E_FOR_MAINTAINER = 1.2;
 
 export class EconomyService {
     getMaxSourceIncome(route: PathFinderPath, energyPerTick: number, spawn: StructureSpawn, room: Room): number {
@@ -36,14 +40,21 @@ export class EconomyService {
         return cost;
     }
 
-    getCurrentRoomIncome(room: Room) {
+    getCurrentRoomIncome(room: Room, objectives: Objective[]) {
         let currentIncome = 0;
+        let maxIncome = 0
+        objectives.forEach(objective => {
+            if (objective.type === roleContants.MINING) maxIncome += objective.maxIncome;
+        })
         for (const name in Game.creeps) {
             const creep = Game.creeps[name];
-
             if (creep.memory.role === roleContants.MINING && creep.memory.home === room.name && creep.memory.working) {
                 currentIncome += (this.getBodyPartAmount(creep.body, WORK) * 2);
             }
+        }
+
+        if(maxIncome < currentIncome){
+            return maxIncome;
         }
         return currentIncome
     }

@@ -55,7 +55,7 @@ export class ObjectiveManager {
             })
         if (haulerCapacity === 0) return;
         const currentHaulObjective = this.objectives.find(objective => objective.type === roleContants.HAULING && objective.target === room.name);
-        const multiplier = 1.7;
+        const multiplier = 1.9;
         if (currentHaulObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.HAULING && objective.target === room.name) {
@@ -88,8 +88,8 @@ export class ObjectiveManager {
         if (objective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.UPGRADING && objective.target === room.name) {
-                    const energyPerTick = economy.getCurrentRoomIncome(room);
-                    objective.netEnergyIncome = economy.getCurrentRoomIncome(room);
+                    const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
+                    objective.netEnergyIncome = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
                     objective.maxHaulerParts = energyPerTick * (objective.distance / CARRY_CAPACITY);
                 }
             })
@@ -104,7 +104,7 @@ export class ObjectiveManager {
     private createUpgradingObjective(room: Room, controller: StructureController): UpgradeObjective | undefined {
         const route = pathing.findPath(room.find(FIND_MY_SPAWNS)[0].pos, controller.pos)
         if (route === undefined) return
-        const energyPerTick = economy.getCurrentRoomIncome(room);
+        const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
 
         return {
             controllerId: controller.id,
@@ -122,7 +122,8 @@ export class ObjectiveManager {
     }
 
     private getConstructionObjectives(room: Room) {
-        const objective = this.objectives.find(objective => objective.home === room.name && objective.type === roleContants.BUILDING);
+        if(room.memory.constructionOffice === undefined) return;
+        const objective = this.objectives.find(objective =>objective != undefined && objective.home === room.name && objective.type === roleContants.BUILDING);
         if(room.memory.constructionOffice.finished){
             for(const index in this.objectives){
                 const objective = this.objectives[index]
@@ -154,12 +155,12 @@ export class ObjectiveManager {
     private createBuildingObjective(room: Room, cSite: ConstructionSite): BuildingObjective | undefined {
         const route = pathing.findPath(room.find(FIND_MY_SPAWNS)[0].pos, cSite.pos)
         if (route === undefined) return
-        const energyPerTick = economy.getCurrentRoomIncome(room);
+        const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
 
         return {
             home: room.name,
             id: `${roleContants.BUILDING} ${room.name}`,
-            maxIncome: -energyPerTick/3,
+            maxIncome: -(energyPerTick - ((energyPerTick/6)*2)),
             target: room.name,
             targetId: cSite.id,
             progress: cSite.progress,
@@ -177,13 +178,14 @@ export class ObjectiveManager {
         let hitsToRepair = 0;
         let totalHits = 0;
         let ids: string[] = []
+        if(toRepair.length === 0) return;
         toRepair.forEach(structure =>{
             hitsToRepair += structure.hitsMax - structure.hits;
             totalHits += structure.hitsMax;
             ids.push(structure.id)
         });
         const hitsOverLifeTime = totalHits / CREEP_LIFE_TIME;
-        const currentObjective = this.objectives.find(objective => objective.type === roleContants.MAINTAINING && objective.home === room.name)
+        const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.MAINTAINING && objective.home === room.name)
         if(currentObjective != undefined){
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.MAINTAINING && objective.target === room.name) {
@@ -203,7 +205,7 @@ export class ObjectiveManager {
         return {
             home: room.name,
             id: `${roleContants.MAINTAINING} ${room.name}`,
-            maxIncome: -4,
+            maxIncome: -2,
             target: room.name,
             type: roleContants.MAINTAINING,
             priority: priority.medium,
@@ -229,6 +231,10 @@ export class ObjectiveManager {
     }
 
     getRoomHaulCapacity(room: Room) {
-        return (this.objectives.filter(objective => objective.type === roleContants.HAULING && objective.home === room.name)[0] as HaulingObjective).maxHaulerParts
+        const objective = (this.objectives.filter(objective => objective.type === roleContants.HAULING && objective.home === room.name)[0] as HaulingObjective);
+        if(objective != undefined){
+            return objective.maxHaulerParts
+        }
+        return 0
     }
 }

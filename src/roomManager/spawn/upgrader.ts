@@ -1,6 +1,6 @@
 import { UpgraderMemory } from "creeps/upgrading";
 import { Objective, UpgradeObjective, roleContants } from "objectives/objectiveInterfaces";
-import { EconomyService } from "services/economy.service";
+import { E_FOR_UPGRADER, EconomyService } from "services/economy.service";
 import { getWorkParts, createCreepBody, generateName } from "./helper";
 
 export class SpawnUpgrader {
@@ -20,9 +20,8 @@ export class SpawnUpgrader {
                 const memory = Memory.creeps[creep.name]
                 if (memory.role === roleContants.UPGRADING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
             }
-            const income = this.eco.getCurrentRoomIncome(room);
-            const divider = 1.7
-            const currNeed = this.eco.getCurrentRoomIncome(room) / divider;
+            const income = this.eco.getCurrentRoomIncome(room, unsorted);
+            const currNeed = income / E_FOR_UPGRADER;
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 retValue = this.spawnUpgrader(objective, room);
             }

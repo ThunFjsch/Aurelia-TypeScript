@@ -29,7 +29,7 @@ export function visualizeObjectives(objectives: Objective[]) {
                 haulerCapacity += objective.maxHaulerParts
             }
         });
-        info.push(`Income: ${eco.getCurrentRoomIncome(room)}/${income.toFixed(2)}  | ${(haulerCapacity).toFixed(2)}`);
+        info.push(`Income: ${eco.getCurrentRoomIncome(room, objectives).toFixed(2)}/${income.toFixed(2)}  | ${(haulerCapacity).toFixed(2)}`);
 
         drawTextBox(room, info, width, startX, startY);
     }

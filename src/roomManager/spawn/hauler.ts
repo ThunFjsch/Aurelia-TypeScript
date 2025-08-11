@@ -10,6 +10,7 @@ export class SpawnHauler {
 
     checkHaulObj(objectives: HaulingObjective[], room: Room, unsorted: Objective[], creeps: Creep[]) {
         let retValue = undefined
+        const income = this.eco.getCurrentRoomIncome(room, unsorted);
         objectives.forEach(objective => {
             let currCarry = 0;
             for (const index in Game.creeps) {
@@ -29,11 +30,8 @@ export class SpawnHauler {
 
                 if (objective.distance && hasCreeps > 0) dis += objective.distance
             })
-            const income = this.eco.getCurrentRoomIncome(room);
             const currentReq = this.eco.requiredHaulerParts(income, dis);
-            // TODO: Delete magic number when more effective traffic management is implemented
             if (currCarry < currentReq  && currCarry < objective.maxHaulerParts) {
-                console.log('spawn hauler')
                 retValue = this.spawnHauler(objective, room);
             }
         })
