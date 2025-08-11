@@ -1,9 +1,9 @@
-import { roleContants } from "objectives/objectiveInterfaces";
-import { ResourceService } from "services/resource.service";
+import { ResourceService, ResRole } from "services/resource.service";
 import { getEnergy } from "./creepHelper";
 
 export interface HaulerMemory extends CreepMemory {
     target?: any
+    take: ResRole
 }
 
 export class Hauling {

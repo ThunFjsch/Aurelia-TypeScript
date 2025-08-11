@@ -1,6 +1,6 @@
 import { PlacedStructure } from "roomManager/basePlanner/planner-interfaces";
 import { RCL } from "roomManager/constructionManager";
-import { ContiainerType } from "services/resource.service";
+import { ContiainerType, ResRole } from "services/resource.service";
 import { envManager } from "utils/logger/envManager";
 import { logger } from "utils/logger/logger";
 import { Point } from "utils/sharedTypes";
@@ -101,6 +101,7 @@ declare global {
 
     interface MaintainerMemory extends CreepMemory {
         target: string | undefined;
+        take: ResRole;
         repairTarget: string | undefined;
     }
 

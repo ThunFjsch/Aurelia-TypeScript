@@ -20,7 +20,8 @@ export class SpawnMaintainer {
             role: roleContants.MAINTAINING,
             target: objective.toRepair[0],
             working: false,
-            repairTarget: undefined
+            repairTarget: undefined,
+            take: "pickup"
         }
         const spawn = room.find(FIND_MY_SPAWNS)[0];
         if (!spawn.spawning) {

@@ -37,7 +37,7 @@ export class ResourceService {
                 this.updateCreatePickups(res, avgHauler, haulCapacity, prio);
             });
 
-        room.find(FIND_TOMBSTONES).filter(tomb => tomb.store.getUsedCapacity(RESOURCE_ENERGY)?? 0 > 0)
+        room.find(FIND_TOMBSTONES).filter(tomb => tomb.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
             .sort((a, b) => (a.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)) - (b.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
             .forEach(tomb => {
                 this.updateCreateWithdrawlRequest(tomb, avgHauler, priority.severe)

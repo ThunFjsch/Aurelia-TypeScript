@@ -1,5 +1,5 @@
-import { BuildingObjective } from "objectives/objectiveInterfaces";
 import { getCurrentConstruction } from "roomManager/constructionManager";
+import { helpAFriend } from "./creepHelper";
 
 export class Building {
     run(creep: Creep) {
@@ -16,6 +16,8 @@ export class Building {
             creep.memory = memory;
             return;
         }
+
+        helpAFriend(creep, memory);
 
         if(creep.pos.x === target.pos.x && creep.pos.y === target.pos.y){
             creep.moveTo(32,33)
