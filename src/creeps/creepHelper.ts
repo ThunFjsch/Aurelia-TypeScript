@@ -43,7 +43,7 @@ export function helpAFriend(creep: Creep, memory: CreepMemory) {
         }
     }
     if (creep.store.getCapacity(RESOURCE_ENERGY) > 0) {
-        const creeps = creep.room.find(FIND_CREEPS).filter(creep => creep.memory.role === memory.role)
+        const creeps = creep.room.find(FIND_CREEPS).filter(creep => creep != undefined && creep.memory != undefined && creep.memory.role === memory.role)
         for (let upgrader of creeps) {
             if (creep.name === upgrader.name) continue;
             if (creep.pos.inRangeTo(upgrader.pos.x, upgrader.pos.y, 1) && upgrader.store.getUsedCapacity(RESOURCE_ENERGY) < (upgrader.store.getCapacity() - 20)

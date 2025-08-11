@@ -17,6 +17,7 @@ export class MemoryService {
         for (let [name, room] of Object.entries(Game.rooms)) {
             if (room.controller?.my) {
                 myRooms.push(name)
+                this.initRoomMemory(room)
             }
         }
         return myRooms;

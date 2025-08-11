@@ -53,15 +53,16 @@ export class ResourceService {
 
         creeps.filter(creep => (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING) && creep.memory.home === room.name)
             .forEach(creep => {
-                this.updateCreateCreepTransfer(creep, avgHauler)
+                let prio: Priority = priority.medium
+                if(creep.memory.role === roleContants.UPGRADING) prio = priority.low
+                this.updateCreateCreepTransfer(creep, avgHauler, prio)
             })
 
         const myStructures = room.find(FIND_MY_STRUCTURES);
         myStructures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER)
             .forEach((structure) => {
-                let prio: Priority = priority.medium;
+                let prio: Priority = priority.high;
                 if (structure.structureType === STRUCTURE_SPAWN) prio = priority.high;
-                if (structure.structureType === STRUCTURE_TOWER) prio = priority.high;
                 this.updateCreateStructureTransfer(structure as StructuresToRefill, avgHauler, prio)
             })
 
@@ -83,7 +84,7 @@ export class ResourceService {
                     if(memory != undefined && memory.type === roleContants.MINING){
                         this.updateCreateWithdrawlRequest(container as StructureContainer, avgHauler, priority.medium)
                     } else if(memory != undefined && memory.type === roleContants.UPGRADING || memory?.type === roleContants.FASTFILLER){
-                        this.updateCreateStructureTransfer(container as StructureContainer, avgHauler, priority.medium)
+                        this.updateCreateStructureTransfer(container as StructureContainer, avgHauler, priority.low)
                     }
                 }
             })
@@ -115,7 +116,7 @@ export class ResourceService {
 
     private updateCreateStructureTransfer(struc: StructuresToRefill, avgHauler: number, prio: Priority = priority.medium) {
         let trips: number = this.getTrips(struc.store.getFreeCapacity(RESOURCE_ENERGY), avgHauler)
-        const amount = struc.store.getFreeCapacity(RESOURCE_ENERGY);
+        const amount = struc.store.getUsedCapacity(RESOURCE_ENERGY) - (struc.store.getCapacity()??0);
         const existingTask = this.taskList.find(task => task.targetId === struc.id);
         if (existingTask != undefined) {
             existingTask.maxAssigned = trips;
@@ -136,14 +137,10 @@ export class ResourceService {
         }
     }
 
-    private updateCreateCreepTransfer(creep: Creep, avgHauler: number) {
+    private updateCreateCreepTransfer(creep: Creep, avgHauler: number, prio: Priority) {
         let trips: number = this.getTrips(creep.store.getFreeCapacity(RESOURCE_ENERGY), avgHauler)
         const amount = creep.store.getFreeCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === creep.id);
-        let prio: number = priority.low;
-        if (creep.memory.role === roleContants.BUILDING) {
-            prio = priority.medium;
-        }
         if (existingTask != undefined) {
             existingTask.maxAssigned = trips;
             existingTask.amount = amount
@@ -154,7 +151,7 @@ export class ResourceService {
                 targetId: creep.id,
                 assigned: [],
                 maxAssigned: trips,
-                priority: prio as Priority,
+                priority: prio,
                 type: 'transfer',
                 amount: amount
             };
