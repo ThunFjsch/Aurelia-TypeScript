@@ -36,7 +36,8 @@ export class RoomManager {
             const room = Game.rooms[roomName];
 
             if (room.memory.respawn || room.memory === undefined) {
-                this.memoryService.initRoomMemory(room)
+                this.memoryService.initRoomMemory(room);
+                return
             }
 
             // The baseplanner is added in the initMemory but this allows for rebuilding the roomplan when I delete it.

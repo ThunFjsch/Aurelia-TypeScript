@@ -1,6 +1,6 @@
 import { priority } from "utils/sharedTypes";
 import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective } from "./objectiveInterfaces";
-import { EconomyService } from "services/economy.service";
+import { EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
 
@@ -55,15 +55,14 @@ export class ObjectiveManager {
             })
         if (haulerCapacity === 0) return;
         const currentHaulObjective = this.objectives.find(objective => objective.type === roleContants.HAULING && objective.target === room.name);
-        const multiplier = 1.9;
         if (currentHaulObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.HAULING && objective.target === room.name) {
-                    objective = this.createHaulObjective(room, haulerCapacity * multiplier);
+                    objective = this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER);
                 }
             })
         } else if (room.memory.isOwned) {
-            this.objectives.push(this.createHaulObjective(room, haulerCapacity * multiplier))
+            this.objectives.push(this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER))
         }
     }
 
@@ -105,17 +104,18 @@ export class ObjectiveManager {
         const route = pathing.findPath(room.find(FIND_MY_SPAWNS)[0].pos, controller.pos)
         if (route === undefined) return
         const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
-
+        const maxHaulerParts = energyPerTick * (route.cost / CARRY_CAPACITY)
+        const eToSpawnHaulers = (maxHaulerParts * (room.memory.hasRoads ? 75 : 100)) / CREEP_LIFE_TIME;
         return {
             controllerId: controller.id,
             home: room.name,
             id: `${roleContants.UPGRADING} ${room.name}`,
-            maxIncome: 0,
+            maxIncome: -eToSpawnHaulers,
             target: room.name,
             type: roleContants.UPGRADING,
             priority: priority.low,
             netEnergyIncome: energyPerTick,
-            maxHaulerParts: energyPerTick * (route.cost / CARRY_CAPACITY),
+            maxHaulerParts: maxHaulerParts,
             path: route.path,
             distance: route.cost
         }

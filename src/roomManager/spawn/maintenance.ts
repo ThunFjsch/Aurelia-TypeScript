@@ -1,7 +1,7 @@
 import { MaintenanceObjective, roleContants } from "objectives/objectiveInterfaces";
 import { createCreepBody, generateName, getWorkParts } from "./helper";
 
-const MaintananceThreshold = [0, 800, 1500, 3000, 6000, 12000, 24000, 48000, 94000]
+const MaintananceThreshold = [0, 600, 700, 800, 900, 1300, 1500, 3000]
 
 const maxHitsPerWorkPart = 3000;
 
@@ -22,7 +22,7 @@ export class SpawnMaintainer {
 
     spawnMaintainer(objective: MaintenanceObjective, room: Room) {
         const spawn = room.find(FIND_MY_SPAWNS)[0];
-        if (!spawn.spawning) {
+        if (spawn.spawning) {
             return undefined
         }
         const body = createCreepBody(objective, room)

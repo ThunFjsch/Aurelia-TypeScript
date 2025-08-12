@@ -61,7 +61,7 @@ export const settings: settings = {
         maxSelection: 10
     },
     visuals: {
-        allowVisuals: true,
+        allowVisuals: false,
         basePlanning: false,
         showStamps: true,
         distanceTransform: false,

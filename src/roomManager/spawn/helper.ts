@@ -6,11 +6,9 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
     const energyCap = room.energyCapacityAvailable
 
     if (objective.type === roleContants.MINING && currWorkParts < objective.maxWorkParts) {
-        if (numberOfStarters === 0 && energyCap < 500 || currWorkParts === 0) {
+        if (numberOfStarters === 0 || energyCap < 500) {
             return body = [WORK, WORK, MOVE];
-        } else if (energyCap > 400 && energyCap < 550) {
-            return body = [WORK, WORK, MOVE]
-        } if (energyCap >= 550) {
+        } else if (energyCap >= 550) {
             return body = [WORK, WORK, WORK, WORK, WORK, MOVE]
         }
     } else if (objective.type === roleContants.HAULING) {
@@ -19,10 +17,14 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room, energyCap)
-    } else if(objective.type === roleContants.BUILDING || objective.type === roleContants.MAINTAINING && currWorkParts < objective.maxWorkParts){
+    } else if(objective.type === roleContants.BUILDING){
         const preset = [WORK, CARRY, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room,  energyCap)
+    } else if(objective.type === roleContants.MAINTAINING && currWorkParts < objective.maxWorkParts) {
+        const preset = [WORK, CARRY, MOVE, MOVE]
+        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room,  energyCap)
     }
+
     return body;
 }
 

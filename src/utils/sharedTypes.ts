@@ -9,5 +9,6 @@ export const priority = {
     severe: 0,
     high: 1,
     medium: 2,
-    low: 3
+    low: 3,
+    veryLow: 4
 } as const;

@@ -11,7 +11,7 @@ export class Hauling {
         let memory = creep.memory as HaulerMemory
         // delete memory.target
         // creep.memory = memory;
-        if (creep.store.energy < (creep.store.getCapacity() / 8) + 1) {
+        if (creep.store.energy < (creep.store.getCapacity() / 3) + 1) {
             getEnergy(creep, memory, energyManager);
         } else {
             if (memory.target === undefined) {

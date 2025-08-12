@@ -29,7 +29,7 @@ const rclAvailableStructures: RCLAvailableStructures = {
         [STRUCTURE_CONTAINER]: 5,
         [STRUCTURE_TOWER]: 2,
         [STRUCTURE_STORAGE]: 1,
-        [STRUCTURE_ROAD]: 100,
+        [STRUCTURE_ROAD]: 0,
         [STRUCTURE_RAMPART]: Infinity
     },
     6: {
@@ -81,14 +81,14 @@ export function constructionManager(room: Room) {
     const rcl = controller.level as RCL;
 
     if (room.memory.constructionOffice.lastJob < rcl && room.memory.constructionOffice.finished && room.memory.constructionOffice.plans.length === 0) {
-        createConstructionPlan(room, rcl);
+        // createConstructionPlan(room, rcl);
     }
     else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length === 0) {
         room.memory.constructionOffice.finished = true;
     }
     else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length > 0) {
         const cSites = room.find(FIND_CONSTRUCTION_SITES);
-        if (cSites.length === 0) {
+        if (cSites != undefined && cSites.length === 0) {
             const nextPlan = room.memory.constructionOffice.plans[0]
             const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
             if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
@@ -96,7 +96,9 @@ export function constructionManager(room: Room) {
             }
         }
     } else if (room.memory.constructionOffice.finished && room.memory.constructionOffice.lastJob === rcl) {
-        checkForFinish(room, rcl);
+        if(Game.time % 1000 === 0){
+            checkForFinish(room, rcl);
+        }
     }
 }
 
@@ -107,7 +109,6 @@ function checkForFinish(room: Room, rcl: RCL) {
     const memory = room.memory
     for (let index in remainingStructure) {
         let remaining = remainingStructure[index as StructureConstant]?.valueOf() ?? 0;
-        console.log(JSON.stringify(index + remaining))
         if (0 < remaining) {
             if(memory.basePlanner.stamps === undefined){
                 memory.basePlanner.stamps = []
@@ -137,6 +138,7 @@ function createConstructionPlan(room: Room, rcl: RCL) {
     const remainingStructures = getRemainingStructure(rcl, currentStructures);
 
     for(let constant in remainingStructures){
+        console.log(Game.cpu.getUsed())
         const structure = remainingStructures[constant as StructureConstant]?.valueOf() ?? 0
         const buildTo = currentStructures[constant as StructureConstant]?.valueOf() ?? 0
 
