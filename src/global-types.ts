@@ -65,7 +65,9 @@ declare global {
 
     interface ContainerMemory{
         id: string;
+        source: string | undefined;
         type: ContiainerType;
+        fastFillerSpots: Point[] | undefined
     }
 
     interface ConstructionOffice{
@@ -91,7 +93,13 @@ declare global {
 
     interface MinerMemory extends CreepMemory {
         route: RoomPosition[];
+        containerPos: Point | undefined;
         sourceId: string;
+    }
+
+    interface FastFillerMemory extends CreepMemory {
+        pos: Point;
+        supply: string
     }
 
     interface BuilderMemory extends CreepMemory {

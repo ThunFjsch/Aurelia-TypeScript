@@ -6,10 +6,17 @@ export class Miner {
         if (source.energyCapacity > 0) {
             let harvest = -6;
             if(creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
+                if(memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)){
+                    creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                }
                 harvest = creep.harvest(source);
             }
             if (harvest != OK) {
-                creep.moveTo(source);
+                if(memory.containerPos != undefined && (memory.containerPos.x || creep.pos.y != memory.containerPos.y)){
+                    creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                } else{
+                    creep.moveTo(source);
+                }
             } else{
                 if(memory.working === false){
                     memory.working = true;

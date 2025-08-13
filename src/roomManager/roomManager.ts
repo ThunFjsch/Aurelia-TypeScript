@@ -1,7 +1,7 @@
 import { MemoryService } from "services/memory.service";
 import { Planner } from "./basePlanner/planner";
 import { ObjectiveManager } from "objectives/objectiveManager";
-import { SpawnManager } from "roomManager/spawn/spawnManager";
+import { SpawnManager } from "roomManager/spawnManager";
 import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn/helper";

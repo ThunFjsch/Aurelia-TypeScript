@@ -14,12 +14,14 @@ export interface Task {
     maxAssigned: number;
     transferType: ResRole;
     amount: number;
+    StructureType: StructureConstant | undefined
     ResourceType: ResourceConstant;
 }
 
 export declare type ContiainerType = roleContants.FASTFILLER | roleContants.MINING | roleContants.UPGRADING
 
 declare type StructuresToRefill = StructureSpawn | StructureExtension | StructureTower | StructureContainer | StructureStorage;
+declare type withdrawlToTakeFrom = Ruin | AnyStoreStructure | Tombstone;
 
 export class ResourceService {
     taskList: Task[] = [];
@@ -33,48 +35,32 @@ export class ResourceService {
 
         const rcl: RCL = (room.controller?.level ?? 0) as RCL;
 
-        let prio: Priority = priority.medium;
-        const droppedRes = room.find(FIND_DROPPED_RESOURCES);
-        droppedRes
-            .filter(res => res.resourceType === RESOURCE_ENERGY)
-            .sort((a, b) => (a.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)) - (b.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
-            .forEach(res => {
-                this.updateCreatePickups(res, avgHauler, haulCapacity, prio);
-            });
-
-        room.find(FIND_TOMBSTONES).filter(tomb => tomb.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
-            .sort((a, b) => (a.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)) - (b.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
-            .forEach(tomb => {
-                this.updateCreateWithdrawlRequest(tomb, avgHauler, priority.severe)
-            });
-
-        room.find(FIND_RUINS).filter(ruin => ruin.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 > 0)
-            .sort((a, b) => (a.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)) - (b.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
-            .forEach(ruin => {
-                this.updateCreateWithdrawlRequest(ruin, avgHauler, priority.severe)
-            });
-
-        this.taskList.sort((a, b) => a.priority - b.priority)
-
-        creeps.filter(creep => (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING) && creep.memory.home === room.name)
-            .forEach(creep => {
-                let prio: Priority = priority.high
-                if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
-                this.updateCreateCreepTransfer(creep, avgHauler, prio)
-            })
-
-        const myStructures = room.find(FIND_MY_STRUCTURES);
-        myStructures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER)
-            .forEach((structure) => {
-                let prio: Priority = priority.high;
-                if (structure.structureType === STRUCTURE_SPAWN) prio = priority.high;
-                this.updateCreateStructureTransfer(structure as StructuresToRefill, avgHauler, prio)
-            })
-
         const storage = room.find(FIND_MY_STRUCTURES).find(structure => structure.structureType === STRUCTURE_STORAGE) as StructureStorage
         this.storageRequests(storage, rcl, avgHauler);
-
         const structures = room.find(FIND_STRUCTURES);
+
+        let prio: Priority = priority.medium;
+        if (rcl === 4 && storage != undefined) {
+
+            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[])
+        } else {
+            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[])
+        }
+    }
+
+    generateERequests(creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, room: Room, structures: AnyStoreStructure[]) {
+        room.find(FIND_DROPPED_RESOURCES)
+            .filter(res => res.resourceType === RESOURCE_ENERGY)
+            .sort((a, b) => (a.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
+                - (b.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
+            .forEach(res => {
+                this.updateCreatePickups(res, avgHauler, haulCapacity, priority.medium);
+            });
+
+        this.generateEWithdrawlRequets(room.find(FIND_TOMBSTONES), avgHauler, priority.severe);
+        this.generateEWithdrawlRequets(room.find(FIND_RUINS), avgHauler, priority.severe);
+        this.generateETransferRequests(creeps, avgHauler, structures, room);
+
         const containers = structures.filter(stucture => stucture.structureType === STRUCTURE_CONTAINER);
         if (containers.length > 0 && room.memory.containers != undefined) {
             containers.forEach(container => {
@@ -90,13 +76,45 @@ export class ResourceService {
                     this.memoryService.initContainerMemory(container as StructureContainer, room)
                 } else {
                     if (memory != undefined && memory.type === roleContants.MINING) {
-                        this.updateCreateWithdrawlRequest(container as StructureContainer, avgHauler, priority.medium)
-                    } else if (memory != undefined && memory.type === roleContants.UPGRADING || memory?.type === roleContants.FASTFILLER) {
-                        this.updateCreateStructureTransfer(container as StructureContainer, avgHauler, priority.low)
+                        container.store.getCapacity(RESOURCE_ENERGY)
+                        this.updateCreateWithdrawlRequest(container as StructureContainer, avgHauler, priority.severe)
+                    } else if (memory != undefined && memory.type === roleContants.UPGRADING) {
+                        this.updateCreateTransfer(container as StructureContainer, avgHauler, priority.low)
+                    } else if (memory != undefined && memory?.type === roleContants.FASTFILLER) {
+                        this.updateCreateTransfer(container as StructureContainer, avgHauler, priority.high)
                     }
                 }
             })
         }
+        this.taskList.sort((a, b) => a.priority - b.priority)
+    }
+
+    generateEWithdrawlRequets(elements: withdrawlToTakeFrom[], avgHauler: number, prio: Priority) {
+        elements.filter(item => item.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
+            .sort((a, b) => (a.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
+                - (b.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
+            .forEach(item => {
+                this.updateCreateWithdrawlRequest(item, avgHauler, prio)
+            });
+
+    }
+
+    generateETransferRequests(creeps: Creep[], avgHauler: number, structures: AnyStoreStructure[], room: Room) {
+        creeps.filter(creep => (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING) && creep.memory.home === room.name)
+            .forEach(creep => {
+                let prio: Priority = priority.medium
+                if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
+                this.updateCreateTransfer(creep, avgHauler, prio)
+            })
+        // Container and Storage is here not included. These are processes seperatly
+        structures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER)
+            .forEach((structure) => {
+                let prio: Priority = priority.high;
+                if (structure.structureType === STRUCTURE_SPAWN) prio = priority.high;
+                this.updateCreateTransfer(structure as StructuresToRefill, avgHauler, prio)
+            })
+
+
     }
 
     storageRequests(storage: StructureStorage, rcl: RCL, avgHauler: number) {
@@ -121,7 +139,8 @@ export class ResourceService {
                         priority: priority.medium,
                         transferType: 'transfer',
                         amount: amount,
-                        ResourceType: RESOURCE_ENERGY
+                        ResourceType: RESOURCE_ENERGY,
+                        StructureType: storage.structureType
                     };
 
                     this.taskList.push(newTask);
@@ -142,7 +161,8 @@ export class ResourceService {
                         priority: priority.high,
                         transferType: 'withdrawl',
                         amount: amount,
-                        ResourceType: RESOURCE_ENERGY
+                        ResourceType: RESOURCE_ENERGY,
+                        StructureType: storage.structureType
                     };
 
                     this.taskList.push(newTask);
@@ -151,7 +171,7 @@ export class ResourceService {
         }
     }
 
-    updateCreateWithdrawlRequest(target: Tombstone | Ruin | StructureContainer | StructureStorage, avgHauler: number, prio: Priority) {
+    updateCreateWithdrawlRequest(target: withdrawlToTakeFrom, avgHauler: number, prio: Priority) {
         let trips: number = this.getTrips(target.store.getUsedCapacity(RESOURCE_ENERGY), avgHauler)
         const amount = target.store.getUsedCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === target.id);
@@ -159,6 +179,10 @@ export class ResourceService {
             existingTask.maxAssigned = trips;
             existingTask.amount = amount
         } else {
+            let strucType = undefined;
+            if ((target as AnyStoreStructure).structureType != undefined) {
+                strucType = (target as AnyStoreStructure).structureType;
+            }
             // Create new task
             const newTask: Task = {
                 id: target.id,
@@ -168,16 +192,17 @@ export class ResourceService {
                 priority: prio,
                 transferType: 'withdrawl',
                 amount: amount,
-                ResourceType: RESOURCE_ENERGY
+                ResourceType: RESOURCE_ENERGY,
+                StructureType: strucType
             };
 
             this.taskList.push(newTask);
         }
     }
 
-    private updateCreateStructureTransfer(struc: StructuresToRefill, avgHauler: number, prio: Priority = priority.medium) {
+    private updateCreateTransfer(struc: StructuresToRefill | Creep, avgHauler: number, prio: Priority = priority.medium) {
         let trips: number = this.getTrips(struc.store.getFreeCapacity(RESOURCE_ENERGY), avgHauler)
-        const amount = struc.store.getUsedCapacity(RESOURCE_ENERGY) - (struc.store.getCapacity() ?? 0);
+        const amount = struc.store.getFreeCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === struc.id);
         if (existingTask != undefined) {
             existingTask.maxAssigned = trips;
@@ -192,31 +217,8 @@ export class ResourceService {
                 priority: prio,
                 transferType: 'transfer',
                 amount: amount,
-                ResourceType: RESOURCE_ENERGY
-            };
-
-            this.taskList.push(newTask);
-        }
-    }
-
-    private updateCreateCreepTransfer(creep: Creep, avgHauler: number, prio: Priority) {
-        let trips: number = this.getTrips(creep.store.getFreeCapacity(RESOURCE_ENERGY), avgHauler)
-        const amount = creep.store.getFreeCapacity(RESOURCE_ENERGY);
-        const existingTask = this.taskList.find(task => task.targetId === creep.id);
-        if (existingTask != undefined) {
-            existingTask.maxAssigned = trips;
-            existingTask.amount = amount
-        } else {
-            // Create new task
-            const newTask: Task = {
-                id: creep.id,
-                targetId: creep.id,
-                assigned: [],
-                maxAssigned: trips,
-                priority: prio,
-                transferType: 'transfer',
-                amount: amount,
-                ResourceType: RESOURCE_ENERGY
+                ResourceType: RESOURCE_ENERGY,
+                StructureType: (struc as AnyStoreStructure).structureType
             };
 
             this.taskList.push(newTask);
@@ -250,7 +252,8 @@ export class ResourceService {
                 priority: prio,
                 transferType: 'pickup',
                 amount: res.amount,
-                ResourceType: RESOURCE_ENERGY
+                ResourceType: RESOURCE_ENERGY,
+                StructureType: undefined
             };
 
             this.taskList.push(newTask);
@@ -267,8 +270,13 @@ export class ResourceService {
     }
 
     assignToTask(creep: Creep, type: ResRole): string | undefined {
+        const rcl = creep.room.controller?.level?? 0;
+
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
+                if(rcl <= 3){
+                    if(creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                }
                 task.assigned.push(creep.name);
                 return task.targetId;
             }

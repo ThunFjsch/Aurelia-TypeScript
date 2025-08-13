@@ -15,8 +15,10 @@ export function constructionVisuals(room: Room){
     }
     if(conInfo.plans != undefined){
         conInfo.plans.forEach(plan => {
-            info.push(`${plan.type} | ${plan.x}/${plan.y}`)
-            room.visual.circle(plan.x, plan.y, {fill: interfaceBorder})
+            if(plan != null){
+                info.push(`${plan.type} | ${plan.x}/${plan.y}`)
+                room.visual.circle(plan.x, plan.y, {fill: interfaceBorder})
+            }
         })
     }
     drawTextBox(room, info, width, startX, startY);

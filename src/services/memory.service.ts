@@ -63,7 +63,9 @@ export class MemoryService {
             if(container.pos.inRangeTo(controller.pos.x, controller.pos.y, 4)){
                 const info: ContainerMemory = {
                     id: container.id,
-                    type: roleContants.UPGRADING
+                    type: roleContants.UPGRADING,
+                    fastFillerSpots: undefined,
+                    source: undefined
                 }
                 room.memory.containers.push(info)
                 return
@@ -73,7 +75,9 @@ export class MemoryService {
             if(container.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
                 const info: ContainerMemory = {
                     id: container.id,
-                    type: roleContants.MINING
+                    source: source.id,
+                    type: roleContants.MINING,
+                    fastFillerSpots: [{x: container.pos.x, y: container.pos.y}]
                 }
                 room.memory.containers.push(info)
                 return
@@ -82,9 +86,22 @@ export class MemoryService {
         room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_EXTENSION)
             .forEach(extension => {
                 if(container.pos.inRangeTo(extension.pos.x, extension.pos.y, 1)){
+                    let spots = []
+                if(room.lookAt(container.pos.x -2, container.pos.y - 2).find(item => item.structure != undefined)){
+                    spots.push({x: container.pos.x - 1, y: container.pos.y - 1})
+                }
+                if(room.lookAt(container.pos.x + 2, container.pos.y - 2).find(item => item.structure != undefined)){
+                    spots.push({x: container.pos.x + 1, y: container.pos.y - 1})
+                }
+                if(room.lookAt(container.pos.x + 2, container.pos.y + 2).find(item => item.structure != undefined)){
+                    spots.push({x: container.pos.x + 1, y: container.pos.y + 1})
+                }
                 const info: ContainerMemory = {
                     id: container.id,
-                    type: roleContants.FASTFILLER
+                    type: roleContants.FASTFILLER,
+                    fastFillerSpots: spots,
+                    source: undefined
+
                 }
                 room.memory.containers.push(info)
                 return
