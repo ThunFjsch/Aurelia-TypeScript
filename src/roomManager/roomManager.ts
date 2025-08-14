@@ -35,6 +35,10 @@ export class RoomManager {
             const roomName = Memory.myRooms[index];
             const room = Game.rooms[roomName];
 
+            if(Game.time % 1500 === 0){
+                room.memory.containers = []
+            }
+
             if (room.memory.respawn || room.memory === undefined) {
                 this.memoryService.initRoomMemory(room);
                 return

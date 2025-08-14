@@ -73,7 +73,13 @@ const rclAvailableStructures: RCLAvailableStructures = {
 }
 
 export function constructionManager(room: Room) {
-    if (room.memory.constructionOffice === undefined) return;
+    if (room.memory.constructionOffice === undefined){
+        room.memory.constructionOffice = {
+            finished: true,
+            lastJob: 1,
+            plans: []
+        }
+    }
 
     const controller = room.controller;
     if (!controller) return;
@@ -81,7 +87,7 @@ export function constructionManager(room: Room) {
     const rcl = controller.level as RCL;
 
     if (room.memory.constructionOffice.lastJob < rcl && room.memory.constructionOffice.finished && room.memory.constructionOffice.plans.length === 0) {
-        // createConstructionPlan(room, rcl);
+        createConstructionPlan(room, rcl);
     }
     else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length === 0) {
         room.memory.constructionOffice.finished = true;
@@ -90,6 +96,7 @@ export function constructionManager(room: Room) {
         const cSites = room.find(FIND_CONSTRUCTION_SITES);
         if (cSites != undefined && cSites.length === 0) {
             const nextPlan = room.memory.constructionOffice.plans[0]
+            if(nextPlan === null) return room.memory.constructionOffice.finished = true;
             const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
             if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
                 room.memory.constructionOffice.plans.shift()
@@ -100,6 +107,7 @@ export function constructionManager(room: Room) {
             checkForFinish(room, rcl);
         }
     }
+    return;
 }
 
 function checkForFinish(room: Room, rcl: RCL) {
@@ -117,7 +125,6 @@ function checkForFinish(room: Room, rcl: RCL) {
                 if(stamp.type != index) continue;
                 const structures = room.lookAt(stamp.x, stamp.y).find(look => look.structure?.structureType === index && look.structure?.structureType === stamp.type);
                 if (remaining > 0 && structures === undefined) {
-                    console.log("stamp" +JSON.stringify(stamp))
                     memory.constructionOffice.plans.push(stamp);
                     remaining--;
                 }

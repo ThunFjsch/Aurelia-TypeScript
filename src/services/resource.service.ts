@@ -54,7 +54,7 @@ export class ResourceService {
             .sort((a, b) => (a.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
                 - (b.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
             .forEach(res => {
-                this.updateCreatePickups(res, avgHauler, haulCapacity, priority.medium);
+                this.updateCreatePickups(res, avgHauler, haulCapacity, priority.low);
             });
 
         this.generateEWithdrawlRequets(room.find(FIND_TOMBSTONES), avgHauler, priority.severe);
@@ -274,7 +274,7 @@ export class ResourceService {
 
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
-                if(rcl <= 3){
+                if(rcl >= 3){
                     if(creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
                 }
                 task.assigned.push(creep.name);

@@ -19,6 +19,10 @@ export class Maintaining {
                 this.setNewTarget(creep, memory)
             }
             const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
+            if(target.hits === target.hitsMax){
+                this.setNewTarget(creep, memory);
+                return;
+            }
             let repair: number = ERR_NOT_IN_RANGE
             if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2)) {
                 repair = creep.repair(target);
@@ -35,6 +39,7 @@ export class Maintaining {
     setNewTarget(creep: Creep, memory: MaintainerMemory): void {
         const objective = this.objectiveManager.getRoomObjectives(creep.room)
             .find(objective => objective.type === creep.memory.role && objective.home === creep.memory.home) as MaintenanceObjective;
+        if(objective === undefined) return;
         memory.repairTarget = objective.toRepair[0];
         creep.memory = memory;
     }

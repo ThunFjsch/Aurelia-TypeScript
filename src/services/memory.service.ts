@@ -46,7 +46,7 @@ export class MemoryService {
             isOwned: true,
             remotes: [],
             hasRoads: false,
-            basePlanner: {startlocation:{x: 0, y:0, score: 0}},
+            basePlanner: { startlocation: { x: 0, y: 0, score: 0 } },
             constructionOffice: {
                 finished: true,
                 lastJob: 0,
@@ -57,10 +57,17 @@ export class MemoryService {
         planner.startRoomPlanner(room, spawn)
     }
 
-    initContainerMemory(container: StructureContainer, room: Room){
+    initContainerMemory(container: StructureContainer, room: Room) {
         const controller = room.controller
-        if(controller != undefined){
-            if(container.pos.inRangeTo(controller.pos.x, controller.pos.y, 4)){
+        let exists = false;
+        room.memory.containers.forEach(memContainer => {
+            if (memContainer.id === container.id) exists = true;
+        })
+        if (exists) return;
+
+        // check for upgrade container
+        if (controller != undefined) {
+            if (container.pos.inRangeTo(controller.pos.x, controller.pos.y, 4)) {
                 const info: ContainerMemory = {
                     id: container.id,
                     type: roleContants.UPGRADING,
@@ -71,42 +78,56 @@ export class MemoryService {
                 return
             }
         }
+
+        // check for source container
         room.find(FIND_SOURCES).forEach(source => {
-            if(container.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
+            if (container.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
                 const info: ContainerMemory = {
                     id: container.id,
                     source: source.id,
                     type: roleContants.MINING,
-                    fastFillerSpots: [{x: container.pos.x, y: container.pos.y}]
+                    fastFillerSpots: [{ x: container.pos.x, y: container.pos.y }]
                 }
                 room.memory.containers.push(info)
                 return
             }
         })
+
+        // check for fast filler container
+        let isNearSource = false;
+        room.find(FIND_SOURCES).forEach(source => {
+            if (source.pos.inRangeTo(container.pos.x, container.pos.y, 1)) {
+                isNearSource = true
+            }
+        })
+        if (isNearSource) return;
+        let isNearExtension = false
         room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_EXTENSION)
             .forEach(extension => {
-                if(container.pos.inRangeTo(extension.pos.x, extension.pos.y, 1)){
-                    let spots = []
-                if(room.lookAt(container.pos.x -2, container.pos.y - 2).find(item => item.structure != undefined)){
-                    spots.push({x: container.pos.x - 1, y: container.pos.y - 1})
+                if (extension.pos.inRangeTo(container.pos.x, container.pos.y, 2)) {
+                    isNearExtension = true
                 }
-                if(room.lookAt(container.pos.x + 2, container.pos.y - 2).find(item => item.structure != undefined)){
-                    spots.push({x: container.pos.x + 1, y: container.pos.y - 1})
-                }
-                if(room.lookAt(container.pos.x + 2, container.pos.y + 2).find(item => item.structure != undefined)){
-                    spots.push({x: container.pos.x + 1, y: container.pos.y + 1})
-                }
-                const info: ContainerMemory = {
-                    id: container.id,
-                    type: roleContants.FASTFILLER,
-                    fastFillerSpots: spots,
-                    source: undefined
-
-                }
-                room.memory.containers.push(info)
-                return
-            }
             })
-    }
+        if (isNearExtension) {
+            let spots = []
+            if (room.lookAt(container.pos.x - 2, container.pos.y - 2).find(item => item.structure != undefined)) {
+                spots.push({ x: container.pos.x - 1, y: container.pos.y - 1 })
+            }
+            if (room.lookAt(container.pos.x + 2, container.pos.y - 2).find(item => item.structure != undefined)) {
+                spots.push({ x: container.pos.x + 1, y: container.pos.y - 1 })
+            }
+            if (room.lookAt(container.pos.x + 2, container.pos.y + 2).find(item => item.structure != undefined)) {
+                spots.push({ x: container.pos.x + 1, y: container.pos.y + 1 })
+            }
+            const info: ContainerMemory = {
+                id: container.id,
+                type: roleContants.FASTFILLER,
+                fastFillerSpots: spots,
+                source: undefined
 
+            }
+            room.memory.containers.push(info);
+            return
+        }
+    }
 }
