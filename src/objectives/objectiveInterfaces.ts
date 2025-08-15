@@ -47,10 +47,15 @@ export interface MaintenanceObjective extends BaseObjective{
     hitsOverLifeTime: number;
 }
 
+export interface ScoutingObjective extends BaseObjective{
+    type:roleContants.SCOUTING;
+    toScout: ScoutPlan[]
+}
+
 // ... other objective types for defense, claiming, expansion, etc.
 
-export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective | MaintenanceObjective;
-export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING | roleContants.MAINTAINING
+export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective | MaintenanceObjective | ScoutingObjective;
+export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING | roleContants.MAINTAINING | roleContants.SCOUTING
 
 export enum roleContants {
     MINING = 'mining',
@@ -58,5 +63,6 @@ export enum roleContants {
     UPGRADING = 'upgrading',
     BUILDING = 'building',
     MAINTAINING = 'maintaining',
-    FASTFILLER = "fastfiller"
+    FASTFILLER = 'fastfiller',
+    SCOUTING = 'scouting'
 }

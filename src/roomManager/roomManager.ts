@@ -7,6 +7,7 @@ import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn/helper";
 import { constructionManager } from "./constructionManager";
 import { Tower } from "structures/tower";
+import { ScoutingService } from "services/scouting.service";
 
 const spawnManager = new SpawnManager();
 const towerControle = new Tower();
@@ -20,11 +21,12 @@ export class RoomManager {
     objectiveManager: ObjectiveManager;
     creeps: Creep[] = [];
     resourceService: ResourceService;
-
-    constructor(MemoryService: MemoryService, ObjectiveManager: ObjectiveManager, Resource: ResourceService) {
+    scoutingService: ScoutingService;
+    constructor(MemoryService: MemoryService, ObjectiveManager: ObjectiveManager, Resource: ResourceService, ScoutingService: ScoutingService) {
         this.memoryService = MemoryService;
         this.objectiveManager = ObjectiveManager;
         this.resourceService = Resource;
+        this.scoutingService = ScoutingService;
         Object.entries(Game.creeps).forEach((key) => {
             this.creeps.push(key[1])
         })
@@ -42,6 +44,10 @@ export class RoomManager {
             if (room.memory.respawn || room.memory === undefined) {
                 this.memoryService.initRoomMemory(room);
                 return
+            }
+
+            if(room.memory.scoutPlan === undefined){
+                room.memory.scoutPlan = this.scoutingService.getRoomScoutRoute(room)
             }
 
             // The baseplanner is added in the initMemory but this allows for rebuilding the roomplan when I delete it.

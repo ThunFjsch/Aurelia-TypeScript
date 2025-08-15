@@ -10,12 +10,14 @@ import { ObjectiveManager } from "objectives/objectiveManager";
 import { runRole } from "creeps/creeps";
 import { ResourceService } from "services/resource.service";
 import profiler from "screeps-profiler";
+import { ScoutingService } from "services/scouting.service";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
 const objectiveManager = new ObjectiveManager();
 const resourceService = new ResourceService(memoryService);
-const roomManager = new RoomManager(memoryService, objectiveManager, resourceService);
+const scoutingService = new ScoutingService();
+const roomManager = new RoomManager(memoryService, objectiveManager, resourceService, scoutingService);
 const visualizer = new Visualizer()
 
 assignGlobals();

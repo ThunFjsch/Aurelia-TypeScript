@@ -1,5 +1,5 @@
 import { priority } from "utils/sharedTypes";
-import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective } from "./objectiveInterfaces";
+import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective } from "./objectiveInterfaces";
 import { EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
@@ -19,7 +19,7 @@ export class ObjectiveManager {
         if (Memory.respawn) return;
         for (const [index, source] of Memory.sourceInfo.entries()) {
             if (this.objectives.find(obj => obj.id === source.id) != undefined) continue;
-
+            if(source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) return;
             let objective: MiningObjective | undefined = undefined;
             if (source.roomName === room.name) {
                 objective = {
@@ -122,18 +122,18 @@ export class ObjectiveManager {
     }
 
     private getConstructionObjectives(room: Room) {
-        if(room.memory.constructionOffice === undefined) return;
-        const objective = this.objectives.find(objective =>objective != undefined && objective.home === room.name && objective.type === roleContants.BUILDING);
-        if(room.memory.constructionOffice.finished){
-            for(const index in this.objectives){
+        if (room.memory.constructionOffice === undefined) return;
+        const objective = this.objectives.find(objective => objective != undefined && objective.home === room.name && objective.type === roleContants.BUILDING);
+        if (room.memory.constructionOffice.finished) {
+            for (const index in this.objectives) {
                 const objective = this.objectives[index]
-                if(objective.home === room.name && objective.type === roleContants.BUILDING){
+                if (objective.home === room.name && objective.type === roleContants.BUILDING) {
                     delete this.objectives[index]
                 }
             }
         }
         const currentSite = getCurrentConstruction(room)
-        if(currentSite === undefined) return;
+        if (currentSite === undefined) return;
         const cSite = Game.getObjectById(currentSite)
         if (cSite === null) return;
         if (objective != undefined) {
@@ -160,7 +160,7 @@ export class ObjectiveManager {
         return {
             home: room.name,
             id: `${roleContants.BUILDING} ${room.name}`,
-            maxIncome: -(energyPerTick - ((energyPerTick/6)*2)),
+            maxIncome: -(energyPerTick - ((energyPerTick / 6) * 2)),
             target: room.name,
             targetId: cSite.id,
             progress: cSite.progress,
@@ -173,20 +173,20 @@ export class ObjectiveManager {
         }
     }
 
-    private getMaintenanceObjective(room: Room){
+    private getMaintenanceObjective(room: Room) {
         const toRepair = room.find(FIND_STRUCTURES).filter(structure => structure.hits < structure.hitsMax && structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
         let hitsToRepair = 0;
         let totalHits = 0;
         let ids: string[] = []
-        if(toRepair.length === 0) return;
-        toRepair.forEach(structure =>{
+        if (toRepair.length === 0) return;
+        toRepair.forEach(structure => {
             hitsToRepair += structure.hitsMax - structure.hits;
             totalHits += structure.hitsMax;
             ids.push(structure.id)
         });
         const hitsOverLifeTime = totalHits / CREEP_LIFE_TIME;
         const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.MAINTAINING && objective.home === room.name)
-        if(currentObjective != undefined){
+        if (currentObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.MAINTAINING && objective.target === room.name) {
                     objective.hitsOverLifeTime = hitsOverLifeTime;
@@ -201,7 +201,7 @@ export class ObjectiveManager {
         }
     }
 
-    private createMaintainanceObjective(room: Room, toRepair: string[], hitsOverLifeTime: number): MaintenanceObjective | undefined{
+    private createMaintainanceObjective(room: Room, toRepair: string[], hitsOverLifeTime: number): MaintenanceObjective | undefined {
         return {
             home: room.name,
             id: `${roleContants.MAINTAINING} ${room.name}`,
@@ -217,12 +217,47 @@ export class ObjectiveManager {
         }
     }
 
+    private getScoutObjective(room: Room) {
+       if(room.memory.scoutPlan === undefined) return;
+        const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.SCOUTING && objective.home === room.name)
+        if (currentObjective != undefined) {
+            this.objectives.map(objective => {
+                if (objective.home === room.name && objective.type === roleContants.SCOUTING && objective.target === room.name) {
+                    if(room.memory.scoutPlan != undefined){
+                        objective.toScout = room.memory.scoutPlan;
+                    }
+                }
+            })
+        } else {
+            const newObjective = this.createScoutingObjective(room);
+            if(newObjective != undefined){
+                this.objectives.push(newObjective)
+            }
+        }
+    }
+
+    private createScoutingObjective(room: Room): ScoutingObjective | undefined{
+        if(room.memory.scoutPlan === undefined) return;
+        return {
+            distance: 0,
+            home: room.name,
+            id: roleContants.MINING+room.name,
+            maxHaulerParts: 0,
+            maxIncome: 0,
+            priority: priority.high,
+            target: '',
+            toScout: room.memory.scoutPlan,
+            type: roleContants.SCOUTING
+        }
+    }
+
     syncRoomObjectives(room: Room): void {
         this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
         this.getHaulObjectives(room, this.objectives);
         this.getConstructionObjectives(room);
-        this.getMaintenanceObjective(room)
+        this.getMaintenanceObjective(room);
+        this.getScoutObjective(room)
         // plus others;
     }
 
@@ -232,7 +267,7 @@ export class ObjectiveManager {
 
     getRoomHaulCapacity(room: Room) {
         const objective = (this.objectives.filter(objective => objective.type === roleContants.HAULING && objective.home === room.name)[0] as HaulingObjective);
-        if(objective != undefined){
+        if (objective != undefined) {
             return objective.maxHaulerParts
         }
         return 0

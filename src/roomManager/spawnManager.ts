@@ -1,4 +1,4 @@
-import { BuildingObjective, HaulingObjective, MaintenanceObjective, MiningObjective, Objective, roleContants, UpgradeObjective } from "objectives/objectiveInterfaces";
+import { BuildingObjective, HaulingObjective, MaintenanceObjective, MiningObjective, Objective, roleContants, ScoutingObjective, UpgradeObjective } from "objectives/objectiveInterfaces";
 import { EconomyService } from "services/economy.service";
 import { priority } from "utils/sharedTypes";
 import { SpawnHauler } from "./spawn/hauler";
@@ -7,6 +7,7 @@ import { SpawnUpgrader } from "./spawn/upgrader";
 import { SpawnBuiilder } from "./spawn/builder";
 import { SpawnMaintainer } from "./spawn/maintenance";
 import { SpawnFastFiller } from "./spawn/fastFiller";
+import { SpawnScout } from "./spawn/scout";
 
 const eco = new EconomyService();
 const spawnMiner = new SpawnMiner();
@@ -14,7 +15,8 @@ const spawnHauler = new SpawnHauler(eco);
 const spawnUpgrader = new SpawnUpgrader(eco);
 const spawnBuilder = new SpawnBuiilder(eco)
 const spawnMaintainer = new SpawnMaintainer();
-const spawnFiller = new SpawnFastFiller()
+const spawnFiller = new SpawnFastFiller();
+const spawnScout = new SpawnScout();
 
 export class SpawnManager {
     run(objectives: Objective[], room: Room, creeps: Creep[]) {
@@ -25,7 +27,10 @@ export class SpawnManager {
             if (haul.length > 0) retValue = spawnHauler.checkHaulObj(haul as HaulingObjective[], room, unsorted, creeps)
 
             const miners = objectives.filter(objective => objective.priority === currentPrio && objective.type === roleContants.MINING);
-            if (miners.length > 0 && retValue === undefined) retValue = spawnMiner.checkMiningObj(miners as MiningObjective[], room)
+            if (miners.length > 0 && retValue === undefined) retValue = spawnMiner.checkMiningObj(miners as MiningObjective[], room);
+
+            const scout = objectives.find(objective => objective.priority === currentPrio && objective.type === roleContants.SCOUTING) as ScoutingObjective;
+            if (scout != undefined && retValue === undefined ) retValue = spawnScout.checkScoutObj(scout, room, creeps);
 
             if(retValue === undefined) retValue = spawnFiller.checkFastFiller(room, creeps);
 

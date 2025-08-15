@@ -7,6 +7,7 @@ import { Building } from "./building";
 import { Maintaining } from "./maintaining";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { FastFilling } from "./fastFilling";
+import { Scouting } from "./scouting";
 
 export function runCreeps(){
     Object.entries(Game.creeps).forEach((creep) => {
@@ -20,7 +21,8 @@ class Roles {
     upgrading: Upgrader;
     building: Building;
     maintaining: Maintaining;
-    fastfiller: FastFilling
+    fastfiller: FastFilling;
+    scouting: Scouting;
     constructor(objectiveManager: ObjectiveManager){
         this.mining = new Miner();
         this.hauling = new Hauling();
@@ -28,6 +30,7 @@ class Roles {
         this.building = new Building();
         this.maintaining = new Maintaining(objectiveManager);
         this.fastfiller = new FastFilling();
+        this.scouting = new Scouting();
         // this.wallRepairer= new WallRepairer();
         // this.claimer = new Claimer();
         // this.fighter = new Fighter();

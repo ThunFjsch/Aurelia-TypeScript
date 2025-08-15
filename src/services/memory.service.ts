@@ -52,7 +52,8 @@ export class MemoryService {
                 lastJob: 0,
                 plans: []
             },
-            containers: []
+            containers: [],
+            scoutPlan: undefined
         }
         planner.startRoomPlanner(room, spawn)
     }
