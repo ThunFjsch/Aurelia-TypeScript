@@ -61,14 +61,14 @@ export const settings: settings = {
         maxSelection: 10
     },
     visuals: {
-        allowVisuals: false,
+        allowVisuals: true,
         basePlanning: false,
         showStamps: true,
         distanceTransform: false,
         showStats: true,
         showObjectives: false,
         showResourceTasks: false,
-        showConstruction: true
+        showConstruction: false
     },
     objective: {
         startX: 14,

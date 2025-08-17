@@ -31,6 +31,9 @@ export class MemoryService {
             for (let j in sources) {
                 const source = sources[j]
                 const result = scoutingService.addSource(room, source);
+                Memory.sourceInfo.sort((a, b) =>
+                    (a.distance ?? 0) - (b.distance ?? 0)
+                )
                 if (result != undefined) {
                     sourceInfos.push(result);
                 }

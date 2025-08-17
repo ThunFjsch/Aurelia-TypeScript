@@ -16,7 +16,7 @@ export class Scouting {
             creep.moveTo(targetRoomPos)
         } else if (creep.room.name === currTarget.roomName) {
             const controller = creep.room.controller;
-            if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'asdf')) {
+            if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'ThunFisch')) {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
                     creep.signController(controller, 'Owo')
                 } else {
@@ -28,6 +28,7 @@ export class Scouting {
 
                     memory.route[memory.currIndex].lastVisit = Game.time
                     Game.rooms[memory.home].memory.scoutPlan = memory.route;
+
                     return;
                 }
                 creep.room.find(FIND_SOURCES).forEach(source => {
@@ -45,6 +46,9 @@ export class Scouting {
                             Memory.sourceInfo.push(info)
                             memory.route[memory.currIndex].lastVisit = Game.time
                             Game.rooms[memory.home].memory.scoutPlan = memory.route;
+                            Memory.sourceInfo.sort((a,b)=>
+                                (a.distance?? 0) - (b.distance?? 0)
+                            )
                         }
                     }
                 })

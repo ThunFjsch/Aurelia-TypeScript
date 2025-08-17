@@ -21,13 +21,13 @@ export class ObjectiveManager {
             if (this.objectives.find(obj => obj.id === source.id) != undefined) continue;
             if(source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) return;
             let objective: MiningObjective | undefined = undefined;
-            if (source.roomName === room.name) {
+            if (source.home === room.name) {
                 objective = {
                     id: source.id,
                     sourceId: source.id,
                     priority: priority.high,
                     home: room.name,
-                    target: room.name,
+                    target: source.roomName,
                     spots: source.spots,
                     pathDistance: source.distance ?? Infinity,
                     energyPerTick: source.ePerTick,

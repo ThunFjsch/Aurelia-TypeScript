@@ -23,13 +23,14 @@ export class SpawnHauler {
             unsorted.forEach(objective => {
                 let hasCreeps = 0;
                 creeps.forEach(creep => {
-                    if(creep.memory.role === objective.type && creep.memory.home === objective.home){
+                    if(creep.memory.role === objective.type && creep.memory.home === objective.home && (creep.memory as MinerMemory).sourceId === objective.id){
                         hasCreeps++;
                     }
                 })
 
                 if (objective.distance && hasCreeps > 0) dis += objective.distance
             })
+            console.log(dis)
             const currentReq = this.eco.requiredHaulerParts(income, dis);
             if (currCarry < currentReq  && currCarry < objective.maxHaulerParts) {
                 retValue = this.spawnHauler(objective, room, currCarry);
