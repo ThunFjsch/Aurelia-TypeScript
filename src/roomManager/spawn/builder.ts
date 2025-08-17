@@ -19,14 +19,14 @@ export class SpawnBuiilder {
             }
             const currNeed = this.eco.getCurrentRoomIncome(room, allObjectives) / E_FOR_BUILDER;
             if (currWork < currNeed) {
-                retValue = this.spawnBuilder(objective, room);
+                retValue = this.spawnBuilder(objective, room, currWork, currNeed);
             }
         })
         return retValue
     }
 
-    spawnBuilder(objective: BuildingObjective, room: Room) {
-        const body = createCreepBody(objective, room);
+    spawnBuilder(objective: BuildingObjective, room: Room, currWorkParts: number, maxWorkParts: number) {
+        const body = createCreepBody(objective, room, currWorkParts, maxWorkParts);
         const memory: BuilderMemory = {
             home: room.name,
             role: roleContants.BUILDING,

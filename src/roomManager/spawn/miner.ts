@@ -41,7 +41,7 @@ export class SpawnMiner {
     }
 
     spawnMiner(objective: MiningObjective, room: Room, currWorkParts: number, coord: Point | undefined) {
-        const body = createCreepBody(objective, room, currWorkParts)
+        const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
         if (objective.path === undefined) return;
 
 
@@ -51,7 +51,8 @@ export class SpawnMiner {
             sourceId: objective.sourceId,
             route: objective.path,
             working: false,
-            containerPos: coord
+            containerPos: coord,
+            targetRoom: objective.target
         }
         return room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.MINING), { memory })
     }

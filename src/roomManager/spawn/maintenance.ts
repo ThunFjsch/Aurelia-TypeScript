@@ -14,18 +14,18 @@ export class SpawnMaintainer {
             const workParts = getWorkParts(assignedCreeps, WORK);
             const rcl = room.controller?.level?? 0;
             if (objective.hitsOverLifeTime > MaintananceThreshold[rcl] && workParts < objective.maxWorkParts) {
-                retValue = this.spawnMaintainer(objective, room);
+                retValue = this.spawnMaintainer(objective, room, workParts);
             }
         }
         return retValue;
     }
 
-    spawnMaintainer(objective: MaintenanceObjective, room: Room) {
+    spawnMaintainer(objective: MaintenanceObjective, room: Room, currWorkParts: number) {
         const spawn = room.find(FIND_MY_SPAWNS)[0];
         if (spawn.spawning) {
             return undefined
         }
-        const body = createCreepBody(objective, room)
+        const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
         const memory: MaintainerMemory = {
             home: room.name,
             role: roleContants.MAINTAINING,
