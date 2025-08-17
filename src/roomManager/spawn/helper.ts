@@ -39,7 +39,6 @@ export function generateBody(preset: BodyPartConstant[], cost: number, room: Roo
         if(i > maxLength)
         body.push(...preset)
     }
-    console.log(JSON.stringify(body))
     return body;
 }
 
