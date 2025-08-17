@@ -37,12 +37,13 @@ declare global {
         id: Id<Source>;
         pos?: RoomPosition;
         roomName: string;
+        home?: string;
         spots: number;
-        energy: number;
-        ePerTick: number;
-        maxIncome: number;
-        maxWorkParts: number;
-        maxHaulerParts: number;
+        energy?: number;
+        ePerTick?: number;
+        maxIncome?: number;
+        maxWorkParts?: number;
+        maxHaulerParts?: number;
         distance?: number;
         path?: RoomPosition[]
     }
@@ -60,7 +61,13 @@ declare global {
         hasRoads?: boolean;
         basePlanner: BasePlanner;
         constructionOffice: ConstructionOffice;
-        containers: ContainerMemory[]
+        containers: ContainerMemory[],
+        scoutPlan: ScoutPlan[] | undefined;
+    }
+
+    interface ScoutPlan{
+        roomName: string,
+        lastVisit?: number
     }
 
     interface ContainerMemory{
@@ -95,6 +102,7 @@ declare global {
         route: RoomPosition[];
         containerPos: Point | undefined;
         sourceId: string;
+        targetRoom: string;
     }
 
     interface FastFillerMemory extends CreepMemory {
@@ -111,6 +119,11 @@ declare global {
         target: string | undefined;
         take: ResRole;
         repairTarget: string | undefined;
+    }
+
+    interface ScoutMemory extends CreepMemory {
+        currIndex: number;
+        route: ScoutPlan[];
     }
 
     interface ProfilerMemory {
