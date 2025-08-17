@@ -23,14 +23,14 @@ export class SpawnUpgrader {
             const income = this.eco.getCurrentRoomIncome(room, unsorted);
             const currNeed = income / E_FOR_UPGRADER;
             if (currWork < currNeed && income > (maxIncome / 3)) {
-                retValue = this.spawnUpgrader(objective, room);
+                retValue = this.spawnUpgrader(objective, room, currWork, currNeed);
             }
         })
         return retValue
     }
 
-    spawnUpgrader(objective: UpgradeObjective, room: Room) {
-        const body = createCreepBody(objective, room)
+    spawnUpgrader(objective: UpgradeObjective, room: Room, currWorkParts: number, maxWorkParts: number) {
+        const body = createCreepBody(objective, room, currWorkParts, maxWorkParts)
         const memory: UpgraderMemory = {
             home: room.name,
             role: roleContants.UPGRADING,

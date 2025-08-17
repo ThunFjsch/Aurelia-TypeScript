@@ -32,14 +32,14 @@ export class SpawnHauler {
             })
             const currentReq = this.eco.requiredHaulerParts(income, dis);
             if (currCarry < currentReq  && currCarry < objective.maxHaulerParts) {
-                retValue = this.spawnHauler(objective, room);
+                retValue = this.spawnHauler(objective, room, currCarry);
             }
         })
         return undefined
     }
 
-    spawnHauler(objective: Objective, room: Room) {
-        const body = createCreepBody(objective, room)
+    spawnHauler(objective: Objective, room: Room, currWorkParts: number) {
+        const body = createCreepBody(objective, room, currWorkParts, objective.maxHaulerParts)
         const memory: CreepMemory = {
             home: room.name,
             role: roleContants.HAULING,

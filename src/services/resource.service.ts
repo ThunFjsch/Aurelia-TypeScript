@@ -274,7 +274,8 @@ export class ResourceService {
 
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
-                if(rcl >= 3){
+                const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
+                if(rcl >= 3 && hasFastFiller != undefined){
                     if(creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
                 }
                 task.assigned.push(creep.name);

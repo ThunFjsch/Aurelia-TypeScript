@@ -16,7 +16,6 @@ export class Scouting {
             creep.moveTo(targetRoomPos)
         } else if (creep.room.name === currTarget.roomName) {
             const controller = creep.room.controller;
-            console.log(controller != undefined && (controller.sign === undefined || controller.sign.username != 'asdf'))
             if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'asdf')) {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
                     creep.signController(controller, 'Owo')

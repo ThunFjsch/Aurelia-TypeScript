@@ -19,7 +19,6 @@ export class ScoutingService {
         let sourceInfo: SourceInfo;
         if(route.cost < 200){
             const energyPerTick = this.getEnergyPerTickForSource(source);
-            console.log(JSON.stringify(room.controller?.pos))
             sourceInfo = {
                 my: room.controller?.my?? false,
                 id: source.id,
