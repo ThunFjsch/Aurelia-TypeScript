@@ -15,6 +15,11 @@ export class Maintaining {
         if (creep.store.energy < (creep.store.getCapacity() / 8) + 1) {
             getEnergy(creep, memory as MaintainerMemory, energyManager)
         } else {
+            if(creep.room.name != memory.home){
+                const target = new RoomPosition(25,25, memory.home)
+                creep.moveTo(target)
+                return
+            }
             if (memory.repairTarget === undefined) {
                 this.setNewTarget(creep, memory)
             }

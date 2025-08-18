@@ -1,4 +1,4 @@
-import { priority } from "utils/sharedTypes";
+import { Priority, priority } from "utils/sharedTypes";
 import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective } from "./objectiveInterfaces";
 import { EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
@@ -17,15 +17,25 @@ export class ObjectiveManager {
     // Adds mining Objectives to the Objectives list
     private createMiningObjectives(room: Room): void {
         if (Memory.respawn) return;
+        if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
+
+        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
         for (const [index, source] of Memory.sourceInfo.entries()) {
+            const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
+            // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
+            if (amountOfMiningObj > 6) break;
             if (this.objectives.find(obj => obj.id === source.id) != undefined) continue;
-            if(source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) return;
+            if (source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) continue;
             let objective: MiningObjective | undefined = undefined;
+            let prio: Priority = priority.high
+            if (source.roomName != room.name) {
+                prio = priority.low;
+            }
             if (source.home === room.name) {
                 objective = {
                     id: source.id,
                     sourceId: source.id,
-                    priority: priority.high,
+                    priority: prio,
                     home: room.name,
                     target: source.roomName,
                     spots: source.spots,
@@ -40,7 +50,6 @@ export class ObjectiveManager {
                     type: roleContants.MINING
                 }
             }
-
             if (objective === undefined) continue;
             this.objectives.push(objective);
         }
@@ -166,7 +175,7 @@ export class ObjectiveManager {
             progress: cSite.progress,
             progressTotal: cSite.progressTotal,
             type: roleContants.BUILDING,
-            priority: priority.medium,
+            priority: priority.high,
             maxHaulerParts: energyPerTick * (route.cost / CARRY_CAPACITY),
             path: route.path,
             distance: route.cost
@@ -218,30 +227,30 @@ export class ObjectiveManager {
     }
 
     private getScoutObjective(room: Room) {
-       if(room.memory.scoutPlan === undefined) return;
+        if (room.memory.scoutPlan === undefined) return;
         const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.SCOUTING && objective.home === room.name)
         if (currentObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.SCOUTING && objective.target === room.name) {
-                    if(room.memory.scoutPlan != undefined){
+                    if (room.memory.scoutPlan != undefined) {
                         objective.toScout = room.memory.scoutPlan;
                     }
                 }
             })
         } else {
             const newObjective = this.createScoutingObjective(room);
-            if(newObjective != undefined){
+            if (newObjective != undefined) {
                 this.objectives.push(newObjective)
             }
         }
     }
 
-    private createScoutingObjective(room: Room): ScoutingObjective | undefined{
-        if(room.memory.scoutPlan === undefined) return;
+    private createScoutingObjective(room: Room): ScoutingObjective | undefined {
+        if (room.memory.scoutPlan === undefined) return;
         return {
             distance: 0,
             home: room.name,
-            id: roleContants.MINING+room.name,
+            id: roleContants.MINING + room.name,
             maxHaulerParts: 0,
             maxIncome: 0,
             priority: priority.high,
@@ -259,6 +268,8 @@ export class ObjectiveManager {
         this.getMaintenanceObjective(room);
         this.getScoutObjective(room)
         // plus others;
+
+        // this.objectives = this.objectives.sort((a, b) => a.distance - b.distance)
     }
 
     getRoomObjectives(room: Room) {

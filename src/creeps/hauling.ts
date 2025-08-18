@@ -14,6 +14,11 @@ export class Hauling {
         if (creep.store.energy < (creep.store.getCapacity() / 3) + 1) {
             getEnergy(creep, memory, energyManager);
         } else {
+            if(memory.home != creep.room.name){
+                const target = new RoomPosition(25,25,memory.home)
+                creep.moveTo(target,{reusePath: 50})
+                return;
+            }
             if (memory.target === undefined) {
                 memory.target = energyManager.assignToTask(creep, "transfer")
                 creep.memory = memory
@@ -34,7 +39,7 @@ export class Hauling {
                     creep.memory = memory;
                 }
 
-                creep.moveTo(target.pos.x, target.pos.y)
+                creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
             }
         }
     }

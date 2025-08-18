@@ -25,12 +25,15 @@ export class MemoryService {
 
     initSourceInfo(): SourceInfo[] {
         let sourceInfos: SourceInfo[] = []
+        Memory.sourceInfo = sourceInfos;
         for (let i in Memory.myRooms) {
             const room: Room = Game.rooms[Memory.myRooms[i]];
             const sources = room.find(FIND_SOURCES);
             for (let j in sources) {
                 const source = sources[j]
                 const result = scoutingService.addSource(room, source);
+                if(result === undefined) continue;
+                Memory.sourceInfo.push(result);
                 Memory.sourceInfo.sort((a, b) =>
                     (a.distance ?? 0) - (b.distance ?? 0)
                 )

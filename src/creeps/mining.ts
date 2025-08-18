@@ -4,11 +4,8 @@ export class Miner {
         const source: Source = Game.getObjectById(memory.sourceId) as Source;
 
         if(creep.room.name != memory.targetRoom){
-            console.log(memory.targetRoom)
-            const foo = new RoomPosition(25,25,memory.targetRoom)
-            console.log(JSON.stringify(foo))
-            console.log(creep.moveTo(foo))
-            // creep.moveTo(source);
+            const target = new RoomPosition(25,25,memory.targetRoom)
+            creep.moveTo(target);
             return;
         }
 

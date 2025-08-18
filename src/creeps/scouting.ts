@@ -6,11 +6,18 @@ export class Scouting {
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
+         if(currTarget === undefined){
+            memory.currIndex++
+            creep.memory = memory
+            return
+        }
         const targetRoomPos = new RoomPosition(25, 25, currTarget.roomName)
 
         if (currTarget.lastVisit != 0 || Game.time - (currTarget.lastVisit ?? 0) < Game.time - 20000) {
             memory.currIndex++
         }
+
+
 
         if (creep.room.name != currTarget.roomName) {
             creep.moveTo(targetRoomPos)
@@ -31,7 +38,9 @@ export class Scouting {
 
                     return;
                 }
-                creep.room.find(FIND_SOURCES).forEach(source => {
+                const sources = creep.room.find(FIND_SOURCES)
+                // if(sources.length === 0) return;
+                sources.forEach(source => {
                     let infoOnMem = false;
                     Memory.sourceInfo.forEach(info => {
                         if (info.id === source.id) {

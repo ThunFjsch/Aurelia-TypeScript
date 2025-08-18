@@ -18,7 +18,7 @@ export function visualizeResourceTasks(tasks: Task[]) {
         const width = 13;
         let info: string[] = ["Type | Amount | Ass | Prio"]
         tasks.forEach((task) => {
-            info.push(`${task.ResourceType} | ${task.amount}, | ${task.assigned.length}/${task.maxAssigned.toFixed(2)} | ${task.priority}`)
+            info.push(`${task.transferType} | ${task.amount}, | ${task.assigned.length}/${task.maxAssigned.toFixed(2)} | ${task.priority}`)
         });
 
         drawTextBox(room, info, width, startX, startY);

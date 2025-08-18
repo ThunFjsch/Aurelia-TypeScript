@@ -26,7 +26,7 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
             creep.memory = memory;
             return
         } else {
-            creep.moveTo(target.pos.x, target.pos.y)
+            creep.moveTo(target, {visualizePathStyle: {lineStyle: "dashed", stroke: "#21de53"}, reusePath: 50})
         }
     }
 }

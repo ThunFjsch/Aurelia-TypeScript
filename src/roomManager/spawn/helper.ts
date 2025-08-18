@@ -6,10 +6,17 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
     let energyCap = room.energyCapacityAvailable;
     const workPartsLeft = maxWorkParts - currWorkParts
     if (objective.type === roleContants.MINING && currWorkParts < objective.maxWorkParts) {
-        if (numberOfStarters === 0 || energyCap < 500) {
+        if (numberOfStarters === 0 || energyCap <= 500) {
             return body = [WORK, WORK, MOVE];
-        } else if (energyCap >= 550) {
-            return body = [WORK, WORK, WORK, WORK, WORK, MOVE]
+        } else {
+            body = [WORK, WORK, WORK, WORK, WORK, MOVE]
+            if(objective.distance < 40 && energyCap >= 650){
+                body.push(MOVE)
+                body.push(MOVE)
+            } else if(objective.distance > 30){
+                body = [WORK, WORK, MOVE]
+            }
+            return body
         }
     } else if (objective.type === roleContants.HAULING) {
         const preset = [CARRY, MOVE]
@@ -24,7 +31,6 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
         const preset = [WORK, CARRY, MOVE, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room,  energyCap, workPartsLeft)
     }
-
     return body;
 }
 
