@@ -1,5 +1,5 @@
 import { Priority, priority } from "utils/sharedTypes";
-import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective } from "./objectiveInterfaces";
+import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective } from "./objectiveInterfaces";
 import { EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
@@ -19,12 +19,13 @@ export class ObjectiveManager {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
 
-        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
+        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (b.maxIncome ?? 0) - (a.maxIncome ?? 0))
         for (const [index, source] of Memory.sourceInfo.entries()) {
             const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
             // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
-            if (amountOfMiningObj > 6) break;
-            if (this.objectives.find(obj => obj.id === source.id) != undefined) continue;
+            if (amountOfMiningObj > 8) break;
+            // TODO update objective for remotes to work after reserving
+            if (this.objectives.find(obj => obj != undefined && obj.id === source.id) != undefined) continue;
             if (source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) continue;
             let objective: MiningObjective | undefined = undefined;
             let prio: Priority = priority.high
@@ -260,16 +261,57 @@ export class ObjectiveManager {
         }
     }
 
+    private getReserverObjective(room: Room) {
+        if (room.energyCapacityAvailable >= 650) {
+            const miningObjectives = this.objectives.filter(objective => objective != undefined && objective.type === roleContants.MINING)
+            let remotes: string[] = [];
+            for (let objective of miningObjectives) {
+                if (!remotes.find(remote => remote === objective.target && remote != room.name) && objective.target != room.name) {
+                    remotes.push(objective.target)
+                }
+            }
+            const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.RESERVING && objective.home === room.name)
+            if (currentObjective != undefined) {
+                this.objectives.map(objective => {
+                    if (objective.home === room.name && objective.type === roleContants.RESERVING && objective.target === room.name) {
+                        if (room.memory.scoutPlan != undefined) {
+                            objective.toReserve = remotes;
+                        }
+                    }
+                })
+            } else {
+                const newObjective = this.createReserveObjective(room, remotes);
+                if (newObjective != undefined) {
+                    this.objectives.push(newObjective)
+                }
+            }
+
+        }
+    }
+
+    private createReserveObjective(room: Room, remotes: string[]): ReserveObjective{
+        return {
+            distance: 0,
+            home: room.name,
+            id: roleContants.RESERVING,
+            maxHaulerParts: 0,
+            maxIncome: 0,
+            priority: priority.medium,
+            target: "multiple",
+            toReserve: remotes,
+            type: roleContants.RESERVING
+        }
+    }
+
     syncRoomObjectives(room: Room): void {
         this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
         this.getHaulObjectives(room, this.objectives);
         this.getConstructionObjectives(room);
         this.getMaintenanceObjective(room);
-        this.getScoutObjective(room)
+        this.getScoutObjective(room);
+        this.getReserverObjective(room);
         // plus others;
-
-        // this.objectives = this.objectives.sort((a, b) => a.distance - b.distance)
     }
 
     getRoomObjectives(room: Room) {

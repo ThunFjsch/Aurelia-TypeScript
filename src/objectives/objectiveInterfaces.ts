@@ -52,10 +52,27 @@ export interface ScoutingObjective extends BaseObjective{
     toScout: ScoutPlan[]
 }
 
+export interface ReserveObjective extends BaseObjective{
+    type:roleContants.RESERVING;
+    toReserve: string[]
+}
 // ... other objective types for defense, claiming, expansion, etc.
 
-export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective | MaintenanceObjective | ScoutingObjective;
-export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING | roleContants.MAINTAINING | roleContants.SCOUTING
+export type Objective = MiningObjective |
+                        HaulingObjective |
+                        UpgradeObjective |
+                        BuildingObjective |
+                        MaintenanceObjective |
+                        ScoutingObjective |
+                        ReserveObjective;
+
+export type ObjectiveType = roleContants.MINING |
+                            roleContants.HAULING |
+                            roleContants.UPGRADING |
+                            roleContants.BUILDING |
+                            roleContants.MAINTAINING |
+                            roleContants.SCOUTING |
+                            roleContants.RESERVING
 
 export enum roleContants {
     MINING = 'mining',
@@ -64,5 +81,6 @@ export enum roleContants {
     BUILDING = 'building',
     MAINTAINING = 'maintaining',
     FASTFILLER = 'fastfiller',
-    SCOUTING = 'scouting'
+    SCOUTING = 'scouting',
+    RESERVING = 'reserving'
 }
