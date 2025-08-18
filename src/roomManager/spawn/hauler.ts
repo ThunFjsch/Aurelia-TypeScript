@@ -35,7 +35,7 @@ export class SpawnHauler {
                 retValue = this.spawnHauler(objective, room, currCarry);
             }
         })
-        return undefined
+        return retValue
     }
 
     spawnHauler(objective: Objective, room: Room, currWorkParts: number) {

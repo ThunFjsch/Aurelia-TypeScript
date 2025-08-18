@@ -5,12 +5,13 @@ import { SpawnManager } from "roomManager/spawnManager";
 import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn/helper";
-import { constructionManager } from "./constructionManager";
+import { ConstrcutionManager} from "./constructionManager";
 import { Tower } from "structures/tower";
 import { ScoutingService } from "services/scouting.service";
 
 const spawnManager = new SpawnManager();
 const towerControle = new Tower();
+const constructionManager = new ConstrcutionManager();
 
 export interface RoomManager {
     ownedRooms: string[]
@@ -61,7 +62,7 @@ export class RoomManager {
 
             this.crudeDefence(room)
 
-            constructionManager(room);
+            constructionManager.run(room);
 
             this.objectiveManager.syncRoomObjectives(room)
             spawnManager.run(this.objectiveManager.objectives, room, creeps)

@@ -72,139 +72,121 @@ const rclAvailableStructures: RCLAvailableStructures = {
     }
 }
 
-export function constructionManager(room: Room) {
-    if (room.memory.constructionOffice === undefined){
-        room.memory.constructionOffice = {
-            finished: true,
-            lastJob: 1,
-            plans: []
+export class ConstrcutionManager {
+    run(room: Room) {
+        this.checkMemory(room);
+
+        const controller = room.controller;
+        if (controller === undefined || controller.my === false) return;
+        const rcl = controller.level as RCL;
+
+        if (room.memory.constructionOffice.lastJob < rcl && room.memory.constructionOffice.finished && room.memory.constructionOffice.plans.length === 0) {
+            this.checkForConstruction(room, rcl);
         }
-    }
-
-    const controller = room.controller;
-    if (!controller) return;
-
-    const rcl = controller.level as RCL;
-
-    if (room.memory.constructionOffice.lastJob < rcl && room.memory.constructionOffice.finished && room.memory.constructionOffice.plans.length === 0) {
-        createConstructionPlan(room, rcl);
-    }
-    else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length === 0) {
-        room.memory.constructionOffice.finished = true;
-    }
-    else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length > 0) {
-        const cSites = room.find(FIND_CONSTRUCTION_SITES);
-        if (cSites != undefined && cSites.length === 0) {
-            const nextPlan = room.memory.constructionOffice.plans[0]
-            if(nextPlan === null) return room.memory.constructionOffice.finished = true;
-            const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
-            if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
-                room.memory.constructionOffice.plans.shift()
+        else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length === 0) {
+            room.memory.constructionOffice.finished = true;
+        }
+        else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length > 0) {
+            const cSites = room.find(FIND_CONSTRUCTION_SITES);
+            if (cSites != undefined && cSites.length === 0) {
+                const nextPlan = room.memory.constructionOffice.plans[0]
+                if (nextPlan === null) return room.memory.constructionOffice.finished = true;
+                const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
+                if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
+                    room.memory.constructionOffice.plans.shift()
+                }
+            }
+        } else if (room.memory.constructionOffice.finished && room.memory.constructionOffice.lastJob === rcl) {
+            if (Game.time % 1000 === 0) {
+                this.checkForConstruction(room, rcl);
             }
         }
-    } else if (room.memory.constructionOffice.finished && room.memory.constructionOffice.lastJob === rcl) {
-        if(Game.time % 1000 === 0){
-            checkForFinish(room, rcl);
+        return;
+    }
+
+    private checkMemory(room: Room) {
+        if (room.memory.constructionOffice === undefined) {
+            room.memory.constructionOffice = {
+                finished: true,
+                lastJob: 1,
+                plans: []
+            }
         }
     }
-    return;
-}
 
-function checkForFinish(room: Room, rcl: RCL) {
-    const structures = room.find(FIND_STRUCTURES);
-    const currentStructures: StructureAmount = getCurrentStructures(structures);
-    const remainingStructure = getRemainingStructure(rcl, currentStructures);
-    const memory = room.memory
-    for (let index in remainingStructure) {
-        let remaining = remainingStructure[index as StructureConstant]?.valueOf() ?? 0;
-        if (0 < remaining) {
-            if(memory.basePlanner.stamps === undefined){
-                memory.basePlanner.stamps = []
-            }
-            for(let stamp of memory.basePlanner.stamps){
-                if(stamp.type != index) continue;
-                const structures = room.lookAt(stamp.x, stamp.y).find(look => look.structure?.structureType === index && look.structure?.structureType === stamp.type);
-                if (remaining > 0 && structures === undefined) {
-                    memory.constructionOffice.plans.push(stamp);
-                    remaining--;
+    private checkForConstruction(room: Room, rcl: RCL) {
+        const structures = room.find(FIND_STRUCTURES);
+        const currentStructures: StructureAmount = this.getCurrentStructures(structures);
+        const remainingStructure = this.getRemainingStructure(rcl, currentStructures);
+        const memory = room.memory;
+        for (let index in remainingStructure) {
+            let remaining = remainingStructure[index as StructureConstant]?.valueOf() ?? 0;
+            if (0 < remaining) {
+                if (memory.basePlanner.stamps === undefined) {
+                    memory.basePlanner.stamps = []
+                }
+                for (let stamp of memory.basePlanner.stamps) {
+                    if (stamp.type != index) continue;
+                    const structures = room.lookAt(stamp.x, stamp.y).find(look => look.structure?.structureType === index && look.structure?.structureType === stamp.type);
+                    if (remaining > 0 && structures === undefined) {
+                        memory.constructionOffice.plans.push(stamp);
+                        remaining--;
+                    }
                 }
             }
         }
-    }
-    if (memory.constructionOffice.plans.length > 0) {
-        room.memory.constructionOffice.finished = false;
-        room.memory.constructionOffice.plans = memory.constructionOffice.plans;
-        room.memory.constructionOffice.lastJob = rcl;
-    }
-}
-
-function createConstructionPlan(room: Room, rcl: RCL) {
-    const memory = room.memory;
-    const structures = room.find(FIND_STRUCTURES);
-    const currentStructures: StructureAmount = getCurrentStructures(structures);
-    const remainingStructures = getRemainingStructure(rcl, currentStructures);
-
-    for(let constant in remainingStructures){
-        console.log(Game.cpu.getUsed())
-        const structure = remainingStructures[constant as StructureConstant]?.valueOf() ?? 0
-        const buildTo = currentStructures[constant as StructureConstant]?.valueOf() ?? 0
-
-        if(memory.basePlanner.stamps === undefined) return;
-        const structureStamp = memory.basePlanner.stamps.filter(stamp => stamp.type === constant as StructureConstant)
-        for(let i = 0; i < structure; i++){
-            memory.constructionOffice.plans.push(structureStamp[buildTo + i]);
+        if (memory.constructionOffice.plans.length > 0) {
+            room.memory.constructionOffice.finished = false;
+            room.memory.constructionOffice.plans = memory.constructionOffice.plans;
+            room.memory.constructionOffice.lastJob = rcl;
         }
     }
 
-    room.memory.constructionOffice.finished = false;
-    room.memory.constructionOffice.plans = memory.constructionOffice.plans;
-    room.memory.constructionOffice.lastJob = rcl;
-}
+    private getCurrentStructures(structures: AnyStructure[]) {
+        return {
+            spawn: this.filterForStructure(structures, STRUCTURE_SPAWN),
+            tower: this.filterForStructure(structures, STRUCTURE_TOWER),
+            extension: this.filterForStructure(structures, STRUCTURE_EXTENSION),
+            container: this.filterForStructure(structures, STRUCTURE_CONTAINER),
+            rampart: this.filterForStructure(structures, STRUCTURE_RAMPART) + this.filterForStructure(structures, STRUCTURE_WALL),
+            terminal: this.filterForStructure(structures, STRUCTURE_TERMINAL),
+            lab: this.filterForStructure(structures, STRUCTURE_LAB),
+            road: this.filterForStructure(structures, STRUCTURE_ROAD),
+            storagge: this.filterForStructure(structures, STRUCTURE_STORAGE),
+            extractor: this.filterForStructure(structures, STRUCTURE_EXTRACTOR),
+            factory: this.filterForStructure(structures, STRUCTURE_FACTORY),
+            observer: this.filterForStructure(structures, STRUCTURE_OBSERVER),
+            nuker: this.filterForStructure(structures, STRUCTURE_NUKER),
+            powerSpawn: this.filterForStructure(structures, STRUCTURE_POWER_SPAWN),
+        };
+    }
 
-function getCurrentStructures(structures: AnyStructure[]) {
-    return {
-        spawn: filterForStructure(structures, STRUCTURE_SPAWN),
-        tower: filterForStructure(structures, STRUCTURE_TOWER),
-        extension: filterForStructure(structures, STRUCTURE_EXTENSION),
-        container: filterForStructure(structures, STRUCTURE_CONTAINER),
-        rampart: filterForStructure(structures, STRUCTURE_RAMPART) + filterForStructure(structures, STRUCTURE_WALL),
-        terminal: filterForStructure(structures, STRUCTURE_TERMINAL),
-        lab: filterForStructure(structures, STRUCTURE_LAB),
-        road: filterForStructure(structures, STRUCTURE_ROAD),
-        storagge: filterForStructure(structures, STRUCTURE_STORAGE),
-        extractor: filterForStructure(structures, STRUCTURE_EXTRACTOR),
-        factory:filterForStructure(structures, STRUCTURE_FACTORY),
-        observer: filterForStructure(structures, STRUCTURE_OBSERVER),
-        nuker: filterForStructure(structures, STRUCTURE_NUKER),
-        powerSpawn: filterForStructure(structures, STRUCTURE_POWER_SPAWN),
-    };
-}
+    private getRemainingStructure(rcl: number, currentStructures: StructureAmount) {
+        const rclStructs = rclAvailableStructures[rcl];
 
-function getRemainingStructure(rcl: number, currentStructures: StructureAmount) {
-    const rclStructs = rclAvailableStructures[rcl];
+        const remainingStructure: StructureAmount = {
+            spawn: (rclStructs[STRUCTURE_SPAWN] ?? 0) - (currentStructures.spawn ?? 0),
+            storage: (rclStructs[STRUCTURE_STORAGE] ?? 0) - (currentStructures.storage ?? 0),
+            extension: (rclStructs[STRUCTURE_EXTENSION] ?? 0) - (currentStructures.extension ?? 0),
+            container: (rclStructs[STRUCTURE_CONTAINER] ?? 0) - (currentStructures.container ?? 0),
+            tower: (rclStructs[STRUCTURE_TOWER] ?? 0) - (currentStructures.tower ?? 0),
+            rampart: (rclStructs[STRUCTURE_RAMPART] ?? 0) - (currentStructures.rampart ?? 0),
+            terminal: (rclStructs[STRUCTURE_TERMINAL] ?? 0) - (currentStructures.terminal ?? 0),
+            lab: (rclStructs[STRUCTURE_LAB] ?? 0) - (currentStructures.lab ?? 0),
+            road: (rclStructs[STRUCTURE_ROAD] ?? 0) - (currentStructures.road ?? 0),
+            extractor: (rclStructs[STRUCTURE_EXTRACTOR] ?? 0) - (currentStructures.extractor ?? 0),
+            factory: (rclStructs[STRUCTURE_EXTRACTOR] ?? 0) - (currentStructures.extractor ?? 0),
+            observer: (rclStructs[STRUCTURE_OBSERVER] ?? 0) - (currentStructures.observer ?? 0),
+            nuker: (rclStructs[STRUCTURE_NUKER] ?? 0) - (currentStructures.nuker ?? 0),
+            powerSpawn: (rclStructs[STRUCTURE_POWER_SPAWN] ?? 0) - (currentStructures.powerSpawn ?? 0),
+        };
 
-    const remainingStructure: StructureAmount = {
-        spawn: (rclStructs[STRUCTURE_SPAWN] ?? 0) - (currentStructures.spawn ?? 0),
-        storage: (rclStructs[STRUCTURE_STORAGE] ?? 0) - (currentStructures.storage ?? 0),
-        extension: (rclStructs[STRUCTURE_EXTENSION] ?? 0) - (currentStructures.extension ?? 0),
-        container: (rclStructs[STRUCTURE_CONTAINER] ?? 0) - (currentStructures.container ?? 0),
-        tower: (rclStructs[STRUCTURE_TOWER] ?? 0) - (currentStructures.tower ?? 0),
-        rampart: (rclStructs[STRUCTURE_RAMPART] ?? 0) - (currentStructures.rampart ?? 0),
-        terminal: (rclStructs[STRUCTURE_TERMINAL] ?? 0) - (currentStructures.terminal ?? 0),
-        lab: (rclStructs[STRUCTURE_LAB] ?? 0) - (currentStructures.lab ?? 0),
-        road: (rclStructs[STRUCTURE_ROAD] ?? 0) - (currentStructures.road ?? 0),
-        extractor: (rclStructs[STRUCTURE_EXTRACTOR] ?? 0) - (currentStructures.extractor ?? 0),
-        factory:(rclStructs[STRUCTURE_EXTRACTOR] ?? 0) - (currentStructures.extractor ?? 0),
-        observer: (rclStructs[STRUCTURE_OBSERVER] ?? 0) - (currentStructures.observer ?? 0),
-        nuker: (rclStructs[STRUCTURE_NUKER] ?? 0) - (currentStructures.nuker ?? 0),
-        powerSpawn: (rclStructs[STRUCTURE_POWER_SPAWN] ?? 0) - (currentStructures.powerSpawn?? 0),
-    };
+        return remainingStructure
+    }
 
-    return remainingStructure
-}
-
-function filterForStructure(structures: AnyStructure[], constant: StructureConstant) {
-    return structures.filter(structure => structure.structureType === constant).length
+    private filterForStructure(structures: AnyStructure[], constant: StructureConstant) {
+        return structures.filter(structure => structure.structureType === constant).length
+    }
 }
 
 export function getCurrentConstruction(room: Room) {

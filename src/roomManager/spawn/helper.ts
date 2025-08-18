@@ -3,9 +3,8 @@ import { Objective, roleContants } from "objectives/objectiveInterfaces";
 export function createCreepBody(objective: Objective, room: Room, currWorkParts: number = 0, maxWorkParts: number) {
     let body: BodyPartConstant[] = [];
     const numberOfStarters = Object.entries(Game.creeps).filter((creep) => creep[1].memory.role === objective.type).length
-    const energyCap = room.energyCapacityAvailable;
+    let energyCap = room.energyCapacityAvailable;
     const workPartsLeft = maxWorkParts - currWorkParts
-
     if (objective.type === roleContants.MINING && currWorkParts < objective.maxWorkParts) {
         if (numberOfStarters === 0 || energyCap < 500) {
             return body = [WORK, WORK, MOVE];
@@ -33,7 +32,10 @@ export function generateBody(preset: BodyPartConstant[], cost: number, room: Roo
     let body: BodyPartConstant[] = [];
     const maxLength = 50/preset.length
     for (let i = cost; i <= energy; i += cost) {
-        if(maxWorkParts <= workpartsInTemplate * i) break;
+        if(maxWorkParts <= workpartsInTemplate * (i/cost)){
+            body.push(...preset)
+            break;
+        };
         if(i > maxLength)
         body.push(...preset)
     }
