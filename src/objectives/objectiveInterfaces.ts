@@ -56,7 +56,6 @@ export interface ReserveObjective extends BaseObjective{
     type:roleContants.RESERVING;
     toReserve: string[]
 }
-// ... other objective types for defense, claiming, expansion, etc.
 
 export type Objective = MiningObjective |
                         HaulingObjective |
@@ -72,7 +71,8 @@ export type ObjectiveType = roleContants.MINING |
                             roleContants.BUILDING |
                             roleContants.MAINTAINING |
                             roleContants.SCOUTING |
-                            roleContants.RESERVING
+                            roleContants.RESERVING |
+                            roleContants.PORTING
 
 export enum roleContants {
     MINING = 'mining',
@@ -82,5 +82,6 @@ export enum roleContants {
     MAINTAINING = 'maintaining',
     FASTFILLER = 'fastfiller',
     SCOUTING = 'scouting',
-    RESERVING = 'reserving'
+    RESERVING = 'reserving',
+    PORTING = 'porting'
 }

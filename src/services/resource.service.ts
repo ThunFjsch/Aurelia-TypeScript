@@ -4,7 +4,7 @@ import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 0, 10000, 15000, 30000, 60000, 100000];
+const eStorageLimit = [0, 0, 0, 0, 10000, 50000, 100000, 150000, 200000];
 
 export interface Task {
     id: string;              // Resource ID
@@ -40,7 +40,7 @@ export class ResourceService {
         const structures = room.find(FIND_STRUCTURES);
 
         const spawn = room.find(FIND_MY_SPAWNS)[0];
-        if(spawn === undefined) return;
+        if (spawn === undefined) return;
 
         let prio: Priority = priority.medium;
         if (rcl === 4 && storage != undefined) {
@@ -49,14 +49,16 @@ export class ResourceService {
             this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[], spawn)
         }
 
-        if(objectives.length != 0){
-            for(let objective of objectives){
+        if (objectives.length != 0) {
+            for (let objective of objectives) {
                 const remoteRoom = Game.rooms[objective.target];
-                if(remoteRoom === undefined) continue;
+                if (remoteRoom === undefined) continue;
 
                 this.generateERequests(creeps, avgHauler, haulCapacity, prio, remoteRoom, [], spawn)
             }
         }
+
+        this.taskList.sort((a, b) => a.priority - b.priority)
     }
 
     generateERequests(creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, room: Room, structures: AnyStoreStructure[], spawn: StructureSpawn) {
@@ -97,7 +99,6 @@ export class ResourceService {
                 }
             })
         }
-        this.taskList.sort((a, b) => a.priority - b.priority)
     }
 
     generateEWithdrawlRequets(elements: withdrawlToTakeFrom[], avgHauler: number, prio: Priority) {
@@ -124,60 +125,59 @@ export class ResourceService {
                 if (structure.structureType === STRUCTURE_SPAWN) prio = priority.severe;
                 this.updateCreateTransfer(structure as StructuresToRefill, avgHauler, prio)
             })
-
-
     }
 
     storageRequests(storage: StructureStorage, rcl: RCL, avgHauler: number) {
-        if (storage != undefined) {
-            let amount = storage.store.getUsedCapacity(RESOURCE_ENERGY);
-            if (amount > eStorageLimit[rcl]) {
-                amount = eStorageLimit[rcl]
+        if (storage === undefined) return;
+        let amount = storage.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (amount > eStorageLimit[rcl]) {
+            amount = eStorageLimit[rcl]
+        }
+
+        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) < eStorageLimit[rcl]) {
+            amount = (amount - storage.store.getUsedCapacity(RESOURCE_ENERGY));
+            let trips: number = this.getTrips(amount, avgHauler)
+            const existingTask = this.taskList.find(task => task.id === storage.id+"transfer");
+            if (existingTask != undefined) {
+                existingTask.maxAssigned = trips;
+                existingTask.amount = amount;
+            } else {
+                const newTask: Task = {
+                    id: storage.id+"transfer",
+                    targetId: storage.id,
+                    assigned: [],
+                    maxAssigned: trips,
+                    priority: priority.medium,
+                    transferType: 'transfer',
+                    amount: amount,
+                    ResourceType: RESOURCE_ENERGY,
+                    StructureType: storage.structureType
+                };
+
+                this.taskList.push(newTask);
             }
+        }
+        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > (eStorageLimit[rcl] / 4)) {
+            amount = storage.store.getUsedCapacity(RESOURCE_ENERGY);
+            let trips: number = this.getTrips(amount, avgHauler)
+            const existingTask = this.taskList.find(task => task.id === storage.id+"withdrawl");
+            if (existingTask != undefined) {
+                existingTask.maxAssigned = trips;
+                existingTask.amount = amount
+            } else {
+                const newTask: Task = {
+                    id: storage.id+"withdrawl",
+                    targetId: storage.id,
+                    assigned: [],
+                    maxAssigned: trips,
+                    priority: priority.high,
+                    transferType: 'withdrawl',
+                    amount: amount,
+                    ResourceType: RESOURCE_ENERGY,
+                    StructureType: storage.structureType
+                };
 
-            if (storage.store.getUsedCapacity(RESOURCE_ENERGY) < eStorageLimit[rcl]) {
-                let trips: number = this.getTrips(amount, avgHauler)
-                const existingTask = this.taskList.find(task => task.targetId === storage.id);
-                if (existingTask != undefined) {
-                    existingTask.maxAssigned = trips;
-                    existingTask.amount = amount
-                } else {
-                    const newTask: Task = {
-                        id: storage.id,
-                        targetId: storage.id,
-                        assigned: [],
-                        maxAssigned: trips,
-                        priority: priority.medium,
-                        transferType: 'transfer',
-                        amount: amount,
-                        ResourceType: RESOURCE_ENERGY,
-                        StructureType: storage.structureType
-                    };
-
-                    this.taskList.push(newTask);
-                }
-            } else if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > (eStorageLimit[rcl] / 2)) {
-
-                let trips: number = this.getTrips(amount, avgHauler)
-                const existingTask = this.taskList.find(task => task.targetId === storage.id);
-                if (existingTask != undefined) {
-                    existingTask.maxAssigned = trips;
-                    existingTask.amount = amount
-                } else {
-                    const newTask: Task = {
-                        id: storage.id,
-                        targetId: storage.id,
-                        assigned: [],
-                        maxAssigned: trips,
-                        priority: priority.high,
-                        transferType: 'withdrawl',
-                        amount: amount,
-                        ResourceType: RESOURCE_ENERGY,
-                        StructureType: storage.structureType
-                    };
-
-                    this.taskList.push(newTask);
-                }
+                this.taskList.push(newTask);
             }
         }
     }
@@ -281,14 +281,26 @@ export class ResourceService {
     }
 
     assignToTask(creep: Creep, type: ResRole): string | undefined {
-        const rcl = creep.room.controller?.level?? 0;
-        // const list = this.taskList.sort((a,b) => a)
+        const rcl = creep.room.controller?.level ?? 0;
 
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
+                if (creep.memory.role === roleContants.PORTING) {
+                    if (task.transferType === "pickup") continue;
+                    if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) continue;
+                    if(task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                    if(task.transferType === "transfer" && task.StructureType === STRUCTURE_STORAGE) continue
+                };
+
                 const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
-                if(rcl >= 3 && hasFastFiller != undefined){
-                    if(creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                if (rcl >= 3 && hasFastFiller != undefined) {
+                    if (creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                    if (rcl > 4 && creep.memory.role === roleContants.HAULING) {
+                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
+                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                    };
+                    if (rcl > 4 && creep.memory.role === roleContants.MAINTAINING && task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+
                 }
                 task.assigned.push(creep.name);
                 return task.targetId;
