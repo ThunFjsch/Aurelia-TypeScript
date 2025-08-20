@@ -1,59 +1,106 @@
 import { Priority, priority } from "utils/sharedTypes";
 import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective } from "./objectiveInterfaces";
-import { EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
+import { E_FOR_MAINTAINER, EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
+import { ScoutingService } from "services/scouting.service";
 
 const pathing = new PathingService();
 const economy = new EconomyService()
 
 export class ObjectiveManager {
     objectives: Objective[];
+    scoutingService: ScoutingService;
 
-    constructor() {
+    constructor(ScoutingService: ScoutingService) {
         this.objectives = []
+        this.scoutingService = ScoutingService
     }
 
     // Adds mining Objectives to the Objectives list
     private createMiningObjectives(room: Room): void {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
-
+        // TODO: Make this smarter. Only run it ones.
         if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (b.maxIncome ?? 0) - (a.maxIncome ?? 0))
-        for (const [index, source] of Memory.sourceInfo.entries()) {
-            const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
+
+        for (let [index, source] of Memory.sourceInfo.entries()) {
+            // Updates the objective info of the state diveates from the sourceInfo
+            if (this.objectives.find(obj => obj != undefined && obj.id === source.id) != undefined) {
+                this.objectives.map(objective => {
+                    if (objective.id === source.id && objective.type === roleContants.MINING) {
+                        const sourceObject = Game.getObjectById(source.id);
+                        let isMy = sourceObject?.room.controller?.reservation?.username === 'ThunFisch';
+                        if (!isMy) isMy = sourceObject?.room.controller?.my ?? false;
+                        if ((objective as MiningObjective).my != isMy && sourceObject != null) {
+                            const UpdatedSourceInfo = this.scoutingService.addSource(room, sourceObject);
+                            if (UpdatedSourceInfo != undefined) {
+                                const newObjective = this.creatingMineObjective(room, UpdatedSourceInfo);
+                                if (newObjective != undefined) {
+                                    (objective as MiningObjective).my = isMy;
+                                    (objective as MiningObjective).maxIncome = newObjective.maxIncome;
+                                    (objective as MiningObjective).energyPerTick = newObjective.energyPerTick;
+                                    (objective as MiningObjective).maxHaulerParts = newObjective.maxHaulerParts;
+                                    (objective as MiningObjective).maxWorkParts = newObjective.maxWorkParts;
+                                    (objective as MiningObjective).path = newObjective.path;
+                                    (objective as MiningObjective).pathDistance = newObjective.pathDistance;
+
+                                    source.my = isMy;
+                                    source.ePerTick = UpdatedSourceInfo.ePerTick;
+                                    source.maxHaulerParts = UpdatedSourceInfo.maxHaulerParts;
+                                    source.maxWorkParts = UpdatedSourceInfo.maxWorkParts;
+                                    source.maxIncome = UpdatedSourceInfo.maxIncome
+                                    source.path = UpdatedSourceInfo.path;
+                                    source.distance = UpdatedSourceInfo.distance;
+
+                                }
+                            }
+                        }
+                    }
+                })
+                continue;
+            };
+
+
             // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
-            if (amountOfMiningObj > 8) break;
-            // TODO update objective for remotes to work after reserving
-            if (this.objectives.find(obj => obj != undefined && obj.id === source.id) != undefined) continue;
-            if (source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) continue;
-            let objective: MiningObjective | undefined = undefined;
-            let prio: Priority = priority.high
-            if (source.roomName != room.name) {
-                prio = priority.low;
-            }
-            if (source.home === room.name) {
-                objective = {
-                    id: source.id,
-                    sourceId: source.id,
-                    priority: prio,
-                    home: room.name,
-                    target: source.roomName,
-                    spots: source.spots,
-                    pathDistance: source.distance ?? Infinity,
-                    energyPerTick: source.ePerTick,
-                    maxIncome: source.maxIncome,
-                    maxWorkParts: source.maxWorkParts,
-                    requiredWorkParts: source.maxWorkParts,
-                    maxHaulerParts: source.maxHaulerParts,
-                    distance: source.distance ?? 0,
-                    path: source.path,
-                    type: roleContants.MINING
-                }
-            }
+            const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
+            if (amountOfMiningObj > 8) continue;
+
+            const objective = this.creatingMineObjective(room, source)
             if (objective === undefined) continue;
             this.objectives.push(objective);
         }
+    }
+
+    private creatingMineObjective(room: Room, source: SourceInfo) {
+
+        if (source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) return;
+        let objective: MiningObjective | undefined = undefined;
+        let prio: Priority = priority.high
+        if (source.roomName != room.name) {
+            prio = priority.low;
+        }
+        if (source.home === room.name) {
+            objective = {
+                id: source.id,
+                my: source.my ?? false,
+                sourceId: source.id,
+                priority: prio,
+                home: room.name,
+                target: source.roomName,
+                spots: source.spots,
+                pathDistance: source.distance ?? Infinity,
+                energyPerTick: source.ePerTick,
+                maxIncome: source.maxIncome,
+                maxWorkParts: source.maxWorkParts,
+                requiredWorkParts: source.maxWorkParts,
+                maxHaulerParts: source.maxHaulerParts,
+                distance: source.distance ?? 0,
+                path: source.path,
+                type: roleContants.MINING
+            }
+        }
+        return objective;
     }
 
     // Adds and updates the Hauling Objective
@@ -212,17 +259,20 @@ export class ObjectiveManager {
     }
 
     private createMaintainanceObjective(room: Room, toRepair: string[], hitsOverLifeTime: number): MaintenanceObjective | undefined {
+        // TODO: More dependent on income
+        const expendeture = 4
+        const maxParts = expendeture / E_FOR_MAINTAINER
         return {
             home: room.name,
             id: `${roleContants.MAINTAINING} ${room.name}`,
-            maxIncome: -2,
+            maxIncome: -expendeture,
             target: room.name,
             type: roleContants.MAINTAINING,
             priority: priority.medium,
             maxHaulerParts: 0,
             toRepair: toRepair,
             distance: 0,
-            maxWorkParts: 2,
+            maxWorkParts: maxParts,
             hitsOverLifeTime: hitsOverLifeTime
         }
     }
@@ -289,7 +339,7 @@ export class ObjectiveManager {
         }
     }
 
-    private createReserveObjective(room: Room, remotes: string[]): ReserveObjective{
+    private createReserveObjective(room: Room, remotes: string[]): ReserveObjective {
         return {
             distance: 0,
             home: room.name,

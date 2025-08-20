@@ -52,8 +52,6 @@ export class SpawnManager {
 
             const upgrade = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.UPGRADING);
             if (upgrade.length > 0 && retValue === undefined) retValue = spawnUpgrader.checkUpgradeObj(objectives, upgrade as UpgradeObjective[], room)
-
-            if (retValue != undefined) return
         }
     }
 }

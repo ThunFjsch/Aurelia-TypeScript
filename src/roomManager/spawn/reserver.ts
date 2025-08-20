@@ -12,8 +12,12 @@ export class SpawnReserver{
                 role: roleContants.RESERVING,
                 target: reserv
             }
+            let body = [CLAIM, MOVE];
+            if(room.storage){
+                body = [CLAIM, CLAIM, MOVE]
+            }
             return room.find(FIND_MY_SPAWNS)[0].spawnCreep(
-                [CLAIM, MOVE],
+                body,
                 `${roleContants.RESERVING} ${reserv}`,
                 {memory: mem}
             )

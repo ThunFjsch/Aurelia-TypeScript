@@ -3,24 +3,23 @@ import { Objective, roleContants } from "objectives/objectiveInterfaces";
 export function createCreepBody(objective: Objective, room: Room, currWorkParts: number = 0, maxWorkParts: number) {
     let body: BodyPartConstant[] = [];
     const numberOfStarters = Object.entries(Game.creeps).filter((creep) => creep[1].memory.role === objective.type).length
-    let energyCap = room.energyCapacityAvailable;
+    let energyCap = room.energyAvailable;
     const workPartsLeft = maxWorkParts - currWorkParts
     if (objective.type === roleContants.MINING && currWorkParts < objective.maxWorkParts) {
         if (numberOfStarters === 0 || energyCap <= 500) {
             return body = [WORK, WORK, MOVE];
         } else {
             body = [WORK, WORK, WORK, WORK, WORK, MOVE]
-            if(objective.distance < 40 && energyCap >= 650){
+            if(objective.distance > 15 && energyCap >= 650){
                 body.push(MOVE)
                 body.push(MOVE)
-            } else if(objective.distance > 30){
-                body = [WORK, WORK, MOVE]
             }
-            return body
+            return body;
         }
     } else if (objective.type === roleContants.HAULING) {
         const preset = [CARRY, MOVE]
-        return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room, room.energyAvailable, workPartsLeft)
+        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room, room.energyAvailable, workPartsLeft)
+        return body
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room, energyCap, workPartsLeft, 2)

@@ -18,6 +18,7 @@ export interface MiningObjective extends BaseObjective {
     maxWorkParts: number;
     spots: number;
     path?: RoomPosition[];
+    my: boolean;
 }
 
 export interface HaulingObjective extends BaseObjective {

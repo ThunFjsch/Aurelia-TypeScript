@@ -18,7 +18,7 @@ export function visualizeResourceTasks(tasks: Task[]) {
         const width = 13;
         let info: string[] = ["Type | Amount | Ass | Prio"]
         tasks.forEach((task) => {
-            if(task.amount > 0){
+            if(task.amount > 0 && task.transferType === "withdrawl"){
                 info.push(`${task.transferType} | ${task.amount}, | ${task.assigned.length}/${task.maxAssigned.toFixed(2)} | ${task.priority}`)
             }
         });

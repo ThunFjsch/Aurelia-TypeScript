@@ -137,13 +137,13 @@ export class ResourceService {
         if (storage.store.getUsedCapacity(RESOURCE_ENERGY) < eStorageLimit[rcl]) {
             amount = (amount - storage.store.getUsedCapacity(RESOURCE_ENERGY));
             let trips: number = this.getTrips(amount, avgHauler)
-            const existingTask = this.taskList.find(task => task.id === storage.id+"transfer");
+            const existingTask = this.taskList.find(task => task.id === storage.id + "transfer");
             if (existingTask != undefined) {
                 existingTask.maxAssigned = trips;
                 existingTask.amount = amount;
             } else {
                 const newTask: Task = {
-                    id: storage.id+"transfer",
+                    id: storage.id + "transfer",
                     targetId: storage.id,
                     assigned: [],
                     maxAssigned: trips,
@@ -157,16 +157,16 @@ export class ResourceService {
                 this.taskList.push(newTask);
             }
         }
-        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > (eStorageLimit[rcl] / 4)) {
+        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
             amount = storage.store.getUsedCapacity(RESOURCE_ENERGY);
             let trips: number = this.getTrips(amount, avgHauler)
-            const existingTask = this.taskList.find(task => task.id === storage.id+"withdrawl");
+            const existingTask = this.taskList.find(task => task.id === storage.id + "withdrawl");
             if (existingTask != undefined) {
                 existingTask.maxAssigned = trips;
                 existingTask.amount = amount
             } else {
                 const newTask: Task = {
-                    id: storage.id+"withdrawl",
+                    id: storage.id + "withdrawl",
                     targetId: storage.id,
                     assigned: [],
                     maxAssigned: trips,
@@ -283,23 +283,29 @@ export class ResourceService {
     assignToTask(creep: Creep, type: ResRole): string | undefined {
         const rcl = creep.room.controller?.level ?? 0;
 
+        this.cleanTasks(creep)
+
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
                 if (creep.memory.role === roleContants.PORTING) {
                     if (task.transferType === "pickup") continue;
                     if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) continue;
-                    if(task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
-                    if(task.transferType === "transfer" && task.StructureType === STRUCTURE_STORAGE) continue
-                };
-
-                const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
-                if (rcl >= 3 && hasFastFiller != undefined) {
-                    if (creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
-                    if (rcl > 4 && creep.memory.role === roleContants.HAULING) {
-                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
-                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
-                    };
-                    if (rcl > 4 && creep.memory.role === roleContants.MAINTAINING && task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                    if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                    if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) continue
+                } else if (creep.memory.role === roleContants.HAULING) {
+                    const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
+                    if (rcl >= 3 && hasFastFiller != undefined) {
+                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                        if (rcl > 4) {
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                        };
+                    }
+                } else if(creep.memory.role === roleContants.MAINTAINING){
+                    if (rcl > 4 ){
+                        if(task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                        if(task.transferType === "pickup") continue;
+                    }
 
                 }
                 task.assigned.push(creep.name);
@@ -309,19 +315,15 @@ export class ResourceService {
         return undefined;
     }
 
-    removeFromTask(creep: Creep, target: Resource | Creep | Structure | Tombstone | Ruin) {
-        let i = 0;
+    cleanTasks(creep: Creep){
         this.taskList.forEach(task => {
-            if (task.id === target.id && task.assigned.find(ass => ass === creep.name)) {
-                let currAssignee: string[] = []
-                this.taskList[i].assigned.forEach(ass => {
-                    if (ass != creep.name) {
-                        currAssignee.push(ass)
-                    }
-                })
-                this.taskList[i].assigned = currAssignee
-            }
-            i++
+            let newAssigned: string[] = []
+            task.assigned.forEach(name => {
+                if(name != null && name != creep.name){
+                    newAssigned.push(name)
+                }
+            });
+            task.assigned = newAssigned;
         })
     }
 }

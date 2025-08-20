@@ -12,9 +12,10 @@ export class SpawnPorter {
         if (porter.length > 0) {
             workParts = getWorkParts(porter, CARRY);
         }
-        console.log(rcl > 4 && storage != undefined && workParts < 20)
-        if (rcl > 4 && storage != undefined && workParts < 20 && porter.length < 4) {
-            this.spawnPorter(room, (40 - workParts))
+        // TODO: Better way to determine the amount of Workparts
+        const requiredWorkParts = 40
+        if (rcl > 4 && storage != undefined && workParts < requiredWorkParts && porter.length < 2) {
+            this.spawnPorter(room, (requiredWorkParts - workParts))
         }
     }
 

@@ -31,7 +31,7 @@ export class SpawnHauler {
                 if (objective.distance && hasCreeps > 0) dis += objective.distance
             })
             const currentReq = this.eco.requiredHaulerParts(income, dis);
-            if (currCarry < currentReq  && currCarry < objective.maxHaulerParts) {
+            if (currCarry <= currentReq  && currCarry < objective.maxHaulerParts) {
                 retValue = this.spawnHauler(objective, room, currCarry);
             }
         })

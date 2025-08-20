@@ -15,26 +15,26 @@ export class Porting {
                 return;
             }
             if (memory.target === undefined) {
-                memory.target = energyManager.assignToTask(creep, "transfer")
+                memory.target = energyManager.assignToTask(creep, "transfer");
                 creep.memory = memory
                 return
             } else {
                 const target = Game.getObjectById(memory.target) as Creep;
                 if (target === null) {
-                    delete memory.target;
+                    memory.target = energyManager.assignToTask(creep, "transfer")
                     creep.memory = memory
                     return
                 }
 
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.transfer(target, RESOURCE_ENERGY);
-
-                    energyManager.removeFromTask(creep, target)
+                    energyManager.cleanTasks(creep);
                     delete memory.target;
                     creep.memory = memory;
+                } else{
+                    creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
                 }
 
-                creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
             }
         }
     }

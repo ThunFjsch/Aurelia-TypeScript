@@ -33,13 +33,12 @@ export class Hauling {
 
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.transfer(target, RESOURCE_ENERGY);
-
                     energyManager.removeFromTask(creep, target)
                     delete memory.target;
                     creep.memory = memory;
+                } else{
+                    creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
                 }
-
-                creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
             }
         }
     }
