@@ -68,6 +68,8 @@ declare global {
     interface ScoutPlan{
         roomName: string,
         lastVisit?: number
+        hasEnemy?: boolean;
+        enemies?: Creep[]
     }
 
     interface ContainerMemory{
@@ -124,6 +126,10 @@ declare global {
     interface ScoutMemory extends CreepMemory {
         currIndex: number;
         route: ScoutPlan[];
+    }
+
+    interface ReservMemory extends CreepMemory {
+        target: string;
     }
 
     interface ProfilerMemory {

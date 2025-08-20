@@ -17,10 +17,13 @@ export class ScoutingService {
             return
         };
         let sourceInfo: SourceInfo;
-        if(route.cost < 200){
+        if(route.cost < 100){
             const energyPerTick = this.getEnergyPerTickForSource(source);
+            let my = false;
+            if(room.controller?.my) my = true;
+            if(room.controller?.reservation?.username === 'ThunFisch') my = true;
             sourceInfo = {
-                my: room.controller?.my?? false,
+                my: my,
                 id: source.id,
                 pos: room.controller?.pos,
                 roomName: room.name,

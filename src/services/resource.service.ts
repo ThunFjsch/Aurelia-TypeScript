@@ -1,10 +1,10 @@
-import { roleContants } from "objectives/objectiveInterfaces";
+import { Objective, roleContants } from "objectives/objectiveInterfaces";
 import { priority, Priority } from "utils/sharedTypes";
 import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 0, 10000, 15000, 30000, 60000, 100000];
+const eStorageLimit = [0, 0, 0, 0, 10000, 50000, 100000, 150000, 200000];
 
 export interface Task {
     id: string;              // Resource ID
@@ -30,7 +30,7 @@ export class ResourceService {
         this.memoryService = MemoryService
     }
 
-    run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[]) {
+    run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[], objectives: Objective[]) {
         this.cleanUp();
 
         const rcl: RCL = (room.controller?.level ?? 0) as RCL;
@@ -39,20 +39,33 @@ export class ResourceService {
         this.storageRequests(storage, rcl, avgHauler);
         const structures = room.find(FIND_STRUCTURES);
 
+        const spawn = room.find(FIND_MY_SPAWNS)[0];
+        if (spawn === undefined) return;
+
         let prio: Priority = priority.medium;
         if (rcl === 4 && storage != undefined) {
-
-            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[])
+            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[], spawn)
         } else {
-            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[])
+            this.generateERequests(creeps, avgHauler, haulCapacity, prio, room, structures as AnyStoreStructure[], spawn)
         }
+
+        if (objectives.length != 0) {
+            for (let objective of objectives) {
+                const remoteRoom = Game.rooms[objective.target];
+                if (remoteRoom === undefined) continue;
+
+                this.generateERequests(creeps, avgHauler, haulCapacity, prio, remoteRoom, [], spawn)
+            }
+        }
+
+        this.taskList.sort((a, b) => a.priority - b.priority)
     }
 
-    generateERequests(creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, room: Room, structures: AnyStoreStructure[]) {
+    generateERequests(creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, room: Room, structures: AnyStoreStructure[], spawn: StructureSpawn) {
         room.find(FIND_DROPPED_RESOURCES)
             .filter(res => res.resourceType === RESOURCE_ENERGY)
-            .sort((a, b) => (a.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
-                - (b.amount * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
+            .sort((a, b) => (a.amount * (spawn.pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
+                - (b.amount * (spawn.pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
             .forEach(res => {
                 this.updateCreatePickups(res, avgHauler, haulCapacity, priority.low);
             });
@@ -86,7 +99,6 @@ export class ResourceService {
                 }
             })
         }
-        this.taskList.sort((a, b) => a.priority - b.priority)
     }
 
     generateEWithdrawlRequets(elements: withdrawlToTakeFrom[], avgHauler: number, prio: Priority) {
@@ -110,63 +122,62 @@ export class ResourceService {
         structures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER)
             .forEach((structure) => {
                 let prio: Priority = priority.high;
-                if (structure.structureType === STRUCTURE_SPAWN) prio = priority.high;
+                if (structure.structureType === STRUCTURE_SPAWN) prio = priority.severe;
                 this.updateCreateTransfer(structure as StructuresToRefill, avgHauler, prio)
             })
-
-
     }
 
     storageRequests(storage: StructureStorage, rcl: RCL, avgHauler: number) {
-        if (storage != undefined) {
-            let amount = storage.store.getUsedCapacity(RESOURCE_ENERGY);
-            if (amount > eStorageLimit[rcl]) {
-                amount = eStorageLimit[rcl]
+        if (storage === undefined) return;
+        let amount = storage.store.getFreeCapacity(RESOURCE_ENERGY);
+        if (amount > eStorageLimit[rcl]) {
+            amount = eStorageLimit[rcl]
+        }
+
+        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) < eStorageLimit[rcl]) {
+            amount = (amount - storage.store.getUsedCapacity(RESOURCE_ENERGY));
+            let trips: number = this.getTrips(amount, avgHauler)
+            const existingTask = this.taskList.find(task => task.id === storage.id + "transfer");
+            if (existingTask != undefined) {
+                existingTask.maxAssigned = trips;
+                existingTask.amount = amount;
+            } else {
+                const newTask: Task = {
+                    id: storage.id + "transfer",
+                    targetId: storage.id,
+                    assigned: [],
+                    maxAssigned: trips,
+                    priority: priority.medium,
+                    transferType: 'transfer',
+                    amount: amount,
+                    ResourceType: RESOURCE_ENERGY,
+                    StructureType: storage.structureType
+                };
+
+                this.taskList.push(newTask);
             }
+        }
+        if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+            amount = storage.store.getUsedCapacity(RESOURCE_ENERGY);
+            let trips: number = this.getTrips(amount, avgHauler)
+            const existingTask = this.taskList.find(task => task.id === storage.id + "withdrawl");
+            if (existingTask != undefined) {
+                existingTask.maxAssigned = trips;
+                existingTask.amount = amount
+            } else {
+                const newTask: Task = {
+                    id: storage.id + "withdrawl",
+                    targetId: storage.id,
+                    assigned: [],
+                    maxAssigned: trips,
+                    priority: priority.high,
+                    transferType: 'withdrawl',
+                    amount: amount,
+                    ResourceType: RESOURCE_ENERGY,
+                    StructureType: storage.structureType
+                };
 
-            if (storage.store.getUsedCapacity(RESOURCE_ENERGY) < eStorageLimit[rcl]) {
-                let trips: number = this.getTrips(amount, avgHauler)
-                const existingTask = this.taskList.find(task => task.targetId === storage.id);
-                if (existingTask != undefined) {
-                    existingTask.maxAssigned = trips;
-                    existingTask.amount = amount
-                } else {
-                    const newTask: Task = {
-                        id: storage.id,
-                        targetId: storage.id,
-                        assigned: [],
-                        maxAssigned: trips,
-                        priority: priority.medium,
-                        transferType: 'transfer',
-                        amount: amount,
-                        ResourceType: RESOURCE_ENERGY,
-                        StructureType: storage.structureType
-                    };
-
-                    this.taskList.push(newTask);
-                }
-            } else if (storage.store.getUsedCapacity(RESOURCE_ENERGY) > (eStorageLimit[rcl] / 2)) {
-
-                let trips: number = this.getTrips(amount, avgHauler)
-                const existingTask = this.taskList.find(task => task.targetId === storage.id);
-                if (existingTask != undefined) {
-                    existingTask.maxAssigned = trips;
-                    existingTask.amount = amount
-                } else {
-                    const newTask: Task = {
-                        id: storage.id,
-                        targetId: storage.id,
-                        assigned: [],
-                        maxAssigned: trips,
-                        priority: priority.high,
-                        transferType: 'withdrawl',
-                        amount: amount,
-                        ResourceType: RESOURCE_ENERGY,
-                        StructureType: storage.structureType
-                    };
-
-                    this.taskList.push(newTask);
-                }
+                this.taskList.push(newTask);
             }
         }
     }
@@ -270,13 +281,32 @@ export class ResourceService {
     }
 
     assignToTask(creep: Creep, type: ResRole): string | undefined {
-        const rcl = creep.room.controller?.level?? 0;
+        const rcl = creep.room.controller?.level ?? 0;
+
+        this.cleanTasks(creep)
 
         for (const task of this.taskList) {
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
-                const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
-                if(rcl >= 3 && hasFastFiller != undefined){
-                    if(creep.memory.role === roleContants.HAULING && task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                if (creep.memory.role === roleContants.PORTING) {
+                    if (task.transferType === "pickup") continue;
+                    if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) continue;
+                    if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                    if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) continue
+                } else if (creep.memory.role === roleContants.HAULING) {
+                    const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
+                    if (rcl >= 3 && hasFastFiller != undefined) {
+                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
+                        if (rcl > 4) {
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                        };
+                    }
+                } else if(creep.memory.role === roleContants.MAINTAINING){
+                    if (rcl > 4 ){
+                        if(task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                        if(task.transferType === "pickup") continue;
+                    }
+
                 }
                 task.assigned.push(creep.name);
                 return task.targetId;
@@ -285,19 +315,15 @@ export class ResourceService {
         return undefined;
     }
 
-    removeFromTask(creep: Creep, target: Resource | Creep | Structure | Tombstone | Ruin) {
-        let i = 0;
+    cleanTasks(creep: Creep){
         this.taskList.forEach(task => {
-            if (task.id === target.id && task.assigned.find(ass => ass === creep.name)) {
-                let currAssignee: string[] = []
-                this.taskList[i].assigned.forEach(ass => {
-                    if (ass != creep.name) {
-                        currAssignee.push(ass)
-                    }
-                })
-                this.taskList[i].assigned = currAssignee
-            }
-            i++
+            let newAssigned: string[] = []
+            task.assigned.forEach(name => {
+                if(name != null && name != creep.name){
+                    newAssigned.push(name)
+                }
+            });
+            task.assigned = newAssigned;
         })
     }
 }

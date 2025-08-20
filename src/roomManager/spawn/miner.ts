@@ -9,8 +9,8 @@ export class SpawnMiner {
                 return a.distance - b.distance
             } return Infinity
         })
+        let returnValue = undefined
         sorted.forEach(objective => {
-            let returnValue = undefined
             let assignedCreeps: Creep[] = [];
             for (const index in Game.creeps) {
                 const creep = Game.creeps[index]
@@ -37,14 +37,12 @@ export class SpawnMiner {
                 returnValue = this.spawnMiner(objective, room, currWorkParts, coord);
             }
         })
-        return undefined
+        return returnValue
     }
 
     spawnMiner(objective: MiningObjective, room: Room, currWorkParts: number, coord: Point | undefined) {
         const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
         if (objective.path === undefined) return;
-
-
         const memory: MinerMemory = {
             home: room.name,
             role: roleContants.MINING,

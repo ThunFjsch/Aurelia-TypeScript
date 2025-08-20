@@ -9,24 +9,23 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
     if (memory.target === undefined) {
         memory.target = energyManager.assignToTask(creep, 'withdrawl')
         memory.take = "withdrawl"
-    } else {
-        creep.memory = memory
     }
+
     const target = Game.getObjectById(memory.target) as Resource | Structure;
     if (target === null || target === undefined) {
         delete memory.target;
         creep.memory = memory;
         return
     } else {
-        if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
+        if (creep.pos.getRangeTo(target.pos.x, target.pos.y) === 1) {
             if (memory.take === "pickup") creep.pickup(target as Resource);
             if (memory.take === "withdrawl") creep.withdraw(target as Structure, RESOURCE_ENERGY)
-            energyManager.removeFromTask(creep, target)
+            energyManager.cleanTasks(creep)
             delete memory.target;
             creep.memory = memory;
             return
         } else {
-            creep.moveTo(target.pos.x, target.pos.y)
+            creep.moveTo(target, { visualizePathStyle: { lineStyle: "dashed", stroke: "#21de53" }, reusePath: 50 })
         }
     }
 }

@@ -14,9 +14,9 @@ import { ScoutingService } from "services/scouting.service";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
-const objectiveManager = new ObjectiveManager();
-const resourceService = new ResourceService(memoryService);
 const scoutingService = new ScoutingService();
+const objectiveManager = new ObjectiveManager(scoutingService);
+const resourceService = new ResourceService(memoryService);
 const roomManager = new RoomManager(memoryService, objectiveManager, resourceService, scoutingService);
 const visualizer = new Visualizer()
 
@@ -27,11 +27,9 @@ if (settings.test.profiler) {
   profiler.enable();
 }
 
-// When compiling TS to JS and bundling with rollup, the line numbers and file names in error messages change
-// This utility uses source maps to get the line numbers and file names of the original, TS source code
 export const loop = () => {
   profiler.wrap(memHack(() => {
-    console.log(`Current game tick is ${Game.time}`);
+    // console.log(`Current game tick is ${Game.time}`);
     if (hasRespawned() || Memory.respawn) {
       logger.info('Colony has respawned')
       memoryService.initGlobalMemory();

@@ -18,6 +18,7 @@ export interface MiningObjective extends BaseObjective {
     maxWorkParts: number;
     spots: number;
     path?: RoomPosition[];
+    my: boolean;
 }
 
 export interface HaulingObjective extends BaseObjective {
@@ -52,10 +53,27 @@ export interface ScoutingObjective extends BaseObjective{
     toScout: ScoutPlan[]
 }
 
-// ... other objective types for defense, claiming, expansion, etc.
+export interface ReserveObjective extends BaseObjective{
+    type:roleContants.RESERVING;
+    toReserve: string[]
+}
 
-export type Objective = MiningObjective | HaulingObjective | UpgradeObjective | BuildingObjective | MaintenanceObjective | ScoutingObjective;
-export type ObjectiveType = roleContants.MINING | roleContants.HAULING | roleContants.UPGRADING | roleContants.BUILDING | roleContants.MAINTAINING | roleContants.SCOUTING
+export type Objective = MiningObjective |
+                        HaulingObjective |
+                        UpgradeObjective |
+                        BuildingObjective |
+                        MaintenanceObjective |
+                        ScoutingObjective |
+                        ReserveObjective;
+
+export type ObjectiveType = roleContants.MINING |
+                            roleContants.HAULING |
+                            roleContants.UPGRADING |
+                            roleContants.BUILDING |
+                            roleContants.MAINTAINING |
+                            roleContants.SCOUTING |
+                            roleContants.RESERVING |
+                            roleContants.PORTING
 
 export enum roleContants {
     MINING = 'mining',
@@ -64,5 +82,7 @@ export enum roleContants {
     BUILDING = 'building',
     MAINTAINING = 'maintaining',
     FASTFILLER = 'fastfiller',
-    SCOUTING = 'scouting'
+    SCOUTING = 'scouting',
+    RESERVING = 'reserving',
+    PORTING = 'porting'
 }

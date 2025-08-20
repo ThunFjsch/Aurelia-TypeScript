@@ -67,7 +67,8 @@ export class RoomManager {
             this.objectiveManager.syncRoomObjectives(room)
             spawnManager.run(this.objectiveManager.objectives, room, creeps)
 
-            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room), creeps)
+            const roomAssigned = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
+            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room), creeps, roomAssigned)
         }
     }
 
