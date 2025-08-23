@@ -4,7 +4,7 @@ import { ObjectiveManager } from "objectives/objectiveManager";
 import { SpawnManager } from "roomManager/spawnManager";
 import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
-import { getWorkParts } from "./spawn/helper";
+import { getWorkParts } from "./spawn-helper";
 import { ConstrcutionManager} from "./constructionManager";
 import { Tower } from "structures/tower";
 import { ScoutingService } from "services/scouting.service";
@@ -20,17 +20,14 @@ export interface RoomManager {
 export class RoomManager {
     memoryService: MemoryService;
     objectiveManager: ObjectiveManager;
-    creeps: Creep[] = [];
     resourceService: ResourceService;
     scoutingService: ScoutingService;
+
     constructor(MemoryService: MemoryService, ObjectiveManager: ObjectiveManager, Resource: ResourceService, ScoutingService: ScoutingService) {
         this.memoryService = MemoryService;
         this.objectiveManager = ObjectiveManager;
         this.resourceService = Resource;
         this.scoutingService = ScoutingService;
-        Object.entries(Game.creeps).forEach((key) => {
-            this.creeps.push(key[1])
-        })
     }
 
     run(creeps: Creep[]) {
@@ -60,19 +57,19 @@ export class RoomManager {
                 planner.startRoomPlanner(room, spawn)
             }
 
-            this.crudeDefence(room)
+            this.crudeTowerDefence(room)
 
             constructionManager.run(room);
 
             this.objectiveManager.syncRoomObjectives(room)
             spawnManager.run(this.objectiveManager.objectives, room, creeps)
 
-            const roomAssigned = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
-            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room), creeps, roomAssigned)
+            const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
+            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
         }
     }
 
-    private crudeDefence(room: Room) {
+    private crudeTowerDefence(room: Room) {
         const thread = this.isRoomUnderThread(room);
         if (thread.underThread) {
             const towers = room.find(FIND_MY_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_TOWER);
@@ -92,14 +89,14 @@ export class RoomManager {
         return { underThread, hostiles }
     }
 
-    getRoomAvgHauler(room: Room) {
-        const hauler = this.creeps.filter(creep => creep.memory.home === room.name && creep.memory.role === roleContants.HAULING);
+    getRoomAvgHauler(room: Room, creeps: Creep[]) {
+        const hauler = creeps.filter(creep => creep.memory.home === room.name && creep.memory.role === roleContants.HAULING);
         let cap = 1;
-        let creeps = 1;
+        let creepAmount = 1;
         hauler.forEach(creep => {
             cap += getWorkParts([creep], CARRY)
-            creeps++;
+            creepAmount++;
         });
-        return cap / creeps;
+        return cap / creepAmount;
     }
 }

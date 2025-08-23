@@ -58,13 +58,18 @@ export interface ReserveObjective extends BaseObjective{
     toReserve: string[]
 }
 
+export interface InvaderCoreObjective extends BaseObjective{
+    type:roleContants.CORE_KILLER;
+    attackParts: number;
+}
 export type Objective = MiningObjective |
                         HaulingObjective |
                         UpgradeObjective |
                         BuildingObjective |
                         MaintenanceObjective |
                         ScoutingObjective |
-                        ReserveObjective;
+                        ReserveObjective |
+                        InvaderCoreObjective;
 
 export type ObjectiveType = roleContants.MINING |
                             roleContants.HAULING |
@@ -73,7 +78,8 @@ export type ObjectiveType = roleContants.MINING |
                             roleContants.MAINTAINING |
                             roleContants.SCOUTING |
                             roleContants.RESERVING |
-                            roleContants.PORTING
+                            roleContants.PORTING |
+                            roleContants.CORE_KILLER;
 
 export enum roleContants {
     MINING = 'mining',
@@ -84,5 +90,6 @@ export enum roleContants {
     FASTFILLER = 'fastfiller',
     SCOUTING = 'scouting',
     RESERVING = 'reserving',
-    PORTING = 'porting'
+    PORTING = 'porting',
+    CORE_KILLER = 'coreKiller'
 }

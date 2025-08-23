@@ -1,12 +1,15 @@
 import { Priority, priority } from "utils/sharedTypes";
-import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective } from "./objectiveInterfaces";
+import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective, InvaderCoreObjective } from "./objectiveInterfaces";
 import { E_FOR_MAINTAINER, EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
 import { ScoutingService } from "services/scouting.service";
+import { InvaderExpert, InvaderInformation } from "strategists/invaderExpert";
+import { listeners } from "process";
 
 const pathing = new PathingService();
-const economy = new EconomyService()
+const economy = new EconomyService();
+const invaderExpert  = new InvaderExpert()
 
 export class ObjectiveManager {
     objectives: Objective[];
@@ -64,7 +67,7 @@ export class ObjectiveManager {
 
             // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
             const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
-            if (amountOfMiningObj > 8) continue;
+            if (amountOfMiningObj > 6) continue;
 
             const objective = this.creatingMineObjective(room, source)
             if (objective === undefined) continue;
@@ -223,7 +226,7 @@ export class ObjectiveManager {
             progress: cSite.progress,
             progressTotal: cSite.progressTotal,
             type: roleContants.BUILDING,
-            priority: priority.high,
+            priority: priority.medium,
             maxHaulerParts: energyPerTick * (route.cost / CARRY_CAPACITY),
             path: route.path,
             distance: route.cost
@@ -231,17 +234,18 @@ export class ObjectiveManager {
     }
 
     private getMaintenanceObjective(room: Room) {
-        const toRepair = room.find(FIND_STRUCTURES).filter(structure => structure.hits < structure.hitsMax && structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
+        const toRepair = room.find(FIND_STRUCTURES).filter(structure => structure.hits < (structure.hitsMax/2) && structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
         let hitsToRepair = 0;
         let totalHits = 0;
         let ids: string[] = []
         if (toRepair.length === 0) return;
+        toRepair.sort((a,b) => a.hits - b.hits)
         toRepair.forEach(structure => {
             hitsToRepair += structure.hitsMax - structure.hits;
             totalHits += structure.hitsMax;
             ids.push(structure.id)
         });
-        const hitsOverLifeTime = totalHits / CREEP_LIFE_TIME;
+        const hitsOverLifeTime = hitsToRepair / CREEP_LIFE_TIME;
         const currentObjective = this.objectives.find(objective => objective != undefined && objective.type === roleContants.MAINTAINING && objective.home === room.name)
         if (currentObjective != undefined) {
             this.objectives.map(objective => {
@@ -353,7 +357,39 @@ export class ObjectiveManager {
         }
     }
 
+    private createInvaderDefence(room: Room, infos: InvaderInformation[]){
+        for(let info of infos){
+            info.core.forEach(core => {
+                if(this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)){
+
+                } else{
+                    this.createCoreDefence(room, core);
+                }
+            })
+        }
+    }
+
+    private createCoreDefence(room: Room, core: StructureInvaderCore): InvaderCoreObjective{
+        const attackParts = Math.ceil((core.hitsMax / ATTACK_POWER) / (CREEP_CLAIM_LIFE_TIME - 750))
+
+        return {
+            home: room.name,
+            id: core.id,
+            maxHaulerParts: 0,
+            priority: priority.severe,
+            target: core.room.name,
+            type: roleContants.CORE_KILLER,
+            distance: 0,
+            maxIncome: 0,
+            attackParts
+        }
+    }
+
     syncRoomObjectives(room: Room): void {
+        const invaderInfo = invaderExpert.detectNPC(room, this.objectives.filter(o =>
+            o.home === room.name && o.target != room.name && o.type != roleContants.CORE_KILLER
+        ))
+
         this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
         this.getHaulObjectives(room, this.objectives);
@@ -361,6 +397,7 @@ export class ObjectiveManager {
         this.getMaintenanceObjective(room);
         this.getScoutObjective(room);
         this.getReserverObjective(room);
+        this.createInvaderDefence(room, invaderInfo);
         // plus others;
     }
 
