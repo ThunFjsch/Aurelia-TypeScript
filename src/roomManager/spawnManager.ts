@@ -1,58 +1,424 @@
-import { BuildingObjective, HaulingObjective, MaintenanceObjective, MiningObjective, Objective, ReserveObjective, roleContants, ScoutingObjective, UpgradeObjective } from "objectives/objectiveInterfaces";
-import { EconomyService } from "services/economy.service";
-import { priority } from "utils/sharedTypes";
-import { SpawnHauler } from "./spawn/hauler";
-import { SpawnMiner } from "./spawn/miner";
-import { SpawnUpgrader } from "./spawn/upgrader";
-import { SpawnBuiilder } from "./spawn/builder";
-import { SpawnMaintainer } from "./spawn/maintenance";
-import { SpawnFastFiller } from "./spawn/fastFiller";
-import { SpawnScout } from "./spawn/scout";
-import { SpawnReserver } from "./spawn/reserver";
-import { SpawnPorter } from "./spawn/porter";
+import {
+    BuildingObjective,
+    HaulingObjective,
+    MaintenanceObjective,
+    MiningObjective,
+    Objective,
+    ReserveObjective,
+    roleContants,
+    ScoutingObjective,
+    UpgradeObjective
+} from "objectives/objectiveInterfaces";
+import { E_FOR_BUILDER, E_FOR_UPGRADER, EconomyService } from "services/economy.service";
+import { Point, Priority, priority } from "utils/sharedTypes";
+import { createCreepBody, generateBody, generateName, getWorkParts } from "./spawn-helper";
+import { HaulerMemory } from "creeps/hauling";
+import { UpgraderMemory } from "creeps/upgrading";
 
-const eco = new EconomyService();
-const spawnMiner = new SpawnMiner();
-const spawnHauler = new SpawnHauler(eco);
-const spawnUpgrader = new SpawnUpgrader(eco);
-const spawnBuilder = new SpawnBuiilder(eco)
-const spawnMaintainer = new SpawnMaintainer();
-const spawnFiller = new SpawnFastFiller();
-const spawnScout = new SpawnScout();
-const spawnReserver = new SpawnReserver();
-const spawnPorter = new SpawnPorter();
-
-export class SpawnManager {
-    run(objectives: Objective[], room: Room, creeps: Creep[]) {
-        const unsorted = objectives;
-        for (let currentPrio = priority.severe; currentPrio <= priority.low; currentPrio++) {
-            let retValue = undefined
-
-            const haul = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.HAULING)
-            if (haul.length > 0 && retValue === undefined) retValue = spawnHauler.checkHaulObj(haul as HaulingObjective[], room, unsorted, creeps)
-
-            const miners = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.MINING);
-            if (miners.length > 0 && retValue === undefined) retValue = spawnMiner.checkMiningObj(miners as MiningObjective[], room);
-
-            const scout = objectives.find(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.SCOUTING) as ScoutingObjective;
-            if (scout != undefined && retValue === undefined) retValue = spawnScout.checkScoutObj(scout, room, creeps);
-
-            if (retValue === undefined) retValue = spawnPorter.checkPorterObj(room, creeps);
-
-            if (retValue === undefined) retValue = spawnFiller.checkFastFiller(room, creeps);
-
-            const reserv = objectives.find(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.RESERVING);
-            if (reserv != undefined && retValue === undefined) retValue = spawnReserver.checkReservObj(reserv as ReserveObjective, room, creeps)
-
-            const build = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.BUILDING);
-            if (build.length > 0 && retValue === undefined) retValue = spawnBuilder.checkBuildObj(build as BuildingObjective[], room, objectives)
-
-            const maintenance = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.MAINTAINING);
-            if (maintenance.length > 0 && retValue === undefined) retValue = spawnMaintainer.checkMaintenanceObj(maintenance as MaintenanceObjective[], room, creeps)
-
-            const upgrade = objectives.filter(objective => objective != undefined && objective.priority === currentPrio && objective.type === roleContants.UPGRADING);
-            if (upgrade.length > 0 && retValue === undefined) retValue = spawnUpgrader.checkUpgradeObj(objectives, upgrade as UpgradeObjective[], room)
-        }
-    }
+interface SpawnAction {
+    readonly name: string;
+    readonly priority: number;
+    canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => boolean;
+    execute: (objectives: Objective[], room: Room, creeps: Creep[]) => any;
 }
 
+export class SpawnManager {
+    private economyService = new EconomyService();
+
+    // All spawn logic in one place, organized by priority
+    private spawnActions: SpawnAction[] = [
+        {
+            name: "hauler",
+            priority: priority.medium,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.HAULING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const haulingObjs = objectives.filter(obj => obj.type === roleContants.HAULING) as HaulingObjective[];
+                return this.spawnHauler(haulingObjs, room, objectives, creeps);
+            }
+        },
+        {
+            name: "miner",
+            priority: priority.high,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MINING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const miningObjs = objectives.filter(obj => obj.type === roleContants.MINING) as MiningObjective[];
+                return this.spawnMiner(miningObjs, room);
+            }
+        },
+        {
+            name: "scout",
+            priority: priority.medium,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.SCOUTING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const scoutObj = objectives.find(obj => obj.type === roleContants.SCOUTING) as ScoutingObjective;
+                return this.spawnScout(scoutObj, room, creeps);
+            }
+        },
+        {
+            name: "porter",
+            priority: priority.high,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // Porter has its own internal logic
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                return this.spawnPorter(room, creeps);
+            }
+        },
+        {
+            name: "fastFiller",
+            priority: priority.high,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // FastFiller has its own internal logic
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                return this.spawnFastFiller(room, creeps);
+            }
+        },
+        {
+            name: "reserver",
+            priority: priority.medium,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.RESERVING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const reserveObj = objectives.find(obj => obj.type === roleContants.RESERVING) as ReserveObjective;
+                return this.spawnReserver(reserveObj, room, creeps);
+            }
+        },
+        {
+            name: "builder",
+            priority: priority.low,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.BUILDING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const buildingObjs = objectives.filter(obj => obj.type === roleContants.BUILDING) as BuildingObjective[];
+                return this.spawnBuilder(buildingObjs, room, objectives);
+            }
+        },
+        {
+            name: "maintainer",
+            priority: priority.medium,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MAINTAINING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const maintenanceObjs = objectives.filter(obj => obj.type === roleContants.MAINTAINING) as MaintenanceObjective[];
+                return this.spawnMaintainer(maintenanceObjs, room, creeps);
+            }
+        },
+        {
+            name: "upgrader",
+            priority: priority.veryLow,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.UPGRADING),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const upgradeObjs = objectives.filter(obj => obj.type === roleContants.UPGRADING) as UpgradeObjective[];
+                return this.spawnUpgrader(objectives, upgradeObjs, room);
+            }
+        }
+    ].sort((a, b) => b.priority - a.priority);
+
+    run(objectives: Objective[], room: Room, creeps: Creep[]) {
+        // Group objectives by priority
+        const objectivesByPriority = this.groupObjectivesByPriority(objectives);
+
+        // Process each priority level
+        for (let currentPrio = priority.severe; currentPrio <= priority.low; currentPrio++) {
+            const currentObjectives = objectivesByPriority.get(currentPrio) || [];
+
+            if (currentObjectives.length === 0) continue;
+
+            // Try each spawn action for this priority level
+            for (const action of this.spawnActions) {
+                if (action.canHandle(currentObjectives, room, creeps)) {
+                    const result = action.execute(currentObjectives, room, creeps);
+                    if (result !== undefined) {
+                        return; // Successfully spawned something, exit
+                    }
+                }
+            }
+        }
+    }
+
+    // === SPAWN LOGIC METHODS ===
+    // All the actual spawning logic is now contained within this class
+
+    private spawnHauler(objectives: HaulingObjective[], room: Room, allObjectives: Objective[], creeps: Creep[]) {
+        let retValue = undefined
+        const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
+        objectives.forEach(objective => {
+            let currCarry = 0;
+            for (const index in Game.creeps) {
+                const creep = Game.creeps[index]
+                const memory = Memory.creeps[creep.name]
+                if (memory.role === roleContants.HAULING && memory.home === objective.home) currCarry += getWorkParts([creep], CARRY);
+            }
+
+            let dis = 0;
+            allObjectives.forEach(objective => {
+                let hasCreeps = 0;
+                creeps.forEach(creep => {
+                    if (creep.memory.role === objective.type && creep.memory.home === objective.home && (creep.memory as MinerMemory).sourceId === objective.id) {
+                        hasCreeps++;
+                    }
+                })
+
+                if (objective.distance && hasCreeps > 0) dis += objective.distance
+            })
+            const currentReq = this.economyService.requiredHaulerParts(income, dis);
+            if (currCarry <= currentReq && currCarry < objective.maxHaulerParts) {
+                const body = createCreepBody(objective, room, currCarry, objective.maxHaulerParts)
+                const memory: CreepMemory = {
+                    home: room.name,
+                    role: roleContants.HAULING,
+                    working: false
+                }
+                const spawn = room.find(FIND_MY_SPAWNS)[0];
+                if (spawn.spawning === null) {
+                    retValue = spawn.spawnCreep(body, generateName(roleContants.HAULING), { memory })
+                } else {
+                    retValue = undefined;
+                }
+            }
+        })
+        return retValue
+    }
+
+    private spawnMiner(objectives: MiningObjective[], room: Room) {
+        let returnValue = undefined
+        objectives.forEach(objective => {
+            let assignedCreeps: Creep[] = [];
+            for (const index in Game.creeps) {
+                const creep = Game.creeps[index]
+                const memory = Memory.creeps[creep.name] as MinerMemory
+                if (memory.role === objective.type && memory.sourceId === objective.sourceId) assignedCreeps.push(creep);
+            }
+
+            let currWorkParts = 0;
+            if (assignedCreeps.length > 0) {
+                currWorkParts = getWorkParts(assignedCreeps, WORK);
+            }
+
+            let coord: Point | undefined = undefined
+            room.memory.containers.forEach(container => {
+                if (container.source === objective.sourceId && container.fastFillerSpots != undefined) {
+                    coord = container.fastFillerSpots[0]
+                }
+            })
+            if (coord != undefined && objective.spots > 1) {
+                objective.spots = 1
+            }
+
+            if (objective.maxWorkParts > currWorkParts && objective.spots > assignedCreeps.length) {
+                const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
+                if (objective.path === undefined) return;
+                const memory: MinerMemory = {
+                    home: room.name,
+                    role: roleContants.MINING,
+                    sourceId: objective.sourceId,
+                    route: objective.path,
+                    working: false,
+                    containerPos: coord,
+                    targetRoom: objective.target
+                }
+                returnValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.MINING), { memory })
+            }
+        })
+        return returnValue;
+    }
+
+    private spawnScout(objective: ScoutingObjective, room: Room, creeps: Creep[]) {
+        let returnValue = undefined;
+        if (room.memory.scoutPlan === undefined) return;
+        const scout = creeps.find(creep => creep.memory.role === roleContants.SCOUTING && creep.memory.home === room.name);
+        if (scout != undefined) return;
+        let totalTime = 0;
+        let numberOfRooms = 0
+        objective.toScout.forEach(room => {
+            if ((room.lastVisit ?? 0) === 0) {
+                totalTime += 0
+            } else {
+                totalTime += Game.time - (room.lastVisit ?? 0)
+            }
+            numberOfRooms++;
+        })
+        const avg = totalTime / numberOfRooms;
+        if (avg < 10000) {
+            const body = [MOVE];
+            const memory: ScoutMemory = {
+                home: room.name,
+                role: roleContants.SCOUTING,
+                currIndex: 0,
+                route: objective.toScout,
+            }
+            const spawn = room.find(FIND_MY_SPAWNS)[0]
+            if (!spawn.spawning) {
+                returnValue = spawn.spawnCreep(body, generateName(roleContants.SCOUTING), { memory })
+            }
+        }
+        return returnValue;
+    }
+
+    private spawnPorter(room: Room, creeps: Creep[]) {
+        let returnValue = undefined
+        const rcl = room.controller?.level ?? 0;
+        const storage = room.find(FIND_MY_STRUCTURES).filter(struc => struc.structureType === STRUCTURE_STORAGE)[0];
+        const porter = creeps.filter(creep => creep.memory.role === roleContants.PORTING);
+        let workParts = 0;
+        if (porter.length > 0) {
+            workParts = getWorkParts(porter, CARRY);
+        }
+        // TODO: Better way to determine the amount of Workparts
+        const requiredWorkParts = 40
+        if (rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < 2) {
+            const neededParts = (requiredWorkParts - workParts);
+            const body = generateBody([CARRY, CARRY, MOVE],
+                BODYPART_COST[CARRY] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE],
+                room, room.energyAvailable, neededParts, 2);
+            const memory: HaulerMemory = {
+                home: room.name,
+                role: roleContants.PORTING,
+                take: "withdrawl",
+            }
+            const spawn = room.find(FIND_MY_SPAWNS)[0]
+            if (!spawn.spawning) {
+                returnValue = spawn.spawnCreep(body, generateName(roleContants.PORTING), { memory })
+            }
+        }
+        return returnValue;
+    }
+
+    private spawnFastFiller(room: Room, creeps: Creep[]) {
+        let retValue = undefined;
+        room.memory.containers.forEach(container => {
+            if (container.type === roleContants.FASTFILLER && container.fastFillerSpots != undefined) {
+                for (let spot of container.fastFillerSpots) {
+                    if (!creeps.find(creep => creep.memory.role === roleContants.FASTFILLER && (creep.memory as FastFillerMemory).pos.x === spot.x && (creep.memory as FastFillerMemory).pos.y === spot.y)) {
+                        const body = [CARRY, CARRY, CARRY, MOVE];
+                        const memory: FastFillerMemory = {
+                            home: room.name,
+                            role: roleContants.FASTFILLER,
+                            working: false,
+                            pos: spot,
+                            supply: container.id
+                        }
+                        const spawn = room.find(FIND_MY_SPAWNS)[0]
+                        if (!spawn.spawning) {
+                            retValue = spawn.spawnCreep(body, generateName(roleContants.FASTFILLER), { memory })
+                        }
+                    }
+                }
+            }
+        })
+        return retValue
+    }
+
+    private spawnReserver(objective: ReserveObjective, room: Room, creeps: Creep[]) {
+        for (let reserv of objective.toReserve) {
+            const hasReserv = creeps.find(creep => creep.memory.role === roleContants.RESERVING &&
+                creep.memory.home === room.name &&
+                (creep.memory as ReservMemory).target === reserv);
+            if (hasReserv != undefined) continue;
+            const mem: ReservMemory = {
+                home: room.name,
+                role: roleContants.RESERVING,
+                target: reserv
+            }
+            if (room.energyAvailable < 650) return undefined;
+            let body = [CLAIM, MOVE];
+            if (room.storage && room.energyAvailable >= 1250) {
+                body = [CLAIM, CLAIM, MOVE]
+            }
+            return room.find(FIND_MY_SPAWNS)[0].spawnCreep(
+                body,
+                `${roleContants.RESERVING} ${reserv}`,
+                { memory: mem }
+            )
+        }
+        return undefined
+    }
+
+    private spawnBuilder(objectives: BuildingObjective[], room: Room, allObjectives: Objective[]) {
+        let retValue = undefined;
+        objectives.forEach(objective => {
+            let currWork = 0;
+            for (const index in Game.creeps) {
+                const creep = Game.creeps[index]
+                const memory = Memory.creeps[creep.name]
+                if (memory.role === roleContants.BUILDING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
+            }
+            const currNeed = this.economyService.getCurrentRoomIncome(room, allObjectives) / E_FOR_BUILDER;
+            if (currWork < currNeed) {
+                const body = createCreepBody(objective, room, currWork, currNeed);
+                const memory: BuilderMemory = {
+                    home: room.name,
+                    role: roleContants.BUILDING,
+                    working: false,
+                    target: objective.targetId,
+                    route: objective.path ?? []
+                }
+                const spawn = room.find(FIND_MY_SPAWNS)[0]
+                if (!spawn.spawning) {
+                    retValue = spawn.spawnCreep(body, generateName(roleContants.BUILDING), { memory })
+                }
+            }
+        })
+        return retValue
+    }
+
+    private spawnMaintainer(objectives: MaintenanceObjective[], room: Room, creeps: Creep[]) {
+        let retValue = undefined;
+        const objective = objectives.find(objective => objective.home === room.name)
+        if (objective != undefined) {
+            const assignedCreeps = creeps.filter(creep => creep.memory.role === roleContants.MAINTAINING && creep.memory.home === room.name)
+            const workParts = getWorkParts(assignedCreeps, WORK);
+            if (workParts < objective.maxWorkParts) {
+                const spawn = room.find(FIND_MY_SPAWNS)[0];
+                const body = createCreepBody(objective, room, workParts, objective.maxWorkParts)
+                const memory: MaintainerMemory = {
+                    home: room.name,
+                    role: roleContants.MAINTAINING,
+                    target: objective.toRepair[0],
+                    working: false,
+                    repairTarget: undefined,
+                    take: "pickup"
+                }
+                retValue = spawn.spawnCreep(body, generateName(roleContants.MAINTAINING), { memory });
+            }
+        }
+        return retValue;
+    }
+
+    private spawnUpgrader(allObjectives: Objective[], objectives: UpgradeObjective[], room: Room) {
+        let maxIncome = 0;
+        allObjectives.forEach(objective => maxIncome += objective.maxIncome)
+        let retValue = undefined
+        objectives.forEach(objective => {
+            let currWork = 0;
+            for (const index in Game.creeps) {
+                const creep = Game.creeps[index]
+                const memory = Memory.creeps[creep.name]
+                if (memory.role === roleContants.UPGRADING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
+            }
+            const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
+            const currNeed = income / E_FOR_UPGRADER;
+            if (currWork < currNeed && income > (maxIncome / 3)) {
+                const body = createCreepBody(objective, room, currWork, currNeed)
+                const memory: UpgraderMemory = {
+                    home: room.name,
+                    role: roleContants.UPGRADING,
+                    working: false,
+                    controllerId: objective.controllerId
+                }
+                retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.UPGRADING), { memory })
+            }
+        })
+        return retValue
+    }
+
+    // Helper methods
+    private groupObjectivesByPriority(objectives: Objective[]): Map<Priority, Objective[]> {
+        const grouped = new Map<Priority, Objective[]>();
+
+        for (const objective of objectives) {
+            if (!objective) continue;
+
+            if (!grouped.has(objective.priority as Priority)) {
+                grouped.set(objective.priority as Priority, []);
+            }
+            grouped.get(objective.priority as Priority)!.push(objective);
+        }
+
+        return grouped;
+    }
+}
