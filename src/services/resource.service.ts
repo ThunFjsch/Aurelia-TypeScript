@@ -112,7 +112,13 @@ export class ResourceService {
     }
 
     generateETransferRequests(creeps: Creep[], avgHauler: number, structures: AnyStoreStructure[], room: Room) {
-        creeps.filter(creep => (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING) && creep.memory.home === room.name)
+        creeps.filter(creep => creep.memory.role === roleContants.UPGRADING && creep.memory.home === room.name)
+            .forEach(creep => {
+                let prio: Priority = priority.medium
+                if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
+                this.updateCreateTransfer(creep, avgHauler, prio)
+            })
+            creeps.filter(creep => creep.memory.role === roleContants.BUILDING && creep.memory.home === room.name)
             .forEach(creep => {
                 let prio: Priority = priority.medium
                 if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
@@ -292,7 +298,8 @@ export class ResourceService {
                     if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) continue;
                     if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
                     if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) continue
-                } else if (creep.memory.role === roleContants.HAULING) {
+                }
+                else if (creep.memory.role === roleContants.HAULING) {
                     const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
                     if (rcl >= 3 && hasFastFiller != undefined) {
                         if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
@@ -301,7 +308,8 @@ export class ResourceService {
                             if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
                         };
                     }
-                } else if(creep.memory.role === roleContants.MAINTAINING){
+                }
+                else if(creep.memory.role === roleContants.MAINTAINING){
                     if (rcl > 4 ){
                         if(task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
                         if(task.transferType === "pickup") continue;

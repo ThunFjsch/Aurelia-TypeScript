@@ -24,7 +24,7 @@ export class Maintaining {
                 this.setNewTarget(creep, memory)
             }
             const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
-            if(target.hits === target.hitsMax){
+            if(target === null || target.hits === target.hitsMax){
                 this.setNewTarget(creep, memory);
                 return;
             }

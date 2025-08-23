@@ -6,14 +6,14 @@ export class Scouting {
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
-         if(currTarget === undefined){
+        if(currTarget === undefined){
             memory.currIndex++
             creep.memory = memory
             return
         }
         const targetRoomPos = new RoomPosition(25, 25, currTarget.roomName)
 
-        if (currTarget.lastVisit != 0 || Game.time - (currTarget.lastVisit ?? 0) < Game.time - 20000) {
+        if (currTarget.lastVisit != 0 && Game.time - (currTarget.lastVisit ?? 0) > 20000) {
             memory.currIndex++
         }
 
@@ -23,9 +23,9 @@ export class Scouting {
             creep.moveTo(targetRoomPos)
         } else if (creep.room.name === currTarget.roomName) {
             const controller = creep.room.controller;
-            if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'ThunFisch')) {
+            if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'ThunFisch') && controller.sign?.username != 'Screeps') {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
-                    creep.signController(controller, 'Owo')
+                    creep.signController(controller, 'Owo');
                 } else {
                     creep.moveTo(controller)
                 }
@@ -36,10 +36,11 @@ export class Scouting {
                     memory.route[memory.currIndex].lastVisit = Game.time
                     Game.rooms[memory.home].memory.scoutPlan = memory.route;
 
+                    creep.memory = memory
                     return;
                 }
                 const sources = creep.room.find(FIND_SOURCES)
-                // if(sources.length === 0) return;
+                if(sources.length === 0) return;
                 sources.forEach(source => {
                     let infoOnMem = false;
                     Memory.sourceInfo.forEach(info => {

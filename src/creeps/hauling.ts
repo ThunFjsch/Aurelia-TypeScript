@@ -22,8 +22,9 @@ export class Hauling {
             if (memory.target === undefined) {
                 memory.target = energyManager.assignToTask(creep, "transfer")
                 creep.memory = memory
-                return
-            } else {
+
+            }
+            if(memory.target != undefined) {
                 const target = Game.getObjectById(memory.target) as Creep;
                 if (target === null) {
                     delete memory.target;
