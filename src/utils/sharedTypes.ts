@@ -6,9 +6,9 @@ export interface Point {
 export type Priority = typeof priority[keyof typeof priority];
 
 export const priority = {
-    severe: 0,
-    high: 1,
-    medium: 2,
-    low: 3,
-    veryLow: 4
+    severe: 1,
+    high: 2,
+    medium: 3,
+    low: 4,
+    veryLow: 5
 } as const;

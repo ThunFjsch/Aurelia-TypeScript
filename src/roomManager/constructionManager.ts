@@ -9,20 +9,20 @@ const rclAvailableStructures: RCLAvailableStructures = {
     },
     2: {
         [STRUCTURE_EXTENSION]: 5,
-        [STRUCTURE_CONTAINER]: 5,
+        [STRUCTURE_CONTAINER]: 1,
     },
     3: {
         [STRUCTURE_EXTENSION]: 10,
         [STRUCTURE_CONTAINER]: 5,
-        [STRUCTURE_TOWER]: 1,
-        [STRUCTURE_ROAD]: 30
+        [STRUCTURE_TOWER]: 0,
+        [STRUCTURE_ROAD]: 0
     },
     4: {
         [STRUCTURE_EXTENSION]: 20,
         [STRUCTURE_CONTAINER]: 5,
-        [STRUCTURE_TOWER]: 1,
+        [STRUCTURE_TOWER]: 0,
         [STRUCTURE_STORAGE]: 1,
-        [STRUCTURE_ROAD]: 50,
+        [STRUCTURE_ROAD]: 0,
     },
     5: {
         [STRUCTURE_EXTENSION]: 30,
@@ -189,8 +189,12 @@ export class ConstrcutionManager {
     }
 }
 
-export function getCurrentConstruction(room: Room) {
+export function getCurrentConstruction(room: Room, creep?: Creep) {
     const cSite = room.find(FIND_CONSTRUCTION_SITES)[0]
+    if(room.memory.constructionOffice != undefined && room.memory.constructionOffice.finished && creep != undefined){
+        (creep.memory as BuilderMemory).done = true;
+        return;
+    }
     if (cSite === undefined) return undefined
     return cSite.id
 }

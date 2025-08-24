@@ -2,9 +2,10 @@ import { Objective, roleContants } from "objectives/objectiveInterfaces";
 import { priority, Priority } from "utils/sharedTypes";
 import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
+import { PathingService } from "./pathing.service";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 0, 10000, 50000, 100000, 150000, 200000];
+const eStorageLimit = [0, 0, 0, 0, 25000, 50000, 100000, 150000, 200000];
 
 export interface Task {
     id: string;              // Resource ID
@@ -16,6 +17,7 @@ export interface Task {
     amount: number;
     StructureType: StructureConstant | undefined
     ResourceType: ResourceConstant;
+    distance: number
 }
 
 export declare type ContiainerType = roleContants.FASTFILLER | roleContants.MINING | roleContants.UPGRADING
@@ -26,6 +28,8 @@ declare type withdrawlToTakeFrom = Ruin | AnyStoreStructure | Tombstone;
 export class ResourceService {
     taskList: Task[] = [];
     memoryService: MemoryService;
+    private pathingService = new PathingService()
+
     constructor(MemoryService: MemoryService) {
         this.memoryService = MemoryService
     }
@@ -58,7 +62,7 @@ export class ResourceService {
             }
         }
 
-        this.taskList.sort((a, b) => a.priority - b.priority)
+        this.taskList.sort((a, b) => (b.amount / (b.distance * (b.priority * 4))) - (a.amount / (a.distance * (a.priority * 4))))
     }
 
     generateERequests(creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, room: Room, structures: AnyStoreStructure[], spawn: StructureSpawn) {
@@ -67,12 +71,12 @@ export class ResourceService {
             .sort((a, b) => (a.amount * (spawn.pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
                 - (b.amount * (spawn.pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
             .forEach(res => {
-                this.updateCreatePickups(res, avgHauler, haulCapacity, priority.low);
+                this.updateCreatePickups(res, avgHauler, haulCapacity, priority.low, spawn);
             });
 
-        this.generateEWithdrawlRequets(room.find(FIND_TOMBSTONES), avgHauler, priority.severe);
-        this.generateEWithdrawlRequets(room.find(FIND_RUINS), avgHauler, priority.severe);
-        this.generateETransferRequests(creeps, avgHauler, structures, room);
+        this.generateEWithdrawlRequets(room.find(FIND_TOMBSTONES), avgHauler, priority.severe, spawn);
+        this.generateEWithdrawlRequets(room.find(FIND_RUINS), avgHauler, priority.severe, spawn);
+        this.generateETransferRequests(creeps, avgHauler, structures, room, spawn);
 
         const containers = structures.filter(stucture => stucture.structureType === STRUCTURE_CONTAINER);
         if (containers.length > 0 && room.memory.containers != undefined) {
@@ -90,46 +94,46 @@ export class ResourceService {
                 } else {
                     if (memory != undefined && memory.type === roleContants.MINING) {
                         container.store.getCapacity(RESOURCE_ENERGY)
-                        this.updateCreateWithdrawlRequest(container as StructureContainer, avgHauler, priority.severe)
+                        this.updateCreateWithdrawlRequest(container as StructureContainer, avgHauler, priority.severe, spawn)
                     } else if (memory != undefined && memory.type === roleContants.UPGRADING) {
-                        this.updateCreateTransfer(container as StructureContainer, avgHauler, priority.low)
+                        this.updateCreateTransfer(container as StructureContainer, avgHauler, spawn, priority.low)
                     } else if (memory != undefined && memory?.type === roleContants.FASTFILLER) {
-                        this.updateCreateTransfer(container as StructureContainer, avgHauler, priority.high)
+                        this.updateCreateTransfer(container as StructureContainer, avgHauler, spawn, priority.severe)
                     }
                 }
             })
         }
     }
 
-    generateEWithdrawlRequets(elements: withdrawlToTakeFrom[], avgHauler: number, prio: Priority) {
+    generateEWithdrawlRequets(elements: withdrawlToTakeFrom[], avgHauler: number, prio: Priority, spawn: StructureSpawn) {
         elements.filter(item => item.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
             .sort((a, b) => (a.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1))
                 - (b.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0 * (a.room?.find(FIND_MY_SPAWNS)[0].pos.getRangeTo(a.pos.x, a.pos.y) ?? 1)))
             .forEach(item => {
-                this.updateCreateWithdrawlRequest(item, avgHauler, prio)
+                this.updateCreateWithdrawlRequest(item, avgHauler, prio, spawn)
             });
 
     }
 
-    generateETransferRequests(creeps: Creep[], avgHauler: number, structures: AnyStoreStructure[], room: Room) {
+    generateETransferRequests(creeps: Creep[], avgHauler: number, structures: AnyStoreStructure[], room: Room, spawn: StructureSpawn) {
         creeps.filter(creep => creep.memory.role === roleContants.UPGRADING && creep.memory.home === room.name)
             .forEach(creep => {
                 let prio: Priority = priority.medium
                 if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
-                this.updateCreateTransfer(creep, avgHauler, prio)
+                this.updateCreateTransfer(creep, avgHauler, spawn, prio)
             })
-            creeps.filter(creep => creep.memory.role === roleContants.BUILDING && creep.memory.home === room.name)
+        creeps.filter(creep => creep.memory.role === roleContants.BUILDING && creep.memory.home === room.name)
             .forEach(creep => {
-                let prio: Priority = priority.medium
-                if (creep.memory.role === roleContants.UPGRADING) prio = priority.veryLow
-                this.updateCreateTransfer(creep, avgHauler, prio)
+                let prio: Priority = priority.low
+                this.updateCreateTransfer(creep, avgHauler, spawn, prio)
             })
         // Container and Storage is here not included. These are processes seperatly
-        structures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER)
+        structures.filter(structure => structure.structureType === STRUCTURE_EXTENSION || structure.structureType === STRUCTURE_SPAWN || structure.structureType === STRUCTURE_TOWER || structure.structureType === STRUCTURE_LAB)
             .forEach((structure) => {
                 let prio: Priority = priority.high;
                 if (structure.structureType === STRUCTURE_SPAWN) prio = priority.severe;
-                this.updateCreateTransfer(structure as StructuresToRefill, avgHauler, prio)
+                if (structure.structureType === STRUCTURE_TOWER) prio = priority.severe;
+                this.updateCreateTransfer(structure as StructuresToRefill, avgHauler, spawn, prio)
             })
     }
 
@@ -153,11 +157,12 @@ export class ResourceService {
                     targetId: storage.id,
                     assigned: [],
                     maxAssigned: trips,
-                    priority: priority.medium,
+                    priority: priority.veryLow,
                     transferType: 'transfer',
                     amount: amount,
                     ResourceType: RESOURCE_ENERGY,
-                    StructureType: storage.structureType
+                    StructureType: storage.structureType,
+                    distance: 1
                 };
 
                 this.taskList.push(newTask);
@@ -180,7 +185,8 @@ export class ResourceService {
                     transferType: 'withdrawl',
                     amount: amount,
                     ResourceType: RESOURCE_ENERGY,
-                    StructureType: storage.structureType
+                    StructureType: storage.structureType,
+                    distance: 1
                 };
 
                 this.taskList.push(newTask);
@@ -188,7 +194,9 @@ export class ResourceService {
         }
     }
 
-    updateCreateWithdrawlRequest(target: withdrawlToTakeFrom, avgHauler: number, prio: Priority) {
+    updateCreateWithdrawlRequest(target: withdrawlToTakeFrom, avgHauler: number, prio: Priority, spawn: StructureSpawn) {
+        const route = this.pathingService.findPath(spawn.pos, target.pos);
+        if (route === undefined) return;
         let trips: number = this.getTrips(target.store.getUsedCapacity(RESOURCE_ENERGY), avgHauler)
         const amount = target.store.getUsedCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === target.id);
@@ -210,14 +218,17 @@ export class ResourceService {
                 transferType: 'withdrawl',
                 amount: amount,
                 ResourceType: RESOURCE_ENERGY,
-                StructureType: strucType
+                StructureType: strucType,
+                distance: route?.cost ?? 1
             };
 
             this.taskList.push(newTask);
         }
     }
 
-    private updateCreateTransfer(struc: StructuresToRefill | Creep, avgHauler: number, prio: Priority = priority.medium) {
+    private updateCreateTransfer(struc: StructuresToRefill | Creep, avgHauler: number, spawn: StructureSpawn, prio: Priority = priority.medium) {
+        const route = this.pathingService.findPath(spawn.pos, struc.pos);
+        if (route === undefined) return;
         let trips: number = this.getTrips(struc.store.getFreeCapacity(RESOURCE_ENERGY), avgHauler)
         const amount = struc.store.getFreeCapacity(RESOURCE_ENERGY);
         const existingTask = this.taskList.find(task => task.targetId === struc.id);
@@ -225,6 +236,9 @@ export class ResourceService {
             existingTask.maxAssigned = trips;
             existingTask.amount = amount
         } else {
+            if (typeof (struc) === typeof (Creep)) {
+                trips = trips * 1.4
+            }
             // Create new task
             const newTask: Task = {
                 id: struc.id,
@@ -235,22 +249,25 @@ export class ResourceService {
                 transferType: 'transfer',
                 amount: amount,
                 ResourceType: RESOURCE_ENERGY,
-                StructureType: (struc as AnyStoreStructure).structureType
+                StructureType: (struc as AnyStoreStructure).structureType,
+                distance: route.cost
             };
 
             this.taskList.push(newTask);
         }
     }
 
-    private updateCreatePickups(res: Resource, avgHauler: number, haulCapacity: number, prio: Priority) {
+    private updateCreatePickups(res: Resource, avgHauler: number, haulCapacity: number, prio: Priority, spawn: StructureSpawn) {
+        const route = this.pathingService.findPath(spawn.pos, res.pos);
+        if (route === undefined) return;
         let trips: number = this.getTrips(res.amount, avgHauler)
         if (trips > 10) {
             trips = Math.round(trips) / 2;
         }
 
-        if (res.amount > ((haulCapacity * CARRY_CAPACITY) / 2)) {
-            prio = priority.high;
-        }
+        // if (res.amount > ((haulCapacity * CARRY_CAPACITY) / 2)) {
+        //     prio = priority.high;
+        // }
 
         const existingTask = this.taskList.find(task => task.targetId === res.id);
 
@@ -270,7 +287,8 @@ export class ResourceService {
                 transferType: 'pickup',
                 amount: res.amount,
                 ResourceType: RESOURCE_ENERGY,
-                StructureType: undefined
+                StructureType: undefined,
+                distance: route.cost
             };
 
             this.taskList.push(newTask);
@@ -301,18 +319,19 @@ export class ResourceService {
                 }
                 else if (creep.memory.role === roleContants.HAULING) {
                     const hasFastFiller = Object.entries(Game.creeps).find(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
-                    if (rcl >= 3 && hasFastFiller != undefined) {
-                        if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
-                        if (rcl > 4) {
+                    if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                    if (rcl > 4 && hasFastFiller != undefined) {
+                        if (rcl > 5) {
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION) continue;
                             if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
-                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_LAB) continue;
                         };
                     }
                 }
-                else if(creep.memory.role === roleContants.MAINTAINING){
-                    if (rcl > 4 ){
-                        if(task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
-                        if(task.transferType === "pickup") continue;
+                else if (creep.memory.role === roleContants.MAINTAINING) {
+                    if (rcl > 4) {
+                        if (task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
+                        if (task.transferType === "pickup") continue;
                     }
 
                 }
@@ -323,11 +342,11 @@ export class ResourceService {
         return undefined;
     }
 
-    cleanTasks(creep: Creep){
+    cleanTasks(creep: Creep) {
         this.taskList.forEach(task => {
             let newAssigned: string[] = []
             task.assigned.forEach(name => {
-                if(name != null && name != creep.name){
+                if (name != null && name != creep.name && name != undefined && Game.creeps[creep.name] != undefined) {
                     newAssigned.push(name)
                 }
             });

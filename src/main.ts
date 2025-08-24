@@ -96,6 +96,9 @@ export const loop = () => {
  */
 function hasRespawned() {
   // check for multiple calls on same tick
+  if(Object.entries(Memory).length === 0){
+    return true
+  }
 
   // check for 0 creeps
   for (const creepName in Game.creeps) {

@@ -5,7 +5,6 @@ import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
 import { ScoutingService } from "services/scouting.service";
 import { InvaderExpert, InvaderInformation } from "strategists/invaderExpert";
-import { listeners } from "process";
 
 const pathing = new PathingService();
 const economy = new EconomyService();
@@ -25,7 +24,7 @@ export class ObjectiveManager {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
         // TODO: Make this smarter. Only run it ones.
-        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (b.maxIncome ?? 0) - (a.maxIncome ?? 0))
+        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 1)/ (a.ePerTick??1) - (b.distance ?? 1) / (b.ePerTick??1))
 
         for (let [index, source] of Memory.sourceInfo.entries()) {
             // Updates the objective info of the state diveates from the sourceInfo
@@ -65,6 +64,7 @@ export class ObjectiveManager {
             };
 
 
+
             // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
             const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
             if (amountOfMiningObj > 6) continue;
@@ -81,7 +81,7 @@ export class ObjectiveManager {
         let objective: MiningObjective | undefined = undefined;
         let prio: Priority = priority.high
         if (source.roomName != room.name) {
-            prio = priority.low;
+            prio = priority.medium;
         }
         if (source.home === room.name) {
             objective = {
@@ -133,7 +133,7 @@ export class ObjectiveManager {
             maxHaulerParts: haulerCapacity,
             home: room.name,
             target: room.name,
-            priority: priority.medium,
+            priority: priority.low,
             type: roleContants.HAULING,
             maxIncome: 0,
             distance: 0
@@ -220,7 +220,7 @@ export class ObjectiveManager {
         return {
             home: room.name,
             id: `${roleContants.BUILDING} ${room.name}`,
-            maxIncome: -(energyPerTick - ((energyPerTick / 6) * 2)),
+            maxIncome: -energyPerTick + 1,
             target: room.name,
             targetId: cSite.id,
             progress: cSite.progress,
@@ -264,7 +264,7 @@ export class ObjectiveManager {
 
     private createMaintainanceObjective(room: Room, toRepair: string[], hitsOverLifeTime: number): MaintenanceObjective | undefined {
         // TODO: More dependent on income
-        const expendeture = 4
+        const expendeture = 2
         const maxParts = expendeture / E_FOR_MAINTAINER
         return {
             home: room.name,
@@ -350,7 +350,7 @@ export class ObjectiveManager {
             id: roleContants.RESERVING,
             maxHaulerParts: 0,
             maxIncome: 0,
-            priority: priority.medium,
+            priority: priority.high,
             target: "multiple",
             toReserve: remotes,
             type: roleContants.RESERVING
@@ -361,16 +361,15 @@ export class ObjectiveManager {
         for(let info of infos){
             info.core.forEach(core => {
                 if(this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)){
-
                 } else{
-                    this.createCoreDefence(room, core);
+                    this.objectives.push(this.createCoreDefence(room, core));
                 }
             })
         }
     }
 
     private createCoreDefence(room: Room, core: StructureInvaderCore): InvaderCoreObjective{
-        const attackParts = Math.ceil((core.hitsMax / ATTACK_POWER) / (CREEP_CLAIM_LIFE_TIME - 750))
+        const attackParts = Math.ceil((core.hitsMax / ATTACK_POWER) / (CREEP_LIFE_TIME - 750))
 
         return {
             home: room.name,
@@ -398,6 +397,8 @@ export class ObjectiveManager {
         this.getScoutObjective(room);
         this.getReserverObjective(room);
         this.createInvaderDefence(room, invaderInfo);
+
+        this.objectives.sort((a,b) => a.distance * a.priority - b.distance * a.priority)
         // plus others;
     }
 

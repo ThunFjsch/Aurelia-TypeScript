@@ -10,6 +10,7 @@ import { FastFilling } from "./fastFilling";
 import { Scouting } from "./scouting";
 import { Reserving } from "./reserving";
 import { Porting } from "./porting";
+import { CoreKiller } from "./coreKiller";
 
 export function runCreeps(){
     Object.entries(Game.creeps).forEach((creep) => {
@@ -27,6 +28,7 @@ class Roles {
     scouting: Scouting;
     reserving: Reserving;
     porting: Porting;
+    coreKiller: CoreKiller;
     constructor(objectiveManager: ObjectiveManager){
         this.mining = new Miner();
         this.hauling = new Hauling();
@@ -37,6 +39,7 @@ class Roles {
         this.scouting = new Scouting();
         this.reserving = new Reserving();
         this.porting = new Porting();
+        this.coreKiller = new CoreKiller();
         // this.wallRepairer= new WallRepairer();
     }
 };

@@ -115,6 +115,7 @@ declare global {
     interface BuilderMemory extends CreepMemory {
         target: string | undefined;
         route: RoomPosition[];
+        done: boolean;
     }
 
     interface MaintainerMemory extends CreepMemory {

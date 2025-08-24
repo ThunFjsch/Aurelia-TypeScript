@@ -18,26 +18,26 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
         }
     } else if (objective.type === roleContants.HAULING) {
         const preset = [CARRY, MOVE]
-        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room, room.energyAvailable, workPartsLeft)
+        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], room.energyAvailable, workPartsLeft)
         return body
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
-        return body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK] , room, energyCap, workPartsLeft, 2)
+        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK], energyCap, workPartsLeft, 2)
+        return body;
     } else if(objective.type === roleContants.BUILDING){
         const preset = [WORK, CARRY, CARRY, MOVE]
-        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room, energyCap, workPartsLeft)
+        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK], energyCap, workPartsLeft)
     } else if(objective.type === roleContants.MAINTAINING && currWorkParts < objective.maxWorkParts) {
-        console.log('foo')
         const preset = [WORK, CARRY, MOVE, MOVE]
-        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] , room,  energyCap, workPartsLeft)
+        return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK],  energyCap, workPartsLeft)
     }
     return body;
 }
 
-export function generateBody(preset: BodyPartConstant[], cost: number, room: Room, energy: number, maxWorkParts: number, workpartsInTemplate: number = 1): BodyPartConstant[] {
+export function generateBody(preset: BodyPartConstant[], cost: number, energy: number, maxWorkParts: number, workpartsInTemplate: number = 1): BodyPartConstant[] {
     let body: BodyPartConstant[] = [];
     const maxLength = 50/preset.length
-    for (let i = cost; i < energy; i += cost) {
+    for (let i = cost; i <= energy; i += cost) {
         if(maxWorkParts < workpartsInTemplate * (i/cost)){
             body.push(...preset)
             break;

@@ -8,8 +8,10 @@ import { getWorkParts } from "./spawn-helper";
 import { ConstrcutionManager} from "./constructionManager";
 import { Tower } from "structures/tower";
 import { ScoutingService } from "services/scouting.service";
+import { EconomyService } from "services/economy.service";
 
-const spawnManager = new SpawnManager();
+const economyService = new EconomyService();
+const spawnManager = new SpawnManager(economyService);
 const towerControle = new Tower();
 const constructionManager = new ConstrcutionManager();
 
@@ -35,7 +37,7 @@ export class RoomManager {
             const roomName = Memory.myRooms[index];
             const room = Game.rooms[roomName];
 
-            if(Game.time % 1500 === 0){
+            if(Game.time % 250 === 0){
                 room.memory.containers = []
             }
 

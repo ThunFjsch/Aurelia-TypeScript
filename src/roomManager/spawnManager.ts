@@ -1,6 +1,7 @@
 import {
     BuildingObjective,
     HaulingObjective,
+    InvaderCoreObjective,
     MaintenanceObjective,
     MiningObjective,
     Objective,
@@ -14,6 +15,7 @@ import { Point, Priority, priority } from "utils/sharedTypes";
 import { createCreepBody, generateBody, generateName, getWorkParts } from "./spawn-helper";
 import { HaulerMemory } from "creeps/hauling";
 import { UpgraderMemory } from "creeps/upgrading";
+import { CoreKillerMemory } from "creeps/coreKiller";
 
 interface SpawnAction {
     readonly name: string;
@@ -23,13 +25,17 @@ interface SpawnAction {
 }
 
 export class SpawnManager {
-    private economyService = new EconomyService();
+    private economyService: EconomyService;
+
+    constructor(EconomyService: EconomyService) {
+        this.economyService = EconomyService
+    }
 
     // All spawn logic in one place, organized by priority
     private spawnActions: SpawnAction[] = [
         {
             name: "hauler",
-            priority: priority.medium,
+            priority: priority.low,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.HAULING),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const haulingObjs = objectives.filter(obj => obj.type === roleContants.HAULING) as HaulingObjective[];
@@ -41,7 +47,7 @@ export class SpawnManager {
             priority: priority.high,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MINING),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const miningObjs = objectives.filter(obj => obj.type === roleContants.MINING) as MiningObjective[];
+                const miningObjs = objectives.filter(obj => obj.type === roleContants.MINING && obj.home === room.name) as MiningObjective[];
                 return this.spawnMiner(miningObjs, room);
             }
         },
@@ -56,7 +62,7 @@ export class SpawnManager {
         },
         {
             name: "porter",
-            priority: priority.high,
+            priority: priority.medium,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // Porter has its own internal logic
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 return this.spawnPorter(room, creeps);
@@ -64,7 +70,7 @@ export class SpawnManager {
         },
         {
             name: "fastFiller",
-            priority: priority.high,
+            priority: priority.medium,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // FastFiller has its own internal logic
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 return this.spawnFastFiller(room, creeps);
@@ -77,6 +83,15 @@ export class SpawnManager {
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const reserveObj = objectives.find(obj => obj.type === roleContants.RESERVING) as ReserveObjective;
                 return this.spawnReserver(reserveObj, room, creeps);
+            }
+        },
+        {
+            name: roleContants.CORE_KILLER,
+            priority: priority.severe,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.CORE_KILLER),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const coreKillObj = objectives.filter(obj => obj.type === roleContants.CORE_KILLER && obj.home === room.name) as InvaderCoreObjective[];
+                return this.spawnCoreKiller(coreKillObj, room, creeps);
             }
         },
         {
@@ -121,8 +136,8 @@ export class SpawnManager {
             // Try each spawn action for this priority level
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, creeps)) {
-                    const result = action.execute(currentObjectives, room, creeps);
-                    if (result !== undefined) {
+                    const result = action.execute(objectives.filter(o => o.home === room.name), room, creeps);
+                    if (result !== undefined && creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length > 6) {
                         return; // Successfully spawned something, exit
                     }
                 }
@@ -156,7 +171,7 @@ export class SpawnManager {
                 if (objective.distance && hasCreeps > 0) dis += objective.distance
             })
             const currentReq = this.economyService.requiredHaulerParts(income, dis);
-            if (currCarry <= currentReq && currCarry < objective.maxHaulerParts) {
+            if (currCarry < currentReq && currCarry < objective.maxHaulerParts) {
                 const body = createCreepBody(objective, room, currCarry, objective.maxHaulerParts)
                 const memory: CreepMemory = {
                     home: room.name,
@@ -175,49 +190,51 @@ export class SpawnManager {
     }
 
     private spawnMiner(objectives: MiningObjective[], room: Room) {
-        let returnValue = undefined
-        objectives.forEach(objective => {
-            let assignedCreeps: Creep[] = [];
-            for (const index in Game.creeps) {
-                const creep = Game.creeps[index]
-                const memory = Memory.creeps[creep.name] as MinerMemory
-                if (memory.role === objective.type && memory.sourceId === objective.sourceId) assignedCreeps.push(creep);
-            }
+        let returnValue = undefined;
+        objectives.sort((a, b) => b.distance - a.distance)
+            .forEach(objective => {
+                let assignedCreeps: Creep[] = [];
+                for (const index in Game.creeps) {
+                    const creep = Game.creeps[index]
+                    const memory = Memory.creeps[creep.name] as MinerMemory
+                    if (memory.role === objective.type && memory.sourceId === objective.sourceId) assignedCreeps.push(creep);
+                }
 
-            let currWorkParts = 0;
-            if (assignedCreeps.length > 0) {
-                currWorkParts = getWorkParts(assignedCreeps, WORK);
-            }
+                let currWorkParts = 0;
+                if (assignedCreeps.length > 0) {
+                    currWorkParts = getWorkParts(assignedCreeps, WORK);
+                }
 
-            let coord: Point | undefined = undefined
-            room.memory.containers.forEach(container => {
-                if (container.source === objective.sourceId && container.fastFillerSpots != undefined) {
-                    coord = container.fastFillerSpots[0]
+                let coord: Point | undefined = undefined
+                room.memory.containers.forEach(container => {
+                    if (container.source === objective.sourceId && container.fastFillerSpots != undefined) {
+                        coord = container.fastFillerSpots[0]
+                    }
+                })
+                if (coord != undefined && objective.spots > 1) {
+                    objective.spots = 1
+                }
+
+                if (objective.maxWorkParts > currWorkParts && objective.spots > assignedCreeps.length) {
+                    const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
+                    if (objective.path === undefined) return;
+                    const memory: MinerMemory = {
+                        home: room.name,
+                        role: roleContants.MINING,
+                        sourceId: objective.sourceId,
+                        route: objective.path,
+                        working: false,
+                        containerPos: coord,
+                        targetRoom: objective.target
+                    }
+                    returnValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.MINING), { memory })
                 }
             })
-            if (coord != undefined && objective.spots > 1) {
-                objective.spots = 1
-            }
-
-            if (objective.maxWorkParts > currWorkParts && objective.spots > assignedCreeps.length) {
-                const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
-                if (objective.path === undefined) return;
-                const memory: MinerMemory = {
-                    home: room.name,
-                    role: roleContants.MINING,
-                    sourceId: objective.sourceId,
-                    route: objective.path,
-                    working: false,
-                    containerPos: coord,
-                    targetRoom: objective.target
-                }
-                returnValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.MINING), { memory })
-            }
-        })
         return returnValue;
     }
 
     private spawnScout(objective: ScoutingObjective, room: Room, creeps: Creep[]) {
+        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length < 3) return
         let returnValue = undefined;
         if (room.memory.scoutPlan === undefined) return;
         const scout = creeps.find(creep => creep.memory.role === roleContants.SCOUTING && creep.memory.home === room.name);
@@ -250,6 +267,7 @@ export class SpawnManager {
     }
 
     private spawnPorter(room: Room, creeps: Creep[]) {
+        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length < 3) return
         let returnValue = undefined
         const rcl = room.controller?.level ?? 0;
         const storage = room.find(FIND_MY_STRUCTURES).filter(struc => struc.structureType === STRUCTURE_STORAGE)[0];
@@ -264,7 +282,7 @@ export class SpawnManager {
             const neededParts = (requiredWorkParts - workParts);
             const body = generateBody([CARRY, CARRY, MOVE],
                 BODYPART_COST[CARRY] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE],
-                room, room.energyAvailable, neededParts, 2);
+                room.energyAvailable, neededParts, 2);
             const memory: HaulerMemory = {
                 home: room.name,
                 role: roleContants.PORTING,
@@ -280,6 +298,7 @@ export class SpawnManager {
 
     private spawnFastFiller(room: Room, creeps: Creep[]) {
         let retValue = undefined;
+        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length < 3) return
         room.memory.containers.forEach(container => {
             if (container.type === roleContants.FASTFILLER && container.fastFillerSpots != undefined) {
                 for (let spot of container.fastFillerSpots) {
@@ -345,7 +364,8 @@ export class SpawnManager {
                     role: roleContants.BUILDING,
                     working: false,
                     target: objective.targetId,
-                    route: objective.path ?? []
+                    route: objective.path ?? [],
+                    done: false
                 }
                 const spawn = room.find(FIND_MY_SPAWNS)[0]
                 if (!spawn.spawning) {
@@ -400,10 +420,31 @@ export class SpawnManager {
                     working: false,
                     controllerId: objective.controllerId
                 }
-                retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, generateName(roleContants.UPGRADING), { memory })
+                const name = generateName(roleContants.UPGRADING);
+                retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, { memory })
             }
         })
         return retValue
+    }
+
+    private spawnCoreKiller(objectives: InvaderCoreObjective[], room: Room, creeps: Creep[]) {
+        let retValue = undefined;
+        objectives.forEach(o => {
+            if (!creeps.find(c => c.memory.role === roleContants.CORE_KILLER && (c.memory as CoreKillerMemory).target === o.id)) {
+                const cost = (o.attackParts * BODYPART_COST[ATTACK]) + (o.attackParts * BODYPART_COST[MOVE])
+                if (cost <= room.energyAvailable) {
+                    const body = generateBody([ATTACK, MOVE], cost, cost, o.attackParts)
+                    const memory: CoreKillerMemory = {
+                        home: room.name,
+                        role: roleContants.CORE_KILLER,
+                        target: o.id
+                    }
+                    const name = generateName(roleContants.CORE_KILLER);
+                    retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, { memory })
+                }
+            }
+        })
+        return retValue;
     }
 
     // Helper methods
