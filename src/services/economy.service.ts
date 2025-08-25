@@ -1,10 +1,10 @@
 import { minerBuilder } from "creeps/creepFactory";
 import { Objective, roleContants } from "objectives/objectiveInterfaces";
 
-export const E_FOR_UPGRADER = 2.5;
+export const E_FOR_UPGRADER = 1.5;
 export const E_FOR_BUILDER = 4;
 export const E_FOR_MAINTAINER = 1;
-export const HAULER_MULTIPLIER = 1.4;
+export const HAULER_MULTIPLIER = 1.7;
 
 export class EconomyService {
     getMaxSourceIncome(route: PathFinderPath, energyPerTick: number, spawn: StructureSpawn, room: Room): number {

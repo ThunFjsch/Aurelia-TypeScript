@@ -33,6 +33,7 @@ export const loop = () => {
     if (hasRespawned() || Memory.respawn) {
       logger.info('Colony has respawned')
       memoryService.initGlobalMemory();
+      return;
     }
 
     const creeps: Creep[] = []

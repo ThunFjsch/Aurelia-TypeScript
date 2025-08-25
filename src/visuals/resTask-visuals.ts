@@ -13,12 +13,12 @@ export function visualizeResourceTasks(tasks: Task[]) {
         const roomName = Memory.myRooms[name];
         const room = Game.rooms[roomName];
         if (room === undefined) return;
-        let startX = 30;
+        let startX = 0;
         let startY = settings.objective.startY;
         const width = 13;
         let info: string[] = ["Type | Amount | Ass | Prio"]
         tasks.forEach((task) => {
-            if(task.amount > 0 && task.transferType === "withdrawl"){
+            if(task.amount > 0 ){
                 info.push(`${task.transferType} | ${task.amount}, | ${task.assigned.length}/${task.maxAssigned.toFixed(2)} | ${task.priority}`)
             }
         });

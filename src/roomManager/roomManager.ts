@@ -41,6 +41,10 @@ export class RoomManager {
                 room.memory.containers = []
             }
 
+            if(room.memory.containers === undefined){
+                this.memoryService.initRoomMemory(room);
+            }
+
             if (room.memory.respawn || room.memory === undefined) {
                 this.memoryService.initRoomMemory(room);
                 return
@@ -58,16 +62,17 @@ export class RoomManager {
 
                 planner.startRoomPlanner(room, spawn)
             }
-
+            constructionManager.run(room);
             this.crudeTowerDefence(room)
 
-            constructionManager.run(room);
-
             this.objectiveManager.syncRoomObjectives(room)
-            spawnManager.run(this.objectiveManager.objectives, room, creeps)
+            if(Game.time % 25 === 0){
 
-            const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
-            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
+                const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
+                this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
+            }
+
+            spawnManager.run(this.objectiveManager.objectives, room, creeps)
         }
     }
 

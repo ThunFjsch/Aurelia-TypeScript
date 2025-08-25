@@ -3,12 +3,12 @@ import { HaulerMemory } from "./hauling";
 
 export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory, energyManager: ResourceService) {
     if (memory.target === undefined) {
-        memory.target = energyManager.assignToTask(creep, 'pickup')
-        memory.take = "pickup"
-    }
-    if (memory.target === undefined) {
         memory.target = energyManager.assignToTask(creep, 'withdrawl')
         memory.take = "withdrawl"
+    }
+    if (memory.target === undefined) {
+        memory.target = energyManager.assignToTask(creep, 'pickup')
+        memory.take = "pickup"
     }
 
     const target = Game.getObjectById(memory.target) as Resource | Structure;

@@ -65,9 +65,9 @@ export const settings: settings = {
         basePlanning: false,
         showStamps: true,
         distanceTransform: false,
-        showStats: true,
+        showStats: false,
         showObjectives: false,
-        showResourceTasks: false,
+        showResourceTasks: true,
         showConstruction: false
     },
     objective: {

@@ -173,7 +173,7 @@ export class ObjectiveManager {
             maxIncome: -eToSpawnHaulers,
             target: room.name,
             type: roleContants.UPGRADING,
-            priority: priority.low,
+            priority: priority.veryLow,
             netEnergyIncome: energyPerTick,
             maxHaulerParts: maxHaulerParts,
             path: route.path,
@@ -398,7 +398,7 @@ export class ObjectiveManager {
         this.getReserverObjective(room);
         this.createInvaderDefence(room, invaderInfo);
 
-        this.objectives.sort((a,b) => a.distance * a.priority - b.distance * a.priority)
+        this.objectives.filter(o => o != undefined).sort((a,b) => a.distance * a.priority - b.distance * a.priority)
         // plus others;
     }
 

@@ -128,7 +128,7 @@ export class SpawnManager {
         const objectivesByPriority = this.groupObjectivesByPriority(objectives);
 
         // Process each priority level
-        for (let currentPrio = priority.severe; currentPrio <= priority.low; currentPrio++) {
+        for (let currentPrio = priority.severe; currentPrio <= priority.veryLow; currentPrio++) {
             const currentObjectives = objectivesByPriority.get(currentPrio) || [];
 
             if (currentObjectives.length === 0) continue;
@@ -191,7 +191,7 @@ export class SpawnManager {
 
     private spawnMiner(objectives: MiningObjective[], room: Room) {
         let returnValue = undefined;
-        objectives.sort((a, b) => b.distance - a.distance)
+        objectives.filter(o => o != undefined).sort((a, b) => b.distance - a.distance)
             .forEach(objective => {
                 let assignedCreeps: Creep[] = [];
                 for (const index in Game.creeps) {
@@ -400,6 +400,7 @@ export class SpawnManager {
     }
 
     private spawnUpgrader(allObjectives: Objective[], objectives: UpgradeObjective[], room: Room) {
+        console.log('foo')
         let maxIncome = 0;
         allObjectives.forEach(objective => maxIncome += objective.maxIncome)
         let retValue = undefined
@@ -412,6 +413,7 @@ export class SpawnManager {
             }
             const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
             const currNeed = income / E_FOR_UPGRADER;
+            console.log(currWork < currNeed && income > (maxIncome / 3))
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 const body = createCreepBody(objective, room, currWork, currNeed)
                 const memory: UpgraderMemory = {
@@ -422,6 +424,7 @@ export class SpawnManager {
                 }
                 const name = generateName(roleContants.UPGRADING);
                 retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, { memory })
+                console.log(retValue)
             }
         })
         return retValue
