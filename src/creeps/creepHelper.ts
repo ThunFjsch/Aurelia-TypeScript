@@ -23,9 +23,11 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
             energyManager.cleanTasks(creep)
             delete memory.target;
             creep.memory = memory;
+            const spawn = creep.room.find(FIND_MY_SPAWNS)[0]
+            getAwayFromSpawn(creep, spawn)
             return
         } else {
-            creep.moveTo(target, { visualizePathStyle: { lineStyle: "dashed", stroke: "#21de53" }, reusePath: 50 })
+            creep.moveTo(target, { visualizePathStyle: { lineStyle: "dashed", stroke: "#21de53" }, reusePath: 50, maxOps: 10000})
         }
     }
 }
@@ -52,5 +54,12 @@ export function helpAFriend(creep: Creep, memory: CreepMemory) {
                 break;
             }
         }
+    }
+}
+
+export function getAwayFromSpawn(creep: Creep, spawn: StructureSpawn){
+    if(spawn === undefined) return
+    if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
+        creep.moveTo(25,25)
     }
 }

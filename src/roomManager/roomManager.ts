@@ -37,7 +37,7 @@ export class RoomManager {
             const roomName = Memory.myRooms[index];
             const room = Game.rooms[roomName];
 
-            if(Game.time % 250 === 0){
+            if(Game.time % 50 === 0){
                 room.memory.containers = []
             }
 
@@ -54,6 +54,11 @@ export class RoomManager {
                 room.memory.scoutPlan = this.scoutingService.getRoomScoutRoute(room)
             }
 
+            const rcl = room.controller?.level??0;
+            if(room.memory.rclProgress.length < (rcl)){
+                room.memory.rclProgress.push({finished: Game.time, level: rcl})
+            }
+
             // The baseplanner is added in the initMemory but this allows for rebuilding the roomplan when I delete it.
             const basePlanner = room.memory.basePlanner;
             if (basePlanner === undefined) {
@@ -65,9 +70,8 @@ export class RoomManager {
             constructionManager.run(room);
             this.crudeTowerDefence(room)
 
-            this.objectiveManager.syncRoomObjectives(room)
-            if(Game.time % 25 === 0){
-
+            if(Game.time % 15 === 0){
+                this.objectiveManager.syncRoomObjectives(room, creeps)
                 const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
                 this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
             }

@@ -9,11 +9,11 @@ const rclAvailableStructures: RCLAvailableStructures = {
     },
     2: {
         [STRUCTURE_EXTENSION]: 5,
-        [STRUCTURE_CONTAINER]: 1,
+        [STRUCTURE_CONTAINER]: 4,
     },
     3: {
         [STRUCTURE_EXTENSION]: 10,
-        [STRUCTURE_CONTAINER]: 5,
+        [STRUCTURE_CONTAINER]: 4,
         [STRUCTURE_TOWER]: 0,
         [STRUCTURE_ROAD]: 0
     },
@@ -22,14 +22,14 @@ const rclAvailableStructures: RCLAvailableStructures = {
         [STRUCTURE_CONTAINER]: 5,
         [STRUCTURE_TOWER]: 0,
         [STRUCTURE_STORAGE]: 1,
-        [STRUCTURE_ROAD]: 0,
+        [STRUCTURE_ROAD]: 25,
     },
     5: {
         [STRUCTURE_EXTENSION]: 30,
         [STRUCTURE_CONTAINER]: 5,
         [STRUCTURE_TOWER]: 2,
         [STRUCTURE_STORAGE]: 1,
-        [STRUCTURE_ROAD]: 0,
+        [STRUCTURE_ROAD]: 150,
         [STRUCTURE_RAMPART]: Infinity
     },
     6: {
@@ -91,6 +91,7 @@ export class ConstrcutionManager {
             if (cSites != undefined && cSites.length === 0) {
                 const nextPlan = room.memory.constructionOffice.plans[0]
                 if (nextPlan === null) return room.memory.constructionOffice.finished = true;
+                room.lookAt(nextPlan.x, nextPlan.y).filter(e => e.creep != undefined).forEach(c => c.creep?.moveTo(25,25))
                 const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
                 if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
                     room.memory.constructionOffice.plans.shift()

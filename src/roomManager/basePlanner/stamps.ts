@@ -156,7 +156,8 @@ export const smallExtensionField: Stamp = {
 }
 
 export const stampPlan: { stamp: Stamp; count: number }[] = [
-    { stamp: FastFillerStamp, count: 2 },
+    {stamp: CoreStamp, count: 1},
+    { stamp: FastFillerStamp, count: 1 },
     { stamp: LabStamp, count: 1 },
     { stamp: smallExtensionField, count: 5 },
 ];

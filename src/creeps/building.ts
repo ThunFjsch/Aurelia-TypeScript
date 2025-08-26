@@ -1,13 +1,14 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
-import { helpAFriend } from "./creepHelper";
+import { getAwayFromSpawn, helpAFriend } from "./creepHelper";
 
 export class Building {
     run(creep: Creep) {
         const memory = creep.memory as BuilderMemory
+        //TODO: Use Id
+        const spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0];
         if (memory.target === undefined) {
             memory.target = getCurrentConstruction(creep.room, creep);
             creep.memory = memory;
-            const spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0];
             if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)) {
                 spawn.recycleCreep(creep)
             } else if (memory.done) {
@@ -24,10 +25,6 @@ export class Building {
         }
 
         helpAFriend(creep, memory);
-
-        if (creep.pos.x === target.pos.x && creep.pos.y === target.pos.y) {
-            creep.moveTo(32, 33)
-        }
 
         if (creep.store.energy === 0) {
             memory.working = false
@@ -47,5 +44,7 @@ export class Building {
         if (building != OK && memory.working === false) {
             creep.moveTo(target);
         }
+
+        getAwayFromSpawn(creep, spawn)
     }
 }

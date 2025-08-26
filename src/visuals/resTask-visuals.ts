@@ -14,7 +14,7 @@ export function visualizeResourceTasks(tasks: Task[]) {
         const room = Game.rooms[roomName];
         if (room === undefined) return;
         let startX = 0;
-        let startY = settings.objective.startY;
+        let startY = 10;
         const width = 13;
         let info: string[] = ["Type | Amount | Ass | Prio"]
         tasks.forEach((task) => {

@@ -24,14 +24,13 @@ export class Planner {
         const coreStamps = core.placeCore(startLocation, spawn);
         room.memory.basePlanner.stamps = coreStamps;
 
-        const upgraderInfo = this.placeUpgraderLocation(room, startLocation);
-        room.memory.basePlanner.upgradeLocations = upgraderInfo.spots;
-
-        core.placeAllStamps(room, coreStamps, startLocation, centers);
-
         infrastructure.placeResourceInfrastructure(room);
 
+        const upgraderInfo = this.placeUpgraderLocation(room, startLocation);
+        room.memory.basePlanner.upgradeLocations = upgraderInfo.spots;
         infrastructure.placeUpgraderContainer(room, upgraderInfo.center);
+
+        core.placeAllStamps(room, room.memory.basePlanner.stamps, startLocation, centers);
 
         const occupied = core.getOccupiedGrid(room, false);
         room.memory.basePlanner.distanceTransform = getDistanceTransformMap(room.getTerrain(), TERRAIN_MASK_WALL, 0, occupied);

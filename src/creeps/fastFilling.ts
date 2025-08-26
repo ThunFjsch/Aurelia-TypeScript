@@ -11,7 +11,7 @@ export class FastFilling{
             const extensions: StructureExtension[] = []
             creep.room.lookAtArea(creep.pos.y - 1, creep.pos.x - 1, creep.pos.y + 1, creep.pos.x + 1, true)
                         .forEach(item => {
-                            if(item.structure != undefined && item.structure.structureType === STRUCTURE_EXTENSION){
+                            if(item.structure != undefined && (item.structure.structureType === STRUCTURE_EXTENSION || item.structure.structureType === STRUCTURE_SPAWN)){
                                 extensions.push(item.structure as StructureExtension)
                             }
                         });

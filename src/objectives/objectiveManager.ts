@@ -5,10 +5,11 @@ import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
 import { ScoutingService } from "services/scouting.service";
 import { InvaderExpert, InvaderInformation } from "strategists/invaderExpert";
+import { getWorkParts } from "roomManager/spawn-helper";
 
 const pathing = new PathingService();
 const economy = new EconomyService();
-const invaderExpert  = new InvaderExpert()
+const invaderExpert = new InvaderExpert()
 
 export class ObjectiveManager {
     objectives: Objective[];
@@ -24,7 +25,7 @@ export class ObjectiveManager {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
         // TODO: Make this smarter. Only run it ones.
-        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 1)/ (a.ePerTick??1) - (b.distance ?? 1) / (b.ePerTick??1))
+        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 1) - (b.distance ?? 1))
 
         for (let [index, source] of Memory.sourceInfo.entries()) {
             // Updates the objective info of the state diveates from the sourceInfo
@@ -67,7 +68,7 @@ export class ObjectiveManager {
 
             // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
             const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
-            if (amountOfMiningObj > 6) continue;
+            if (amountOfMiningObj > 7) continue;
 
             const objective = this.creatingMineObjective(room, source)
             if (objective === undefined) continue;
@@ -107,7 +108,7 @@ export class ObjectiveManager {
     }
 
     // Adds and updates the Hauling Objective
-    private getHaulObjectives(room: Room, list: Objective[]) {
+    private getHaulObjectives(room: Room, list: Objective[], creeps: Creep[]) {
         let haulerCapacity = 0
         list.filter(objective => objective.home === room.name)
             .map(objective => {
@@ -118,22 +119,53 @@ export class ObjectiveManager {
         if (currentHaulObjective != undefined) {
             this.objectives.map(objective => {
                 if (objective.home === room.name && objective.type === roleContants.HAULING && objective.target === room.name) {
-                    objective = this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER);
+                    const newHaul = this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER, creeps);
+                    objective.priority = newHaul.priority;
+                    objective.maxHaulerParts = newHaul.maxHaulerParts
                 }
             })
         } else if (room.memory.isOwned) {
-            this.objectives.push(this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER))
+            this.objectives.push(this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER, creeps))
         }
     }
 
-    private createHaulObjective(room: Room, haulerCapacity: number): HaulingObjective {
+    private createHaulObjective(room: Room, haulerCapacity: number, creeps: Creep[]): HaulingObjective {
+        const income = economy.getCurrentRoomIncome(room, this.objectives);
+        let currCarry = 0;
+        for (const creep of creeps) {
+            const memory = Memory.creeps[creep.name]
+            if (memory.role === roleContants.HAULING && memory.home === room.name) currCarry += getWorkParts([creep], CARRY);
+        }
+
+        let dis = 0;
+        this.objectives.forEach(objective => {
+            let hasCreeps = 0;
+            creeps.forEach(creep => {
+                if (creep.memory.role === objective.type && creep.memory.home === objective.home && (creep.memory as MinerMemory).sourceId === objective.id) {
+                    hasCreeps++;
+                }
+            })
+
+            if (objective.distance && hasCreeps > 0) dis += objective.distance
+        })
+        let currentReq = economy.requiredHaulerParts(income, dis);
+        if(currentReq > haulerCapacity*2){
+            currentReq = haulerCapacity
+        }
+        let prio: Priority = priority.high;
+        if(currCarry > haulerCapacity/16){
+            prio = priority.low
+        }
+        if(currCarry > haulerCapacity){
+            prio = priority.veryLow
+        }
         return {
             id: `${room.name} ${roleContants.HAULING}`,
-            capacityRequired: haulerCapacity * CARRY_CAPACITY,
-            maxHaulerParts: haulerCapacity,
+            capacityRequired: currentReq * CARRY_CAPACITY,
+            maxHaulerParts: currentReq,
             home: room.name,
             target: room.name,
-            priority: priority.low,
+            priority: prio,
             type: roleContants.HAULING,
             maxIncome: 0,
             distance: 0
@@ -173,7 +205,7 @@ export class ObjectiveManager {
             maxIncome: -eToSpawnHaulers,
             target: room.name,
             type: roleContants.UPGRADING,
-            priority: priority.veryLow,
+            priority: priority.medium,
             netEnergyIncome: energyPerTick,
             maxHaulerParts: maxHaulerParts,
             path: route.path,
@@ -234,12 +266,12 @@ export class ObjectiveManager {
     }
 
     private getMaintenanceObjective(room: Room) {
-        const toRepair = room.find(FIND_STRUCTURES).filter(structure => structure.hits < (structure.hitsMax/2) && structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
+        const toRepair = room.find(FIND_STRUCTURES).filter(structure => structure.hits < (structure.hitsMax / 2) && structure.structureType != STRUCTURE_WALL && structure.structureType != STRUCTURE_RAMPART);
         let hitsToRepair = 0;
         let totalHits = 0;
         let ids: string[] = []
         if (toRepair.length === 0) return;
-        toRepair.sort((a,b) => a.hits - b.hits)
+        toRepair.sort((a, b) => a.hits - b.hits)
         toRepair.forEach(structure => {
             hitsToRepair += structure.hitsMax - structure.hits;
             totalHits += structure.hitsMax;
@@ -357,18 +389,18 @@ export class ObjectiveManager {
         }
     }
 
-    private createInvaderDefence(room: Room, infos: InvaderInformation[]){
-        for(let info of infos){
+    private createInvaderDefence(room: Room, infos: InvaderInformation[]) {
+        for (let info of infos) {
             info.core.forEach(core => {
-                if(this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)){
-                } else{
+                if (this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)) {
+                } else {
                     this.objectives.push(this.createCoreDefence(room, core));
                 }
             })
         }
     }
 
-    private createCoreDefence(room: Room, core: StructureInvaderCore): InvaderCoreObjective{
+    private createCoreDefence(room: Room, core: StructureInvaderCore): InvaderCoreObjective {
         const attackParts = Math.ceil((core.hitsMax / ATTACK_POWER) / (CREEP_LIFE_TIME - 750))
 
         return {
@@ -384,21 +416,21 @@ export class ObjectiveManager {
         }
     }
 
-    syncRoomObjectives(room: Room): void {
+    syncRoomObjectives(room: Room, creeps: Creep[]): void {
         const invaderInfo = invaderExpert.detectNPC(room, this.objectives.filter(o =>
             o.home === room.name && o.target != room.name && o.type != roleContants.CORE_KILLER
         ))
 
         this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
-        this.getHaulObjectives(room, this.objectives);
+        this.getHaulObjectives(room, this.objectives, creeps);
         this.getConstructionObjectives(room);
         this.getMaintenanceObjective(room);
         this.getScoutObjective(room);
         this.getReserverObjective(room);
         this.createInvaderDefence(room, invaderInfo);
 
-        this.objectives.filter(o => o != undefined).sort((a,b) => a.distance * a.priority - b.distance * a.priority)
+        this.objectives.filter(o => o != undefined).sort((a, b) => a.distance * a.priority - b.distance * a.priority)
         // plus others;
     }
 

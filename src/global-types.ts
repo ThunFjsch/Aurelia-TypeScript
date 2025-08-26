@@ -63,6 +63,12 @@ declare global {
         constructionOffice: ConstructionOffice;
         containers: ContainerMemory[],
         scoutPlan: ScoutPlan[] | undefined;
+        rclProgress: RclProgress[];
+    }
+
+    interface RclProgress{
+        level: number;
+        finished: number;
     }
 
     interface ScoutPlan{

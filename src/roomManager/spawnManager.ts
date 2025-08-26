@@ -70,7 +70,7 @@ export class SpawnManager {
         },
         {
             name: "fastFiller",
-            priority: priority.medium,
+            priority: priority.low,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // FastFiller has its own internal logic
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 return this.spawnFastFiller(room, creeps);
@@ -137,7 +137,7 @@ export class SpawnManager {
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, creeps)) {
                     const result = action.execute(objectives.filter(o => o.home === room.name), room, creeps);
-                    if (result !== undefined && creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length > 6) {
+                    if (result !== undefined && creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length > 3) {
                         return; // Successfully spawned something, exit
                     }
                 }
@@ -149,8 +149,8 @@ export class SpawnManager {
     // All the actual spawning logic is now contained within this class
 
     private spawnHauler(objectives: HaulingObjective[], room: Room, allObjectives: Objective[], creeps: Creep[]) {
+        if(creeps.find(c => c.memory.role === roleContants.MINING) === undefined) return;
         let retValue = undefined
-        const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
         objectives.forEach(objective => {
             let currCarry = 0;
             for (const index in Game.creeps) {
@@ -158,20 +158,7 @@ export class SpawnManager {
                 const memory = Memory.creeps[creep.name]
                 if (memory.role === roleContants.HAULING && memory.home === objective.home) currCarry += getWorkParts([creep], CARRY);
             }
-
-            let dis = 0;
-            allObjectives.forEach(objective => {
-                let hasCreeps = 0;
-                creeps.forEach(creep => {
-                    if (creep.memory.role === objective.type && creep.memory.home === objective.home && (creep.memory as MinerMemory).sourceId === objective.id) {
-                        hasCreeps++;
-                    }
-                })
-
-                if (objective.distance && hasCreeps > 0) dis += objective.distance
-            })
-            const currentReq = this.economyService.requiredHaulerParts(income, dis);
-            if (currCarry < currentReq && currCarry < objective.maxHaulerParts) {
+            if (currCarry < objective.maxHaulerParts) {
                 const body = createCreepBody(objective, room, currCarry, objective.maxHaulerParts)
                 const memory: CreepMemory = {
                     home: room.name,
@@ -267,7 +254,7 @@ export class SpawnManager {
     }
 
     private spawnPorter(room: Room, creeps: Creep[]) {
-        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length < 3) return
+        if (room.storage === undefined) return
         let returnValue = undefined
         const rcl = room.controller?.level ?? 0;
         const storage = room.find(FIND_MY_STRUCTURES).filter(struc => struc.structureType === STRUCTURE_STORAGE)[0];
@@ -277,8 +264,13 @@ export class SpawnManager {
             workParts = getWorkParts(porter, CARRY);
         }
         // TODO: Better way to determine the amount of Workparts
-        const requiredWorkParts = 40
-        if (rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < 2) {
+        const requiredWorkParts = 30;
+        let creepAmount = rcl;
+        if(rcl < 4){
+            creepAmount = creepAmount/2
+        }
+        console.log(rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < creepAmount)
+        if (rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < 5) {
             const neededParts = (requiredWorkParts - workParts);
             const body = generateBody([CARRY, CARRY, MOVE],
                 BODYPART_COST[CARRY] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE],
@@ -291,6 +283,7 @@ export class SpawnManager {
             const spawn = room.find(FIND_MY_SPAWNS)[0]
             if (!spawn.spawning) {
                 returnValue = spawn.spawnCreep(body, generateName(roleContants.PORTING), { memory })
+                console.log(returnValue)
             }
         }
         return returnValue;
@@ -303,7 +296,13 @@ export class SpawnManager {
             if (container.type === roleContants.FASTFILLER && container.fastFillerSpots != undefined) {
                 for (let spot of container.fastFillerSpots) {
                     if (!creeps.find(creep => creep.memory.role === roleContants.FASTFILLER && (creep.memory as FastFillerMemory).pos.x === spot.x && (creep.memory as FastFillerMemory).pos.y === spot.y)) {
-                        const body = [CARRY, CARRY, CARRY, MOVE];
+                        const spawn = room.find(FIND_MY_SPAWNS)[0]
+                        let direction = undefined
+                        let body = [CARRY, CARRY, CARRY, MOVE];
+                        if(spawn.pos.inRangeTo(spot.x, spot.y, 1)){
+                            direction = [spawn.pos.getDirectionTo(spot.x, spot.y) as DirectionConstant];
+                            body = [CARRY, CARRY, CARRY]
+                        }
                         const memory: FastFillerMemory = {
                             home: room.name,
                             role: roleContants.FASTFILLER,
@@ -311,9 +310,8 @@ export class SpawnManager {
                             pos: spot,
                             supply: container.id
                         }
-                        const spawn = room.find(FIND_MY_SPAWNS)[0]
                         if (!spawn.spawning) {
-                            retValue = spawn.spawnCreep(body, generateName(roleContants.FASTFILLER), { memory })
+                            retValue = spawn.spawnCreep(body, generateName(roleContants.FASTFILLER), { memory, directions: direction})
                         }
                     }
                 }
@@ -396,11 +394,12 @@ export class SpawnManager {
                 retValue = spawn.spawnCreep(body, generateName(roleContants.MAINTAINING), { memory });
             }
         }
+
         return retValue;
     }
 
     private spawnUpgrader(allObjectives: Objective[], objectives: UpgradeObjective[], room: Room) {
-        console.log('foo')
+        if(room.memory.constructionOffice.finished === false) return
         let maxIncome = 0;
         allObjectives.forEach(objective => maxIncome += objective.maxIncome)
         let retValue = undefined
@@ -413,18 +412,17 @@ export class SpawnManager {
             }
             const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
             const currNeed = income / E_FOR_UPGRADER;
-            console.log(currWork < currNeed && income > (maxIncome / 3))
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 const body = createCreepBody(objective, room, currWork, currNeed)
                 const memory: UpgraderMemory = {
                     home: room.name,
                     role: roleContants.UPGRADING,
                     working: false,
-                    controllerId: objective.controllerId
+                    controllerId: objective.controllerId,
+                    spawnedRcl: room.controller?.level??1
                 }
                 const name = generateName(roleContants.UPGRADING);
                 retValue = room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, { memory })
-                console.log(retValue)
             }
         })
         return retValue
@@ -434,9 +432,9 @@ export class SpawnManager {
         let retValue = undefined;
         objectives.forEach(o => {
             if (!creeps.find(c => c.memory.role === roleContants.CORE_KILLER && (c.memory as CoreKillerMemory).target === o.id)) {
-                const cost = (o.attackParts * BODYPART_COST[ATTACK]) + (o.attackParts * BODYPART_COST[MOVE])
-                if (cost <= room.energyAvailable) {
-                    const body = generateBody([ATTACK, MOVE], cost, cost, o.attackParts)
+                const cost = (o.attackParts * BODYPART_COST[ATTACK]) + (o.attackParts * BODYPART_COST[MOVE]);
+                if (cost < room.energyAvailable) {
+                    const body = generateBody([ATTACK, MOVE], 150, room.energyAvailable, o.attackParts)
                     const memory: CoreKillerMemory = {
                         home: room.name,
                         role: roleContants.CORE_KILLER,

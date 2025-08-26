@@ -58,7 +58,8 @@ export class MemoryService {
                 plans: []
             },
             containers: [],
-            scoutPlan: undefined
+            scoutPlan: undefined,
+            rclProgress: [{finished: Game.time, level: 1}]
         }
         planner.startRoomPlanner(room, spawn)
     }

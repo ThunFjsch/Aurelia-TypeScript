@@ -1,5 +1,5 @@
 import { ResourceService, ResRole } from "services/resource.service";
-import { getEnergy } from "./creepHelper";
+import { getAwayFromSpawn, getEnergy } from "./creepHelper";
 
 export interface HaulerMemory extends CreepMemory {
     target?: any
@@ -35,6 +35,7 @@ export class Hauling {
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.transfer(target, RESOURCE_ENERGY);
                     energyManager.cleanTasks(creep)
+                    creep.moveTo(25,25)
                     delete memory.target;
                     creep.memory = memory;
                 } else{

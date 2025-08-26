@@ -25,7 +25,7 @@ export class PathingService {
                 } else {
                     return 1.5;
                 }
-            },
+            }
         });
 
         // Didn't find a path!
@@ -54,18 +54,19 @@ export class PathingService {
 
                 let costs = new PathFinder.CostMatrix();
 
-                room.find(FIND_STRUCTURES).forEach(function (structure) {
-                    if (structure.structureType === STRUCTURE_ROAD) {
-                        // Favor roads over plain tiles
-                        costs.set(structure.pos.x, structure.pos.y, 1);
-                    } else if (
-                        structure.structureType !== STRUCTURE_CONTAINER &&
-                        (structure.structureType !== STRUCTURE_RAMPART || !structure.my)
-                    ) {
-                        // Can't walk through non-walkable buildings
-                        costs.set(structure.pos.x, structure.pos.y, 0xff);
-                    }
-                });
+                // TODO: When no vision this cannot be used and the pathfinder crahses
+                // room.find(FIND_STRUCTURES).forEach(function (structure) {
+                //     if (structure.structureType === STRUCTURE_ROAD) {
+                //         // Favor roads over plain tiles
+                //         costs.set(structure.pos.x, structure.pos.y, 1);
+                //     } else if (
+                //         structure.structureType !== STRUCTURE_CONTAINER &&
+                //         (structure.structureType !== STRUCTURE_RAMPART || !structure.my)
+                //     ) {
+                //         // Can't walk through non-walkable buildings
+                //         costs.set(structure.pos.x, structure.pos.y, 0xff);
+                //     }
+                // });
 
                 return costs;
             },

@@ -1,21 +1,21 @@
 import { Point, priority } from "utils/sharedTypes";
 import { PlacedStructure, ScoredPoint } from "./planner-interfaces";
-import { canPlaceStamp, CoreStamp, scoreStampAt, Stamp, stampPlan } from "./stamps";
+import { canPlaceStamp, CoreStamp, FastFillerStamp, scoreStampAt, Stamp, stampPlan } from "./stamps";
 import { getDistanceTransformMap } from "utils/algorithms/distanceTransform";
 
 export class PlannerCore {
     placeCore(start: ScoredPoint, spawn?: StructureSpawn): PlacedStructure[] {
         const placed: PlacedStructure[] = [];
-        const offset = spawn ? 1 : 0;
-        const centerX = start.x - offset;
-        const centerY = start.y - offset;
+        const offset = spawn ? 2 : 0;
+        const centerX = start.x;
+        const centerY = start.y + offset;
 
-        for (const [type, positions] of Object.entries(CoreStamp.structures)) {
+        for (const [type, positions] of Object.entries(FastFillerStamp.structures)) {
             for (const rel of positions) {
                 placed.push({
                     type: type as StructureConstant,
-                    x: centerX - CoreStamp.center.x + rel.x,
-                    y: centerY - CoreStamp.center.y + rel.y,
+                    x: centerX - FastFillerStamp.center.x + rel.x,
+                    y: centerY - FastFillerStamp.center.y + rel.y,
                     priority: rel.priority ?? priority.medium
                 });
             }
