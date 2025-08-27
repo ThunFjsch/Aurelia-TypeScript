@@ -77,7 +77,6 @@ export class ObjectiveManager {
     }
 
     private creatingMineObjective(room: Room, source: SourceInfo) {
-
         if (source.ePerTick === undefined || source.maxWorkParts === undefined || source.maxHaulerParts === undefined || source.maxIncome === undefined) return;
         let objective: MiningObjective | undefined = undefined;
         let prio: Priority = priority.high
@@ -340,7 +339,7 @@ export class ObjectiveManager {
             id: roleContants.MINING + room.name,
             maxHaulerParts: 0,
             maxIncome: 0,
-            priority: priority.high,
+            priority: priority.severe,
             target: '',
             toScout: room.memory.scoutPlan,
             type: roleContants.SCOUTING

@@ -53,7 +53,7 @@ export class SpawnManager {
         },
         {
             name: "scout",
-            priority: priority.medium,
+            priority: priority.severe,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.SCOUTING),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const scoutObj = objectives.find(obj => obj.type === roleContants.SCOUTING) as ScoutingObjective;
@@ -221,7 +221,7 @@ export class SpawnManager {
     }
 
     private spawnScout(objective: ScoutingObjective, room: Room, creeps: Creep[]) {
-        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length < 3) return
+        if (creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length === 0) return
         let returnValue = undefined;
         if (room.memory.scoutPlan === undefined) return;
         const scout = creeps.find(creep => creep.memory.role === roleContants.SCOUTING && creep.memory.home === room.name);
@@ -248,6 +248,7 @@ export class SpawnManager {
             const spawn = room.find(FIND_MY_SPAWNS)[0]
             if (!spawn.spawning) {
                 returnValue = spawn.spawnCreep(body, generateName(roleContants.SCOUTING), { memory })
+                console.log(returnValue)
             }
         }
         return returnValue;
@@ -269,7 +270,6 @@ export class SpawnManager {
         if(rcl < 4){
             creepAmount = creepAmount/2
         }
-        console.log(rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < creepAmount)
         if (rcl >= 4 && storage != undefined && workParts < requiredWorkParts && porter.length < 5) {
             const neededParts = (requiredWorkParts - workParts);
             const body = generateBody([CARRY, CARRY, MOVE],
@@ -283,7 +283,6 @@ export class SpawnManager {
             const spawn = room.find(FIND_MY_SPAWNS)[0]
             if (!spawn.spawning) {
                 returnValue = spawn.spawnCreep(body, generateName(roleContants.PORTING), { memory })
-                console.log(returnValue)
             }
         }
         return returnValue;

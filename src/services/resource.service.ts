@@ -238,7 +238,6 @@ export class ResourceService {
         } else {
             if ((struc as Creep).name != undefined) {
                 route.cost += 50
-                console.log((struc as Creep).name)
             }
             // Create new task
             const newTask: Task = {
