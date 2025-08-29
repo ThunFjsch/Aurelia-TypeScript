@@ -310,7 +310,7 @@ export class ResourceService {
         this.cleanTasks(creep)
 const hasFastFiller = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
         for (const task of this.taskList) {
-            if(creep.store.getFreeCapacity(RESOURCE_ENERGY)/2 > task.amount) continue;
+            if(creep.store.getFreeCapacity(RESOURCE_ENERGY)/4 > task.amount) continue;
             if (task.assigned.length < task.maxAssigned && task.transferType === type) {
                 if (creep.memory.role === roleContants.PORTING) {
                     if (task.transferType === "pickup") continue;

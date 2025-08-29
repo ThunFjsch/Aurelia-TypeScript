@@ -70,7 +70,7 @@ export class SpawnManager {
         },
         {
             name: "fastFiller",
-            priority: priority.low,
+            priority: priority.high,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // FastFiller has its own internal logic
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 return this.spawnFastFiller(room, creeps);
@@ -410,7 +410,12 @@ export class SpawnManager {
                 if (memory.role === roleContants.UPGRADING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
             }
             const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
-            const currNeed = income / E_FOR_UPGRADER;
+
+            let cost = E_FOR_UPGRADER
+            if((room.controller?.level??0) >= 5){
+                cost = E_FOR_UPGRADER + 0.5
+            }
+            const currNeed = income / cost;
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 const body = createCreepBody(objective, room, currWork, currNeed)
                 const memory: UpgraderMemory = {

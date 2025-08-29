@@ -6,7 +6,7 @@ export class Scouting {
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
-        if(currTarget === undefined){
+        if(currTarget === undefined || currTarget === null){
             memory.currIndex++
             creep.memory = memory
             return
@@ -16,8 +16,6 @@ export class Scouting {
         if (currTarget.lastVisit != 0 && Game.time - (currTarget.lastVisit ?? 0) > 20000) {
             memory.currIndex++
         }
-
-
 
         if (creep.room.name != currTarget.roomName) {
             creep.moveTo(targetRoomPos)
@@ -34,7 +32,10 @@ export class Scouting {
                     memory.currIndex++;
 
                     memory.route[memory.currIndex].lastVisit = Game.time
-                    Game.rooms[memory.home].memory.scoutPlan = memory.route;
+                    const room = Game.rooms[memory.home];
+                    if(room.memory.scoutPlan != undefined){
+                        delete room.memory.scoutPlan[memory.currIndex];
+                    }
 
                     creep.memory = memory
                     return;

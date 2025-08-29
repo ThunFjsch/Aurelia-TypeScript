@@ -381,7 +381,7 @@ export class ObjectiveManager {
             id: roleContants.RESERVING,
             maxHaulerParts: 0,
             maxIncome: 0,
-            priority: priority.high,
+            priority: priority.severe,
             target: "multiple",
             toReserve: remotes,
             type: roleContants.RESERVING
@@ -412,6 +412,12 @@ export class ObjectiveManager {
             distance: 0,
             maxIncome: 0,
             attackParts
+        }
+    }
+
+    private getWallRepair(room: Room){
+        if((room.controller?.level??0) >= 5){
+
         }
     }
 
