@@ -4,35 +4,35 @@ export class Miner {
         const source: Source = Game.getObjectById(memory.sourceId) as Source;
 
         if (creep.room.name != memory.targetRoom) {
-            if (source != null) {
-                const target = new RoomPosition(source.pos.x, source.pos.y, memory.targetRoom)
+            if (source === null || source === undefined || source.pos === undefined) {
+                const target = new RoomPosition(25, 25, memory.targetRoom)
                 creep.moveTo(target, { maxOps: 20000 });
                 return;
             }
-            const target = new RoomPosition(25, 25, memory.targetRoom)
-            creep.moveTo(target, { maxOps: 20000 });
+            creep.moveTo(source, { maxOps: 20000 });
             return;
-        }
 
-        if (source.energyCapacity > 0) {
-            let harvest = -6;
-            if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
-                if (memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
-                    creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+        } else {
+            if (source.energyCapacity > 0) {
+                let harvest = -6;
+                if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
+                    if (memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
+                        creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                    }
+                    harvest = creep.harvest(source);
                 }
-                harvest = creep.harvest(source);
-            }
-            if (harvest != OK) {
-                if (memory.containerPos != undefined && (memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
-                    creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                if (harvest != OK) {
+                    if (memory.containerPos != undefined && (memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
+                        creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                    } else {
+                        creep.moveTo(source, { maxOps: 20000 });
+                    }
                 } else {
-                    creep.moveTo(source, { maxOps: 20000 });
-                }
-            } else {
-                if (memory.working === false) {
-                    memory.working = true;
-                    creep.memory = memory;
-                    return
+                    if (memory.working === false) {
+                        memory.working = true;
+                        creep.memory = memory;
+                        return
+                    }
                 }
             }
         }

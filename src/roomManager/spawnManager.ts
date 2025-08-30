@@ -2,6 +2,7 @@ import {
     BuildingObjective,
     HaulingObjective,
     InvaderCoreObjective,
+    InvaderDefenceObjective,
     MaintenanceObjective,
     MiningObjective,
     Objective,
@@ -120,6 +121,15 @@ export class SpawnManager {
                 const upgradeObjs = objectives.filter(obj => obj.type === roleContants.UPGRADING) as UpgradeObjective[];
                 return this.spawnUpgrader(objectives, upgradeObjs, room);
             }
+        },
+        {
+            name: "blinkie",
+            priority: priority.severe,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.INVADER_DEFENCE),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const defenceObjs = objectives.filter(obj => obj.type === roleContants.INVADER_DEFENCE) as InvaderDefenceObjective[];
+                return this.spawnInvaderDefender(defenceObjs, room, creeps);
+            }
         }
     ].sort((a, b) => b.priority - a.priority);
 
@@ -229,7 +239,7 @@ export class SpawnManager {
         let totalTime = 0;
         let numberOfRooms = 0
         objective.toScout.forEach(room => {
-            if ((room.lastVisit ?? 0) === 0) {
+            if (room != null &&(room.lastVisit ?? 0) === 0) {
                 totalTime += 0
             } else {
                 totalTime += Game.time - (room.lastVisit ?? 0)
@@ -248,7 +258,6 @@ export class SpawnManager {
             const spawn = room.find(FIND_MY_SPAWNS)[0]
             if (!spawn.spawning) {
                 returnValue = spawn.spawnCreep(body, generateName(roleContants.SCOUTING), { memory })
-                console.log(returnValue)
             }
         }
         return returnValue;
@@ -450,6 +459,47 @@ export class SpawnManager {
             }
         })
         return retValue;
+    }
+
+    private spawnInvaderDefender(objectives: InvaderDefenceObjective[], room: Room, creeps: Creep[]){
+        let returnValue = undefined
+        objectives.forEach(objective => {
+            const defender = creeps.filter(c => (c.memory as BlinkieMemory).target && c.memory.role === roleContants.BLINKIE);
+            switch(objective.threatLevel){
+                case("LOW"):
+                    if(defender.length < 3){
+                        returnValue = this.spawnBlinkie(room, objective.target)
+                    }
+                break;
+                case("MEDIUM"):
+                    if(defender.length < 3){
+                        returnValue = this.spawnBlinkie(room, objective.target)
+                    }
+                break;
+                case("HIGH"):
+                    if(defender.length < 4){
+                        returnValue = this.spawnBlinkie(room, objective.target)
+                    }
+                break;
+                case("CRITICAL"):
+                    if(defender.length < 5){
+                        returnValue = this.spawnBlinkie(room, objective.target)
+                    }
+                break;
+            }
+        });
+        return returnValue
+    }
+
+    private spawnBlinkie(room: Room, target: string){
+        const body = [MOVE,MOVE,MOVE,MOVE,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK,RANGED_ATTACK,HEAL,HEAL,HEAL]
+        const name = generateName(roleContants.INVADER_DEFENCE)
+        const memory: BlinkieMemory = {
+            home: room.name,
+            role: roleContants.BLINKIE,
+            target
+        }
+        return room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, {memory})
     }
 
     // Helper methods

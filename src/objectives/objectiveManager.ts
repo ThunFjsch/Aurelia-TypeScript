@@ -1,5 +1,5 @@
 import { Priority, priority } from "utils/sharedTypes";
-import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective, InvaderCoreObjective } from "./objectiveInterfaces";
+import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective, InvaderCoreObjective, InvaderDefenceObjective } from "./objectiveInterfaces";
 import { E_FOR_MAINTAINER, EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
@@ -148,14 +148,14 @@ export class ObjectiveManager {
             if (objective.distance && hasCreeps > 0) dis += objective.distance
         })
         let currentReq = economy.requiredHaulerParts(income, dis);
-        if(currentReq > haulerCapacity*2){
+        if (currentReq > haulerCapacity * 2) {
             currentReq = haulerCapacity
         }
         let prio: Priority = priority.high;
-        if(currCarry > haulerCapacity/16){
+        if (currCarry > haulerCapacity / 16) {
             prio = priority.low
         }
-        if(currCarry > haulerCapacity){
+        if (currCarry > haulerCapacity) {
             prio = priority.veryLow
         }
         return {
@@ -391,17 +391,50 @@ export class ObjectiveManager {
     private createInvaderDefence(room: Room, infos: InvaderInformation[]) {
         for (let info of infos) {
             info.core.forEach(core => {
-                if (this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)) {
-                } else {
+                if (!this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)) {
                     this.objectives.push(this.createCoreDefence(room, core));
                 }
-            })
+            });
+            if (info.invader.length === 0) continue;
+            if (!this.objectives.find(o => o.type === roleContants.INVADER_DEFENCE && o.target === info.room)) {
+                const threatLevel = invaderExpert.assessThreatLevel(info.invader);
+                switch (threatLevel) {
+                    case ("LOW"):
+                        this.objectives.push(
+                            this.createInvaderDefenceObjective(room, info.room, "LOW", info.invader)
+                        )
+                        break;
+                    case ("MEDIUM"):
+                        this.objectives.push(
+                            this.createInvaderDefenceObjective(room, info.room, "MEDIUM", info.invader)
+                        )
+                        break;
+                    case ("HIGH"):
+                        this.objectives.push(
+                            this.createInvaderDefenceObjective(room, info.room, "HIGH", info.invader)
+                        )
+                        break;
+                    case ("CRITICAL"):
+                        this.objectives.push(
+                            this.createInvaderDefenceObjective(room, info.room, "CRITICAL", info.invader)
+                        )
+                        break;
+                }
+            } else {
+                if (info.invader.length === 0) {
+                    for (const index in this.objectives) {
+                        const objective = this.objectives[index]
+                        if (objective.home === room.name && objective.type === roleContants.INVADER_DEFENCE && info.room === objective.target) {
+                            delete this.objectives[index]
+                        }
+                    }
+                }
+            }
         }
     }
 
     private createCoreDefence(room: Room, core: StructureInvaderCore): InvaderCoreObjective {
         const attackParts = Math.ceil((core.hitsMax / ATTACK_POWER) / (CREEP_LIFE_TIME - 750))
-
         return {
             home: room.name,
             id: core.id,
@@ -415,16 +448,32 @@ export class ObjectiveManager {
         }
     }
 
-    private getWallRepair(room: Room){
-        if((room.controller?.level??0) >= 5){
+    private createInvaderDefenceObjective(room: Room, roomName: string, threatLvl: string, invader: Creep[]): InvaderDefenceObjective {
+        return {
+            home: room.name,
+            id: `${room.name}_${roleContants.INVADER_DEFENCE}`,
+            maxHaulerParts: 0,
+            priority: priority.severe,
+            target: roomName,
+            type: roleContants.INVADER_DEFENCE,
+            distance: 0,
+            maxIncome: 0,
+            threatLevel: threatLvl,
+            invader
+        }
+    }
+
+    private getWallRepair(room: Room) {
+        if ((room.controller?.level ?? 0) >= 5) {
 
         }
     }
 
     syncRoomObjectives(room: Room, creeps: Creep[]): void {
-        const invaderInfo = invaderExpert.detectNPC(room, this.objectives.filter(o =>
-            o.home === room.name && o.target != room.name && o.type != roleContants.CORE_KILLER
-        ))
+        const remotes = this.objectives.filter(o =>
+            o.home === room.name && o.target != room.name && o.type === roleContants.MINING
+        )
+        const invaderInfo = invaderExpert.detectNPC(room, remotes)
 
         this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
@@ -451,3 +500,5 @@ export class ObjectiveManager {
         return 0
     }
 }
+
+type InvaderGroup = { room: string; invader: Creep[] }

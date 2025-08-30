@@ -62,6 +62,13 @@ export interface InvaderCoreObjective extends BaseObjective{
     type:roleContants.CORE_KILLER;
     attackParts: number;
 }
+
+export interface InvaderDefenceObjective extends BaseObjective{
+    type:roleContants.INVADER_DEFENCE;
+    threatLevel: string;
+    invader: Creep[]
+}
+
 export type Objective = MiningObjective |
                         HaulingObjective |
                         UpgradeObjective |
@@ -69,7 +76,8 @@ export type Objective = MiningObjective |
                         MaintenanceObjective |
                         ScoutingObjective |
                         ReserveObjective |
-                        InvaderCoreObjective;
+                        InvaderCoreObjective |
+                        InvaderDefenceObjective;
 
 export type ObjectiveType = roleContants.MINING |
                             roleContants.HAULING |
@@ -79,7 +87,8 @@ export type ObjectiveType = roleContants.MINING |
                             roleContants.SCOUTING |
                             roleContants.RESERVING |
                             roleContants.PORTING |
-                            roleContants.CORE_KILLER;
+                            roleContants.CORE_KILLER |
+                            roleContants.INVADER_DEFENCE;
 
 export enum roleContants {
     MINING = 'mining',
@@ -91,5 +100,7 @@ export enum roleContants {
     SCOUTING = 'scouting',
     RESERVING = 'reserving',
     PORTING = 'porting',
-    CORE_KILLER = 'coreKiller'
+    CORE_KILLER = 'coreKiller',
+    INVADER_DEFENCE = 'invaderDefence',
+    BLINKIE = 'blinkie'
 }

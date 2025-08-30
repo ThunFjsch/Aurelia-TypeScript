@@ -1,5 +1,4 @@
 import { Objective } from "objectives/objectiveInterfaces";
-import { getWorkParts } from "roomManager/spawn-helper";
 
 export interface InvaderInformation {
     room: string;
@@ -25,7 +24,8 @@ export class InvaderExpert {
             if (finished.find(name => name === remote.target)) continue;
             const remoteRoom = Game.rooms[remote.target];
             if (remoteRoom != undefined) {
-                info.push(this.createHostileInformation(remoteRoom))
+                const newInfo  = this.createHostileInformation(remoteRoom);
+                info.push(newInfo);
             }
         }
 

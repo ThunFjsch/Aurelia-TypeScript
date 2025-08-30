@@ -139,6 +139,10 @@ declare global {
         target: string;
     }
 
+    interface BlinkieMemory extends CreepMemory {
+        target: string;
+    }
+
     interface ProfilerMemory {
         map: Record<string, { time: number; calls: number }>;
         totalTime: number;
