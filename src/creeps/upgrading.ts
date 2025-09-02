@@ -13,7 +13,7 @@ export class Upgrader {
 
         helpAFriend(creep, memory)
 
-        if(creep.room.memory.rclProgress.length != memory.spawnedRcl || memory.spawnedRcl === undefined){
+        if((creep.room.memory.rclProgress.length != memory.spawnedRcl && creep.room.memory.constructionOffice.finished === false)|| memory.spawnedRcl === undefined){
             const spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0]
             if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                 spawn.recycleCreep(creep)

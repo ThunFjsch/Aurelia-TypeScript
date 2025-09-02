@@ -24,6 +24,7 @@ export interface MiningObjective extends BaseObjective {
 export interface HaulingObjective extends BaseObjective {
     type: roleContants.HAULING;
     capacityRequired: number;
+    currParts: number;
 }
 
 export interface UpgradeObjective extends BaseObjective {
@@ -69,6 +70,10 @@ export interface InvaderDefenceObjective extends BaseObjective{
     invader: Creep[]
 }
 
+export interface ExpansionObjective extends BaseObjective{
+    type:roleContants.EXPANSIONEER;
+}
+
 export type Objective = MiningObjective |
                         HaulingObjective |
                         UpgradeObjective |
@@ -77,7 +82,8 @@ export type Objective = MiningObjective |
                         ScoutingObjective |
                         ReserveObjective |
                         InvaderCoreObjective |
-                        InvaderDefenceObjective;
+                        InvaderDefenceObjective |
+                        ExpansionObjective;
 
 export type ObjectiveType = roleContants.MINING |
                             roleContants.HAULING |
@@ -88,7 +94,8 @@ export type ObjectiveType = roleContants.MINING |
                             roleContants.RESERVING |
                             roleContants.PORTING |
                             roleContants.CORE_KILLER |
-                            roleContants.INVADER_DEFENCE;
+                            roleContants.INVADER_DEFENCE |
+                            roleContants.EXPANSIONEER;
 
 export enum roleContants {
     MINING = 'mining',
@@ -102,5 +109,8 @@ export enum roleContants {
     PORTING = 'porting',
     CORE_KILLER = 'coreKiller',
     INVADER_DEFENCE = 'invaderDefence',
-    BLINKIE = 'blinkie'
+    BLINKIE = 'blinkie',
+    EXPANSIONEER = 'expansioneer',
+    CLAIMER = 'claimer',
+    PIONEER = 'pioneer'
 }

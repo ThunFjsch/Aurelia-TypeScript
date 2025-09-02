@@ -24,7 +24,7 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
             delete memory.target;
             creep.memory = memory;
             const spawn = creep.room.find(FIND_MY_SPAWNS)[0]
-            getAwayFromSpawn(creep, spawn)
+            getAwayFromStructure(creep, spawn)
             return
         } else {
             creep.moveTo(target, { visualizePathStyle: { lineStyle: "dashed", stroke: "#21de53" }, reusePath: 50, maxOps: 10000})
@@ -57,9 +57,9 @@ export function helpAFriend(creep: Creep, memory: CreepMemory) {
     }
 }
 
-export function getAwayFromSpawn(creep: Creep, spawn: StructureSpawn){
-    if(spawn === undefined) return
-    if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
+export function getAwayFromStructure(creep: Creep, struc: Structure){
+    if(struc === undefined) return
+    if(creep.pos.inRangeTo(struc.pos.x, struc.pos.y, 1)){
         creep.moveTo(25,25)
     }
 }

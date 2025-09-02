@@ -45,7 +45,7 @@ declare global {
         maxWorkParts?: number;
         maxHaulerParts?: number;
         distance?: number;
-        path?: RoomPosition[]
+        path?: RoomPosition[];
     }
 
     interface Spot {
@@ -64,6 +64,7 @@ declare global {
         containers: ContainerMemory[],
         scoutPlan: ScoutPlan[] | undefined;
         rclProgress: RclProgress[];
+        expansion?: string
     }
 
     interface RclProgress{
@@ -106,6 +107,13 @@ declare global {
         blocking?: number
     }
 
+    interface PioneerMemory extends CreepMemory{
+        target: string;
+        reached: boolean;
+        cSite?: string;
+        sourceId?: string
+    }
+
     interface MinerMemory extends CreepMemory {
         route: RoomPosition[];
         containerPos: Point | undefined;
@@ -133,6 +141,7 @@ declare global {
     interface ScoutMemory extends CreepMemory {
         currIndex: number;
         route: ScoutPlan[];
+        scouted?: boolean
     }
 
     interface ReservMemory extends CreepMemory {
@@ -140,6 +149,9 @@ declare global {
     }
 
     interface BlinkieMemory extends CreepMemory {
+        target: string;
+    }
+    interface ClaimerMemory extends CreepMemory {
         target: string;
     }
 

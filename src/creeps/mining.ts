@@ -8,12 +8,13 @@ export class Miner {
                 const target = new RoomPosition(25, 25, memory.targetRoom)
                 creep.moveTo(target, { maxOps: 20000 });
                 return;
+            } else{
+                creep.moveTo(source, { maxOps: 20000 });
+                return;
             }
-            creep.moveTo(source, { maxOps: 20000 });
-            return;
 
-        } else {
-            if (source.energyCapacity > 0) {
+        } else if(creep.room.name === memory.targetRoom){
+            if (source != null && source.energyCapacity > 0) {
                 let harvest = -6;
                 if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
                     if (memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {

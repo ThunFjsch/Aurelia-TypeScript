@@ -8,8 +8,8 @@ const economyService = new EconomyService();
 
 export class ScoutingService {
     addSource(room: Room, source: Source): SourceInfo | undefined {
-        const spawn: StructureSpawn = Game.spawns['Spawn1'];
-
+        Memory.sourceInfo = Memory.sourceInfo.filter(elm => elm != null)
+        const spawn: StructureSpawn = room.find(FIND_MY_SPAWNS)[0];
         const spots: LookAtResult<LookConstant>[] = this.getSpots(source)
         const route: PathFinderPath | undefined = pathingService.findPath(spawn.pos, source.pos);
         if (route === undefined) {
@@ -26,7 +26,7 @@ export class ScoutingService {
                 my: my,
                 id: source.id,
                 pos: room.controller?.pos,
-                roomName: room.name,
+                roomName: source.room.name,
                 home: spawn.room.name,
                 spots: spots.length - 1,
                 energy: 0,

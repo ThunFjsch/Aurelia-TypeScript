@@ -17,7 +17,6 @@ export class Blinkie{
                 if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 2)){
                     creep.rangedAttack(hostile)
                     creep.heal(creep);
-                    creep.moveTo(25,25)
                     return
                 }
                 if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 3)){

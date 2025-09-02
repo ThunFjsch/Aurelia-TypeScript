@@ -1,5 +1,6 @@
 import {
     BuildingObjective,
+    ExpansionObjective,
     HaulingObjective,
     InvaderCoreObjective,
     InvaderDefenceObjective,
@@ -79,7 +80,7 @@ export class SpawnManager {
         },
         {
             name: "reserver",
-            priority: priority.medium,
+            priority: priority.severe,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.RESERVING),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const reserveObj = objectives.find(obj => obj.type === roleContants.RESERVING) as ReserveObjective;
@@ -130,6 +131,15 @@ export class SpawnManager {
                 const defenceObjs = objectives.filter(obj => obj.type === roleContants.INVADER_DEFENCE) as InvaderDefenceObjective[];
                 return this.spawnInvaderDefender(defenceObjs, room, creeps);
             }
+        },
+        {
+            name: "expansioneer",
+            priority: priority.medium,
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.EXPANSIONEER),
+            execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
+                const expansions = objectives.filter(obj => obj.type === roleContants.EXPANSIONEER) as ExpansionObjective[];
+                return this.spawnExpansionPioneer(expansions, room, creeps);
+            }
         }
     ].sort((a, b) => b.priority - a.priority);
 
@@ -147,7 +157,7 @@ export class SpawnManager {
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, creeps)) {
                     const result = action.execute(objectives.filter(o => o.home === room.name), room, creeps);
-                    if (result !== undefined && creeps.filter(c => c.memory.role === roleContants.HAULING && c.memory.home === room.name).length > 3) {
+                    if (result !== undefined) {
                         return; // Successfully spawned something, exit
                     }
                 }
@@ -168,7 +178,8 @@ export class SpawnManager {
                 const memory = Memory.creeps[creep.name]
                 if (memory.role === roleContants.HAULING && memory.home === objective.home) currCarry += getWorkParts([creep], CARRY);
             }
-            if (currCarry < objective.maxHaulerParts) {
+            const maxHaulerPartsPerRoom = 150;
+            if (currCarry < objective.maxHaulerParts && currCarry < maxHaulerPartsPerRoom) {
                 const body = createCreepBody(objective, room, currCarry, objective.maxHaulerParts)
                 const memory: CreepMemory = {
                     home: room.name,
@@ -184,6 +195,47 @@ export class SpawnManager {
             }
         })
         return retValue
+    }
+
+    private spawnExpansionPioneer(expansions: ExpansionObjective[], room: Room, creeps: Creep[]){
+        let returnValue: any = undefined
+        expansions.forEach(expansion => {
+            const expRoom = Game.rooms[expansion.target];
+            const claimer = creeps.find(c => c.memory.role === roleContants.CLAIMER && (c.memory as ClaimerMemory).target === expansion.target)
+            if((expRoom === undefined || !expRoom.controller?.my) && !claimer){
+                returnValue = this.spawnClaimer(room, expansion.target);
+            } else if(returnValue === undefined){
+                const pioneers = creeps.filter(c => c.memory.role === roleContants.PIONEER && (c.memory as ClaimerMemory).target === expansion.target);
+                if(pioneers.length < 6){
+                    returnValue = this.spawnPioneer(room, expansion.target)
+                }
+            }
+        })
+        return returnValue;
+    }
+
+    private spawnPioneer(room: Room, target: string){
+        const body = [WORK, WORK, WORK, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE];
+        const name = generateName(roleContants.PIONEER)
+        const memory: ClaimerMemory = {
+            home: room.name,
+            role: roleContants.PIONEER,
+            target
+        }
+
+        return room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, {memory})
+    }
+
+    private spawnClaimer(room: Room, target: string){
+        const body = [CLAIM, MOVE];
+        const name = generateName(roleContants.CLAIMER)
+        const memory: ClaimerMemory = {
+            home: room.name,
+            role: roleContants.CLAIMER,
+            target
+        }
+
+        return room.find(FIND_MY_SPAWNS)[0].spawnCreep(body, name, {memory})
     }
 
     private spawnMiner(objectives: MiningObjective[], room: Room) {
@@ -242,7 +294,7 @@ export class SpawnManager {
             if (room != null &&(room.lastVisit ?? 0) === 0) {
                 totalTime += 0
             } else {
-                totalTime += Game.time - (room.lastVisit ?? 0)
+                totalTime += Game.time - (room?.lastVisit ?? 0)
             }
             numberOfRooms++;
         })
@@ -288,6 +340,7 @@ export class SpawnManager {
                 home: room.name,
                 role: roleContants.PORTING,
                 take: "withdrawl",
+                onRoute: false,
             }
             const spawn = room.find(FIND_MY_SPAWNS)[0]
             if (!spawn.spawning) {
@@ -329,6 +382,7 @@ export class SpawnManager {
     }
 
     private spawnReserver(objective: ReserveObjective, room: Room, creeps: Creep[]) {
+        if(objective === undefined) return;
         for (let reserv of objective.toReserve) {
             const hasReserv = creeps.find(creep => creep.memory.role === roleContants.RESERVING &&
                 creep.memory.home === room.name &&
@@ -344,11 +398,12 @@ export class SpawnManager {
             if (room.storage && room.energyAvailable >= 1250) {
                 body = [CLAIM, CLAIM, MOVE]
             }
-            return room.find(FIND_MY_SPAWNS)[0].spawnCreep(
+            const retValue =  room.find(FIND_MY_SPAWNS)[0].spawnCreep(
                 body,
                 `${roleContants.RESERVING} ${reserv}`,
                 { memory: mem }
             )
+            return retValue;
         }
         return undefined
     }

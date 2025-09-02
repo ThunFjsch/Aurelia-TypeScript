@@ -7,12 +7,13 @@ import { visualizeObjectives } from "./objective-visuals";
 import { visualizeResourceTasks } from "./resTask-visuals";
 import { ResourceService } from "services/resource.service";
 import { constructionVisuals } from "./construction-visuals";
+import { EconomyService } from "services/economy.service";
 
 export class Visualizer {
-    visualizeRoom(room: Room, statInfo: StatInfo, cpuAverage: number, objectives: Objective[], resourceService: ResourceService) {
+    visualizeRoom(room: Room, statInfo: StatInfo, cpuAverage: number, objectives: Objective[], resourceService: ResourceService, economyService: EconomyService) {
         if (settings.visuals.basePlanning) visualizePlanner(room);
-        if (settings.visuals.showStats) visualiseStats(statInfo, cpuAverage);
-        if (settings.visuals.showObjectives) visualizeObjectives(objectives);
+        if (settings.visuals.showStats) visualiseStats(statInfo, cpuAverage, room, objectives.filter(o => o.home === room.name), economyService);
+        if (settings.visuals.showObjectives) visualizeObjectives(objectives, room);
         if(settings.visuals.showResourceTasks) visualizeResourceTasks(resourceService.taskList)
         if(settings.visuals.showConstruction) constructionVisuals(room)
 

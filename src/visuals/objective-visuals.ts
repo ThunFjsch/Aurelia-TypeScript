@@ -5,32 +5,28 @@ import { drawTextBox } from "utils/styling/stylingHelper";
 
 const eco = new EconomyService();
 
-export function visualizeObjectives(objectives: Objective[]) {
+export function visualizeObjectives(objectives: Objective[], room: Room) {
     if (!Memory.globalReset) return;
-
-    for (let name in Memory.myRooms) {
-        const roomName = Memory.myRooms[name];
-        const room = Game.rooms[roomName];
-        if (room === undefined) return;
-        let startX = settings.objective.startX;
-        let startY = settings.objective.startY;
-        const width = 14;
-        let info: string[] = ["Objectives", "Type | Priority | Target"]
-        let income = 0;
-        let haulerCapacity =0;
-        objectives.forEach((objective) => {
-            if(objective.maxIncome > 0){
+    let startX = settings.objective.startX;
+    let startY = settings.objective.startY;
+    const width = 17;
+    let info: string[] = ["Objectives", "Type | Priority | Target | Inc | HParts"]
+    let income = 0;
+    let haulerCapacity = 0;
+    objectives.forEach((objective) => {
+        if (objective.home === room.name) {
+            if (objective.maxIncome > 0) {
                 info.push(`${objective.type} | ${objective.priority} | ${objective.target} | ${objective.maxIncome.toFixed(2)} | ${objective.maxHaulerParts.toFixed(2)}`)
-            }else{
+            } else {
                 info.push(`${objective.type} | ${objective.priority} | ${objective.target} | ${objective.maxHaulerParts.toFixed(2)}`)
             }
             income += objective.maxIncome
-            if(objective.type != roleContants.HAULING){
+            if (objective.type != roleContants.HAULING) {
                 haulerCapacity += objective.maxHaulerParts
             }
-        });
-        info.push(`Income: ${eco.getCurrentRoomIncome(room, objectives).toFixed(2)}/${income.toFixed(2)}  | ${(haulerCapacity).toFixed(2)}`);
+        }
+    });
+    info.push(`Income: ${eco.getCurrentRoomIncome(room, objectives).toFixed(2)}/${income.toFixed(2)}  | ${(haulerCapacity).toFixed(2)}`);
 
-        drawTextBox(room, info, width, startX, startY);
-    }
+    drawTextBox(room, info, width, startX, startY);
 }

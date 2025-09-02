@@ -12,6 +12,8 @@ import { Reserving } from "./reserving";
 import { Porting } from "./porting";
 import { CoreKiller } from "./coreKiller";
 import { Blinkie } from "./blinkie";
+import { Claimer } from "./claimer";
+import { Pioneer } from "./pioneer";
 
 export function runCreeps(){
     Object.entries(Game.creeps).forEach((creep) => {
@@ -31,6 +33,8 @@ class Roles {
     porting: Porting;
     coreKiller: CoreKiller;
     blinkie: Blinkie;
+    claimer: Claimer;
+    pioneer: Pioneer;
     constructor(objectiveManager: ObjectiveManager){
         this.mining = new Miner();
         this.hauling = new Hauling();
@@ -43,6 +47,8 @@ class Roles {
         this.porting = new Porting();
         this.coreKiller = new CoreKiller();
         this.blinkie = new Blinkie();
+        this.claimer = new Claimer();
+        this.pioneer = new Pioneer();
         // this.wallRepairer= new WallRepairer();
     }
 };

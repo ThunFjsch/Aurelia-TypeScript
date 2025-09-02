@@ -6,7 +6,7 @@ export class Scouting {
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
-        if(currTarget === undefined || currTarget === null){
+        if (currTarget === undefined || currTarget === null) {
             memory.currIndex++
             creep.memory = memory
             return
@@ -28,39 +28,43 @@ export class Scouting {
                     creep.moveTo(controller)
                 }
             } else {
-                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair")) {
+                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined )) {
                     memory.currIndex++;
 
                     memory.route[memory.currIndex].lastVisit = Game.time
                     const room = Game.rooms[memory.home];
-                    if(room.memory.scoutPlan != undefined){
-                        delete room.memory.scoutPlan[memory.currIndex];
-                    }
 
                     creep.memory = memory
                     return;
                 }
                 const sources = creep.room.find(FIND_SOURCES)
-                if(sources.length === 0) return;
+                if (sources.length === 0) {
+                    memory.currIndex++;
+                    creep.memory = memory;
+                    return
+                }
                 sources.forEach(source => {
-                    let infoOnMem = false;
+                    let iterator = 0;
                     Memory.sourceInfo.forEach(info => {
-                        if (info.id === source.id) {
-                            infoOnMem = true;
+                        if (info != null && info.id === source.id) {
                             memory.route[memory.currIndex].lastVisit = Game.time
                             Game.rooms[memory.home].memory.scoutPlan = memory.route;
+                            delete Memory.sourceInfo[iterator];
                         }
+                        iterator++;
                     })
-                    if (!infoOnMem) {
-                        const info = this.scoutingService.addSource(creep.room, source)
-                        if (info != undefined) {
+                    const room = Game.rooms[memory.home];
+                    if(source != undefined && room != undefined && room != null){
+                        const info = this.scoutingService.addSource(room, source)
+                        if (info != undefined && info != null) {
                             Memory.sourceInfo.push(info)
                             memory.route[memory.currIndex].lastVisit = Game.time
                             Game.rooms[memory.home].memory.scoutPlan = memory.route;
-                            Memory.sourceInfo.sort((a,b)=>
-                                (a.distance?? 0) - (b.distance?? 0)
+                            Memory.sourceInfo.sort((a, b) =>
+                                (a?.distance ?? 0) - (b?.distance ?? 0)
                             )
                         }
+
                     }
                 })
                 memory.currIndex++;

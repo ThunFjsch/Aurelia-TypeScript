@@ -1,5 +1,5 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
-import { getAwayFromSpawn, helpAFriend } from "./creepHelper";
+import { getAwayFromStructure, helpAFriend } from "./creepHelper";
 
 export class Building {
     run(creep: Creep) {
@@ -32,19 +32,16 @@ export class Building {
             memory.working = true
         }
 
-        let building = -9;
-        if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2)) {
-            memory.working = true
+        let building = -12;
+        if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2) && memory.working) {
             building = creep.build(target)
-        } else memory.working = false;
+        }
         if (building === ERR_INVALID_TARGET) {
             memory.target = getCurrentConstruction(creep.room, creep);
             creep.memory = memory;
         }
-        if (building != OK && memory.working === false) {
-            creep.moveTo(target);
+        if (building != OK) {
+            building = creep.moveTo(target);
         }
-
-        getAwayFromSpawn(creep, spawn)
     }
 }

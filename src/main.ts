@@ -11,6 +11,7 @@ import { runRole } from "creeps/creeps";
 import { ResourceService } from "services/resource.service";
 import profiler from "screeps-profiler";
 import { ScoutingService } from "services/scouting.service";
+import { EconomyService } from "services/economy.service";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
@@ -18,7 +19,8 @@ const scoutingService = new ScoutingService();
 const objectiveManager = new ObjectiveManager(scoutingService);
 const resourceService = new ResourceService(memoryService);
 const roomManager = new RoomManager(memoryService, objectiveManager, resourceService, scoutingService);
-const visualizer = new Visualizer()
+const visualizer = new Visualizer();
+const economyService = new EconomyService()
 
 assignGlobals();
 console.log(`Reset happened at ${Game.time}`)
@@ -57,7 +59,7 @@ export const loop = () => {
       for (let index in Memory.myRooms) {
         const roomName = Memory.myRooms[index];
         const room = Game.rooms[roomName];
-        visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService)
+        visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
       }
     }
 

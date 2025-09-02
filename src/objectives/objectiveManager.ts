@@ -1,5 +1,5 @@
 import { Priority, priority } from "utils/sharedTypes";
-import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective, InvaderCoreObjective, InvaderDefenceObjective } from "./objectiveInterfaces";
+import { Objective, MiningObjective, HaulingObjective, UpgradeObjective, roleContants, BuildingObjective, MaintenanceObjective, ScoutingObjective, ReserveObjective, InvaderCoreObjective, InvaderDefenceObjective, ExpansionObjective } from "./objectiveInterfaces";
 import { E_FOR_MAINTAINER, EconomyService, HAULER_MULTIPLIER } from "services/economy.service";
 import { PathingService } from "services/pathing.service";
 import { getCurrentConstruction } from "roomManager/constructionManager";
@@ -25,10 +25,11 @@ export class ObjectiveManager {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
         // TODO: Make this smarter. Only run it ones.
-        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a.distance ?? 1) - (b.distance ?? 1))
+        if (Memory.sourceInfo.length > 1) Memory.sourceInfo = Memory.sourceInfo.sort((a, b) => (a?.distance ?? 1) - (b?.distance ?? 1))
 
         for (let [index, source] of Memory.sourceInfo.entries()) {
             // Updates the objective info of the state diveates from the sourceInfo
+            if(source === null || index === null) continue;
             if (this.objectives.find(obj => obj != undefined && obj.id === source.id) != undefined) {
                 this.objectives.map(objective => {
                     if (objective.id === source.id && objective.type === roleContants.MINING) {
@@ -62,17 +63,18 @@ export class ObjectiveManager {
                     }
                 })
                 continue;
-            };
+            } else{
+                // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
+                const haulerObjective = this.objectives.find(o => o.type === roleContants.HAULING && o.home === room.name) as HaulingObjective;
 
+                const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length;
+                // 150 workparts are a total of 300 parts. So I want to limit the Spawntime of this objective to max out at 300 from the total of 500
+                if (amountOfMiningObj > 7 && haulerObjective.maxHaulerParts > 150) continue;
 
-
-            // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
-            const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length
-            if (amountOfMiningObj > 7) continue;
-
-            const objective = this.creatingMineObjective(room, source)
-            if (objective === undefined) continue;
-            this.objectives.push(objective);
+                const objective = this.creatingMineObjective(room, source)
+                if (objective === undefined) continue;
+                this.objectives.push(objective);
+            }
         }
     }
 
@@ -109,7 +111,7 @@ export class ObjectiveManager {
     // Adds and updates the Hauling Objective
     private getHaulObjectives(room: Room, list: Objective[], creeps: Creep[]) {
         let haulerCapacity = 0
-        list.filter(objective => objective.home === room.name)
+        list.filter(objective => objective.home === room.name && objective.type != roleContants.HAULING)
             .map(objective => {
                 haulerCapacity += (objective.maxHaulerParts);
             })
@@ -120,7 +122,7 @@ export class ObjectiveManager {
                 if (objective.home === room.name && objective.type === roleContants.HAULING && objective.target === room.name) {
                     const newHaul = this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER, creeps);
                     objective.priority = newHaul.priority;
-                    objective.maxHaulerParts = newHaul.maxHaulerParts
+                    objective.maxHaulerParts = newHaul.maxHaulerParts;
                 }
             })
         } else if (room.memory.isOwned) {
@@ -148,7 +150,7 @@ export class ObjectiveManager {
             if (objective.distance && hasCreeps > 0) dis += objective.distance
         })
         let currentReq = economy.requiredHaulerParts(income, dis);
-        if (currentReq > haulerCapacity * 2) {
+        if (currentReq >= haulerCapacity) {
             currentReq = haulerCapacity
         }
         let prio: Priority = priority.high;
@@ -160,8 +162,9 @@ export class ObjectiveManager {
         }
         return {
             id: `${room.name} ${roleContants.HAULING}`,
-            capacityRequired: currentReq * CARRY_CAPACITY,
-            maxHaulerParts: currentReq,
+            capacityRequired: haulerCapacity * CARRY_CAPACITY,
+            maxHaulerParts: haulerCapacity,
+            currParts: currCarry,
             home: room.name,
             target: room.name,
             priority: prio,
@@ -192,7 +195,9 @@ export class ObjectiveManager {
     }
 
     private createUpgradingObjective(room: Room, controller: StructureController): UpgradeObjective | undefined {
-        const route = pathing.findPath(room.find(FIND_MY_SPAWNS)[0].pos, controller.pos)
+        const spawn = room.find(FIND_MY_SPAWNS)[0];
+        if(spawn === undefined) return;
+        const route = pathing.findPath(spawn.pos, controller.pos)
         if (route === undefined) return
         const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
         const maxHaulerParts = energyPerTick * (route.cost / CARRY_CAPACITY)
@@ -244,7 +249,9 @@ export class ObjectiveManager {
     }
 
     private createBuildingObjective(room: Room, cSite: ConstructionSite): BuildingObjective | undefined {
-        const route = pathing.findPath(room.find(FIND_MY_SPAWNS)[0].pos, cSite.pos)
+        const spawn = room.find(FIND_MY_SPAWNS)[0]
+        if(spawn === undefined) return;
+        const route = pathing.findPath(spawn.pos, cSite.pos)
         if (route === undefined) return
         const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
 
@@ -348,7 +355,7 @@ export class ObjectiveManager {
 
     private getReserverObjective(room: Room) {
         if (room.energyCapacityAvailable >= 650) {
-            const miningObjectives = this.objectives.filter(objective => objective != undefined && objective.type === roleContants.MINING)
+            const miningObjectives = this.objectives.filter(objective => objective != undefined && objective.type === roleContants.MINING && objective.home === room.name)
             let remotes: string[] = [];
             for (let objective of miningObjectives) {
                 if (!remotes.find(remote => remote === objective.target && remote != room.name) && objective.target != room.name) {
@@ -381,7 +388,7 @@ export class ObjectiveManager {
             id: roleContants.RESERVING,
             maxHaulerParts: 0,
             maxIncome: 0,
-            priority: priority.severe,
+            priority: priority.high,
             target: "multiple",
             toReserve: remotes,
             type: roleContants.RESERVING
@@ -391,12 +398,21 @@ export class ObjectiveManager {
     private createInvaderDefence(room: Room, infos: InvaderInformation[]) {
         for (let info of infos) {
             info.core.forEach(core => {
-                if (!this.objectives.find(o => o.type === roleContants.CORE_KILLER && o.target === core.room.name)) {
+                if (!this.objectives.find(o => o != undefined && o.type === roleContants.CORE_KILLER && o.target === core.room.name)) {
                     this.objectives.push(this.createCoreDefence(room, core));
+                } else{
+                    if (info.core.length === 0) {
+                    for (const index in this.objectives) {
+                        const objective = this.objectives[index]
+                        if (objective != undefined && objective.home === room.name && objective.type === roleContants.CORE_KILLER && info.room === objective.target) {
+                            delete this.objectives[index]
+                        }
+                    }
+                }
                 }
             });
             if (info.invader.length === 0) continue;
-            if (!this.objectives.find(o => o.type === roleContants.INVADER_DEFENCE && o.target === info.room)) {
+            if (!this.objectives.find(o => o != undefined && o.type === roleContants.INVADER_DEFENCE && o.target === info.room)) {
                 const threatLevel = invaderExpert.assessThreatLevel(info.invader);
                 switch (threatLevel) {
                     case ("LOW"):
@@ -424,7 +440,7 @@ export class ObjectiveManager {
                 if (info.invader.length === 0) {
                     for (const index in this.objectives) {
                         const objective = this.objectives[index]
-                        if (objective.home === room.name && objective.type === roleContants.INVADER_DEFENCE && info.room === objective.target) {
+                        if (objective != undefined && objective.home === room.name && objective.type === roleContants.INVADER_DEFENCE && info.room === objective.target) {
                             delete this.objectives[index]
                         }
                     }
@@ -469,20 +485,55 @@ export class ObjectiveManager {
         }
     }
 
+    private getExpansionObjective(room: Room) {
+        if (room.memory.expansion != undefined) {
+            const expansionRoom = Game.rooms[room.memory.expansion];
+            if (this.objectives.find(o => o.target === room.memory.expansion && o.type === roleContants.EXPANSIONEER) === undefined) {
+                // if (expansionRoom === undefined) return;
+                const objective = this.createExpansionObjective(room, room.memory.expansion);
+                this.objectives.push(objective)
+            } else {
+                if (expansionRoom != undefined && expansionRoom.find(FIND_MY_SPAWNS)[0] != undefined) {
+                    for (const index in this.objectives) {
+                        const objective = this.objectives[index]
+                        if (objective.home === room.name && objective.type === roleContants.EXPANSIONEER && room.memory.expansion === objective.target) {
+                            delete this.objectives[index]
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private createExpansionObjective(room: Room, target: string): ExpansionObjective {
+        return {
+            home: room.name,
+            target,
+            id: `${room.name}_${target}`,
+            distance: 0,
+            maxHaulerParts: 0,
+            maxIncome: 0,
+            priority: priority.severe,
+            type: roleContants.EXPANSIONEER
+        }
+    }
+
     syncRoomObjectives(room: Room, creeps: Creep[]): void {
+        this.objectives = this.objectives.filter(o => o != undefined)
         const remotes = this.objectives.filter(o =>
             o.home === room.name && o.target != room.name && o.type === roleContants.MINING
         )
         const invaderInfo = invaderExpert.detectNPC(room, remotes)
 
-        this.createMiningObjectives(room);
         this.getUpgradeObjectives(room);
         this.getHaulObjectives(room, this.objectives, creeps);
         this.getConstructionObjectives(room);
         this.getMaintenanceObjective(room);
         this.getScoutObjective(room);
-        this.getReserverObjective(room);
         this.createInvaderDefence(room, invaderInfo);
+        this.getExpansionObjective(room);
+        this.createMiningObjectives(room);
+        this.getReserverObjective(room);
 
         this.objectives.filter(o => o != undefined).sort((a, b) => a.distance * a.priority - b.distance * a.priority)
         // plus others;

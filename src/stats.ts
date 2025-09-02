@@ -48,7 +48,8 @@ export class Stats implements Stats {
     update() {
         const currentUsed = Game.cpu.getUsed();
 
-        if (this.avgIndex < this.avgSize) this.avgIndex = 0;
+        if (this.avgIndex > this.avgSize) this.avgIndex = 0;
+        this.time = Game.time;
         this.avgData[this.avgIndex] = currentUsed;
         this.avgIndex++;
         this.cpu = this.getCPUStats();

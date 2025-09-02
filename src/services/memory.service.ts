@@ -61,7 +61,20 @@ export class MemoryService {
             scoutPlan: undefined,
             rclProgress: [{finished: Game.time, level: 1}]
         }
-        planner.startRoomPlanner(room, spawn)
+        planner.startRoomPlanner(room, spawn);
+        room.find(FIND_SOURCES).forEach(source => {
+            if(source != null && Memory.sourceInfo.filter(s => s != null).find(s => s.id === source.id)){
+                let iterator = 0;
+                Memory.sourceInfo.forEach(s => {
+                    if(s != null && s.id === source.id){
+                        delete Memory.sourceInfo[iterator]
+                    }
+                    iterator++;
+                })
+            }
+            const info = scoutingService.addSource(room,source);
+            if(info) Memory.sourceInfo.push(info)
+        })
     }
 
     initContainerMemory(container: StructureContainer, room: Room) {
