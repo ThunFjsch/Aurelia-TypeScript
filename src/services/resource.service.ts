@@ -5,7 +5,7 @@ import { RCL } from "roomManager/constructionManager";
 import { PathingService } from "./pathing.service";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 0, 25000, 50000, 100000, 150000, 200000];
+const eStorageLimit = [0, 0, 0, 0, 15000, 50000, 100000, 150000, 200000];
 
 export interface Task {
     id: string;              // Resource ID
@@ -125,7 +125,7 @@ export class ResourceService {
             })
         creeps.filter(creep => creep.memory.role === roleContants.BUILDING && creep.memory.home === room.name)
             .forEach(creep => {
-                let prio: Priority = priority.low
+                let prio: Priority = priority.high
                 this.updateCreateTransfer(creep, avgHauler, spawn, home, prio)
             })
         // Container and Storage is here not included. These are processes seperatly
@@ -163,7 +163,7 @@ export class ResourceService {
                     amount: amount,
                     ResourceType: RESOURCE_ENERGY,
                     StructureType: storage.structureType,
-                    distance: 15,
+                    distance: 30,
                     home
                 };
 
@@ -315,6 +315,7 @@ export class ResourceService {
 
         this.cleanTasks(creep)
         const hasFastFiller = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
+        const hasPorter = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.PORTING && item[1].memory.home === creep.memory.home);
         for (const task of this.taskList) {
             if (creep.memory.home != task.home) continue;
             if (creep.store.getFreeCapacity(RESOURCE_ENERGY) / 4 > task.amount) continue;
@@ -326,15 +327,13 @@ export class ResourceService {
                     if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) continue;
                 }
                 else if (creep.memory.role === roleContants.HAULING) {
-
-                    const hasPorter = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.PORTING && item[1].memory.home === creep.memory.home);
                     if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
-                    if (rcl > 2 && hasFastFiller != undefined && hasPorter != undefined && hasFastFiller.length < 2 && hasPorter.length < 3) {
-                        if (task.StructureType != undefined && (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN)) continue;
-                        if (rcl > 3 && creep.room.storage) {
+                    if (rcl > 2 && hasFastFiller != undefined && hasPorter != undefined && hasFastFiller.length > 2 && hasPorter.length > 3) {
+                        if (rcl > 3 && creep.room.storage != undefined) {
                             if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
                             if (task.StructureType != undefined && task.StructureType === STRUCTURE_LAB) continue;
                         };
+                        if (task.StructureType != undefined && (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN)) continue;
                     }
                 }
                 else if (creep.memory.role === roleContants.MAINTAINING) {

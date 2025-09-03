@@ -543,6 +543,9 @@ export class SpawnManager {
                 break;
             }
         });
+        if(returnValue === -6){
+            returnValue = undefined
+        }
         return returnValue
     }
 
