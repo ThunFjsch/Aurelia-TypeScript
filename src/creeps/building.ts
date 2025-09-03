@@ -1,5 +1,6 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
-import { getAwayFromStructure, helpAFriend } from "./creepHelper";
+import { helpAFriend } from "./creepHelper";
+import { moveTo } from "screeps-cartographer";
 
 export class Building {
     run(creep: Creep) {
@@ -9,10 +10,10 @@ export class Building {
         if (memory.target === undefined) {
             memory.target = getCurrentConstruction(creep.room, creep);
             creep.memory = memory;
-            if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)) {
+            if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 2)) {
                 spawn.recycleCreep(creep)
             } else if (memory.done) {
-                creep.moveTo(spawn)
+                moveTo(creep, spawn)
             }
             return;
         }
@@ -32,16 +33,17 @@ export class Building {
             memory.working = true
         }
 
-        let building = -12;
+        let building: number = ERR_NOT_IN_RANGE ;
         if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2) && memory.working) {
             building = creep.build(target)
         }
+        if(building === OK) return;
         if (building === ERR_INVALID_TARGET) {
             memory.target = getCurrentConstruction(creep.room, creep);
             creep.memory = memory;
         }
-        if (building != OK) {
-            building = creep.moveTo(target);
+        if (building != OK && building != ERR_NOT_ENOUGH_RESOURCES) {
+            building = moveTo(creep, target);
         }
     }
 }

@@ -2,6 +2,7 @@ import { MaintenanceObjective } from "objectives/objectiveInterfaces";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { ResourceService } from "services/resource.service";
 import { getEnergy } from "./creepHelper";
+import { moveTo } from "screeps-cartographer";
 
 export class Maintaining {
     objectiveManager: ObjectiveManager
@@ -17,7 +18,7 @@ export class Maintaining {
         } else {
             if(creep.room.name != memory.home){
                 const target = new RoomPosition(25,25, memory.home)
-                creep.moveTo(target)
+                moveTo(creep, target)
                 return
             }
             if (memory.repairTarget === undefined) {
@@ -36,7 +37,7 @@ export class Maintaining {
                 this.setNewTarget(creep, memory)
             }
             if (repair != OK) {
-                creep.moveTo(target);
+                moveTo(creep, target);
             }
         }
     }

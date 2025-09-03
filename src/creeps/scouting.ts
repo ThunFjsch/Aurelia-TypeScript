@@ -1,3 +1,4 @@
+import { moveTo } from "screeps-cartographer";
 import { ScoutingService } from "services/scouting.service";
 
 export class Scouting {
@@ -18,14 +19,14 @@ export class Scouting {
         }
 
         if (creep.room.name != currTarget.roomName) {
-            creep.moveTo(targetRoomPos)
+            moveTo(creep, targetRoomPos)
         } else if (creep.room.name === currTarget.roomName) {
             const controller = creep.room.controller;
             if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'ThunFisch') && controller.sign?.username != 'Screeps') {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
                     creep.signController(controller, 'Owo');
                 } else {
-                    creep.moveTo(controller)
+                    moveTo(creep, controller)
                 }
             } else {
                 if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined )) {

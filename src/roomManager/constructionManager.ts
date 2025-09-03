@@ -1,3 +1,5 @@
+import { moveTo } from "screeps-cartographer";
+
 export type RCL = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 type StructureAmount = Partial<Record<StructureConstant, number>>;
 
@@ -91,7 +93,11 @@ export class ConstrcutionManager {
             if (cSites != undefined && cSites.length === 0) {
                 const nextPlan = room.memory.constructionOffice.plans[0]
                 if (nextPlan === null) return room.memory.constructionOffice.finished = true;
-                room.lookAt(nextPlan.x, nextPlan.y).filter(e => e.creep != undefined).forEach(c => c.creep?.moveTo(25,25))
+                if(room.lookAt(nextPlan.x, nextPlan.y).filter(v => v.structure?.structureType === STRUCTURE_WALL).length != 0){
+                    room.memory.constructionOffice.plans.shift()
+                }
+
+                room.lookAt(nextPlan.x, nextPlan.y).filter(e => e.creep != undefined).forEach(c =>{if(c.creep != undefined){moveTo(c.creep, new RoomPosition(25,25, room.name))}})
                 const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
                 if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
                     room.memory.constructionOffice.plans.shift()

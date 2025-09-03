@@ -1,3 +1,5 @@
+import { moveTo } from "screeps-cartographer";
+
 export class Miner {
     run(creep: Creep) {
         const memory = creep.memory as MinerMemory
@@ -6,27 +8,33 @@ export class Miner {
         if (creep.room.name != memory.targetRoom) {
             if (source === null || source === undefined || source.pos === undefined) {
                 const target = new RoomPosition(25, 25, memory.targetRoom)
-                creep.moveTo(target, { maxOps: 20000 });
+                moveTo(creep, target, { maxOps: 20000 });
                 return;
-            } else{
+            } else {
                 creep.moveTo(source, { maxOps: 20000 });
                 return;
             }
 
-        } else if(creep.room.name === memory.targetRoom){
+        } else if (creep.room.name === memory.targetRoom) {
             if (source != null && source.energyCapacity > 0) {
                 let harvest = -6;
                 if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
                     if (memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
-                        creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                        moveTo(creep, new RoomPosition(memory.containerPos.x, memory.containerPos.y, creep.room.name));
                     }
                     harvest = creep.harvest(source);
                 }
                 if (harvest != OK) {
-                    if (memory.containerPos != undefined && (memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
-                        creep.moveTo(memory.containerPos.x, memory.containerPos.y);
+                    if (memory.containerPos != undefined) {
+                        const containerPos = new RoomPosition(memory.containerPos.x, memory.containerPos.y, creep.room.name);
+                        if (memory.containerPos != undefined && creep.pos === containerPos) {
+                        } else if (creep.pos.inRangeTo(containerPos.x, containerPos.y, 2)) {
+                            creep.moveTo(containerPos)
+                        } else moveTo(creep, containerPos, { maxOps: 20000, reusePath: 0,})
                     } else {
-                        creep.moveTo(source, { maxOps: 20000 });
+                        if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 2)) {
+                            creep.moveTo(source)
+                        } else moveTo(creep, source, { maxOps: 20000, reusePath: 0})
                     }
                 } else {
                     if (memory.working === false) {

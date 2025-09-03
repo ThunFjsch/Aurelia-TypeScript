@@ -22,7 +22,7 @@ export class FastFilling{
                 }
             }
         } else{
-            creep.moveTo(memory.pos.x, memory.pos.y)
+            creep.moveTo(new RoomPosition(memory.pos.x, memory.pos.y, creep.room.name))
         }
     }
 }

@@ -12,6 +12,8 @@ import { ResourceService } from "services/resource.service";
 import profiler from "screeps-profiler";
 import { ScoutingService } from "services/scouting.service";
 import { EconomyService } from "services/economy.service";
+import { config, preTick, reconcileTraffic } from "screeps-cartographer";
+import { trafficManagerConfigSetup } from "utils/trafficManager/setup";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
@@ -29,8 +31,11 @@ if (settings.test.profiler) {
   profiler.enable();
 }
 
+trafficManagerConfigSetup();
+
 export const loop = () => {
   profiler.wrap(memHack(() => {
+    preTick();
     // console.log(`Current game tick is ${Game.time}`);
     if (hasRespawned() || Memory.respawn) {
       logger.info('Colony has respawned')
@@ -53,7 +58,10 @@ export const loop = () => {
     }
 
     roomManager.run(creeps)
+    reconcileTraffic();
     stats.update();
+
+
 
     if (settings.visuals.allowVisuals) {
       for (let index in Memory.myRooms) {
@@ -62,6 +70,8 @@ export const loop = () => {
         visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
       }
     }
+
+
 
     if (Game.shard.name === 'shard0' && Game.cpu.bucket === 10000) {
       Game.cpu.generatePixel();

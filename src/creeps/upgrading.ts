@@ -1,3 +1,4 @@
+import { moveTo } from "screeps-cartographer";
 import { helpAFriend } from "./creepHelper";
 
 export interface UpgraderMemory extends CreepMemory {
@@ -18,7 +19,7 @@ export class Upgrader {
             if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                 spawn.recycleCreep(creep)
             } else{
-                creep.moveTo(spawn)
+                moveTo(creep, spawn)
             }
             return
         }
@@ -27,7 +28,7 @@ export class Upgrader {
             if (shouldWork) creep.upgradeController(controller);
         } else {
             if (shouldWork) creep.upgradeController(controller);
-            creep.moveTo(controller.pos.x, controller.pos.y, { reusePath: 15 })
+            moveTo(creep, controller, { reusePath: 15 })
         }
     }
 }

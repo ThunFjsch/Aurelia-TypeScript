@@ -1,6 +1,7 @@
 import { ResourceService } from "services/resource.service";
 import { getEnergy } from "./creepHelper";
 import { HaulerMemory } from "./hauling";
+import { moveTo } from "screeps-cartographer";
 
 export class Porting {
     run(creep: Creep, energyManager: ResourceService) {
@@ -11,7 +12,7 @@ export class Porting {
         } else {
             if(memory.home != creep.room.name){
                 const target = new RoomPosition(25,25,memory.home)
-                creep.moveTo(target,{reusePath: 50})
+                moveTo(creep, target,{reusePath: 50})
                 return;
             }
             if (memory.target === undefined) {
@@ -32,7 +33,7 @@ export class Porting {
                     delete memory.target;
                     creep.memory = memory;
                 } else{
-                    creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC"}})
+                    moveTo(creep, target)
                 }
 
             }

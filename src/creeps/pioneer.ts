@@ -1,4 +1,5 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
+import { moveTo } from "screeps-cartographer";
 
 export class Pioneer {
     run(creep: Creep) {
@@ -6,13 +7,13 @@ export class Pioneer {
         if(memory.reached === undefined) memory.reached = false;
         if (creep.room.name != memory.target && !memory.reached) {
             const target = new RoomPosition(25, 25, memory.target);
-            creep.moveTo(target)
+            moveTo(creep, target)
         } else {
             const spawn = creep.room.find(FIND_MY_SPAWNS)[0];
             if(spawn != undefined){
                 if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                     spawn.recycleCreep(creep)
-                } else creep.moveTo(spawn)
+                } else moveTo(creep, spawn)
             }
             if(memory.reached === false) memory.reached = true;
             if (creep.store.getFreeCapacity(RESOURCE_ENERGY) === 0) {
@@ -50,7 +51,7 @@ export class Pioneer {
                         creep.memory = memory;
                     }
                     if (building != OK && memory.working === false) {
-                        creep.moveTo(target);
+                        moveTo(creep, target);
                     }
                 }
             } else{
@@ -62,7 +63,7 @@ export class Pioneer {
                 if(creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
                     creep.harvest(source)
                 } else{
-                    creep.moveTo(source)
+                    moveTo(creep, source)
                 }
             }
         }

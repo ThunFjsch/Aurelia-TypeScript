@@ -1,5 +1,6 @@
 import { ResourceService, ResRole } from "services/resource.service";
 import { getAwayFromStructure, getEnergy } from "./creepHelper";
+import { moveTo } from "screeps-cartographer";
 
 export interface HaulerMemory extends CreepMemory {
     target?: any;
@@ -32,13 +33,13 @@ export class Hauling {
                 if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= 1) {
                     creep.transfer(target, RESOURCE_ENERGY);
                     energyManager.cleanTasks(creep)
-                    creep.moveTo(25,25);
+                    moveTo(creep, new RoomPosition(25,25, creep.room.name));
                     getAwayFromStructure(creep, target as Structure)
                     memory.onRoute = false;
                     delete memory.target;
                     creep.memory = memory;
                 } else{
-                    creep.moveTo(target, {visualizePathStyle: {lineStyle: "dotted", stroke: "#DE21AC",}, reusePath: 50})
+                    moveTo(creep, target, {reusePath: 50, avoidCreeps: true})
                 }
             }
         }
