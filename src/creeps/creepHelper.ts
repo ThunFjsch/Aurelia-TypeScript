@@ -24,8 +24,6 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
             energyManager.cleanTasks(creep)
             delete memory.target;
             creep.memory = memory;
-            const spawn = creep.room.find(FIND_MY_SPAWNS)[0]
-            getAwayFromStructure(creep, spawn)
             return
         } else {
             moveTo(creep, target, {reusePath: 50, maxOps: 10000, avoidCreeps: true})

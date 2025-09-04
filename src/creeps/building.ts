@@ -25,6 +25,11 @@ export class Building {
             return;
         }
 
+        if (creep.pos.x === target.pos.x && creep.pos.y === target.pos.y) {
+            moveTo(creep, new RoomPosition(32, 33, creep.room.name))
+            return;
+        }
+
         helpAFriend(creep, memory);
 
         if (creep.store.energy === 0) {

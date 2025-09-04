@@ -264,7 +264,7 @@ export class SpawnManager {
                     objective.spots = 1
                 }
 
-                if (objective.maxWorkParts > currWorkParts && objective.spots > assignedCreeps.length) {
+                if (objective.maxWorkParts > currWorkParts && objective.spots - assignedCreeps.length != 0) {
                     const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
                     if (objective.path === undefined) return;
                     const memory: MinerMemory = {
@@ -417,7 +417,7 @@ export class SpawnManager {
                 const memory = Memory.creeps[creep.name]
                 if (memory.role === roleContants.BUILDING && memory.home === objective.home) currWork += getWorkParts([creep], WORK);
             }
-            const currNeed = this.economyService.getCurrentRoomIncome(room, allObjectives) / E_FOR_BUILDER;
+            let currNeed = this.economyService.getCurrentRoomIncome(room, allObjectives) / E_FOR_BUILDER;
             if (currWork < currNeed) {
                 const body = createCreepBody(objective, room, currWork, currNeed);
                 const memory: BuilderMemory = {
@@ -476,10 +476,10 @@ export class SpawnManager {
             const income = this.economyService.getCurrentRoomIncome(room, allObjectives);
 
             let cost = E_FOR_UPGRADER
-            if((room.controller?.level??0) >= 5){
+            if((room.controller?.level??0) >= 4){
                 cost = E_FOR_UPGRADER + 0.5
             }
-            const currNeed = income / cost;
+            let currNeed = income / cost;
             if (currWork < currNeed && income > (maxIncome / 3)) {
                 const body = createCreepBody(objective, room, currWork, currNeed)
                 const memory: UpgraderMemory = {
