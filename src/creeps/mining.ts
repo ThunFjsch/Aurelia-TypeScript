@@ -7,11 +7,11 @@ export class Miner {
 
         if (creep.room.name != memory.targetRoom) {
             if (source === null || source === undefined || source.pos === undefined) {
-                const target = new RoomPosition(25, 25, memory.targetRoom)
-                moveTo(creep, target, { maxOps: 20000 });
+                const target = new RoomPosition(10, 25, memory.targetRoom)
+                moveTo(creep, target, { maxOps: 20000 })
                 return;
             } else {
-                creep.moveTo(source, { maxOps: 20000 });
+                creep.moveTo(source, { maxOps: 20000 })
                 return;
             }
 

@@ -21,7 +21,7 @@ export class ObjectiveManager {
     }
 
     // Adds mining Objectives to the Objectives list
-    private createMiningObjectives(room: Room): void {
+    private createMiningObjectives(room: Room, objectives: Objective[]): void {
         if (Memory.respawn) return;
         if (Memory.sourceInfo === undefined || Memory.sourceInfo.length === 0) return;
         // TODO: Make this smarter. Only run it ones.
@@ -65,15 +65,18 @@ export class ObjectiveManager {
                 continue;
             } else{
                 // TODO: Make the constrains of the amount of objectives defined by spawn time utilisation and cpu available to the room.
-                const haulerObjective = this.objectives.find(o => o.type === roleContants.HAULING && o.home === room.name) as HaulingObjective;
+                const haulerObjective = objectives.find(o => o.type === roleContants.HAULING && o.home === room.name) as HaulingObjective;
 
-                const amountOfMiningObj = this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length;
+                const amountOfMiningObj = objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).length;
                 // 150 workparts are a total of 300 parts. So I want to limit the Spawntime of this objective to max out at 300 from the total of 500
-                if (amountOfMiningObj > 7 && haulerObjective.maxHaulerParts > 150) continue;
+                if (amountOfMiningObj < 11 ) {
+                    const objective = this.creatingMineObjective(room, source)
+                    if (objective === undefined) continue;
+                    this.objectives.push(objective);
+                };
+                // this.objectives.filter(objective => objective.home === room.name && objective.type === roleContants.MINING).pop()
+                continue
 
-                const objective = this.creatingMineObjective(room, source)
-                if (objective === undefined) continue;
-                this.objectives.push(objective);
             }
         }
     }
@@ -123,6 +126,7 @@ export class ObjectiveManager {
                     const newHaul = this.createHaulObjective(room, haulerCapacity * HAULER_MULTIPLIER, creeps);
                     objective.priority = newHaul.priority;
                     objective.maxHaulerParts = newHaul.maxHaulerParts;
+                    objective.currParts = newHaul.currParts
                 }
             })
         } else if (room.memory.isOwned) {
@@ -154,7 +158,7 @@ export class ObjectiveManager {
             currentReq = haulerCapacity
         }
         let prio: Priority = priority.high;
-        if (currCarry > haulerCapacity / 16) {
+        if (currCarry > haulerCapacity / 8) {
             prio = priority.low
         }
         if (currCarry > haulerCapacity) {
@@ -532,7 +536,7 @@ export class ObjectiveManager {
         this.getScoutObjective(room);
         this.createInvaderDefence(room, invaderInfo);
         this.getExpansionObjective(room);
-        this.createMiningObjectives(room);
+        this.createMiningObjectives(room, this.objectives);
         this.getReserverObjective(room);
 
         this.objectives.filter(o => o != undefined).sort((a, b) => a.distance * a.priority - b.distance * a.priority)
