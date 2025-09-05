@@ -104,7 +104,8 @@ declare global {
         role: string;
         home: string;
         working?: boolean;
-        blocking?: number
+        blocking?: number;
+        pathKey?: string;
     }
 
     interface PioneerMemory extends CreepMemory{
@@ -145,7 +146,8 @@ declare global {
     }
 
     interface ReservMemory extends CreepMemory {
-        target: string;
+        target?: string;
+        targetRoom: string;
     }
 
     interface BlinkieMemory extends CreepMemory {

@@ -1,3 +1,5 @@
+import { moveTo } from "screeps-cartographer";
+
 export class FastFilling{
     run(creep: Creep){
         const memory = creep.memory as FastFillerMemory;
@@ -22,7 +24,7 @@ export class FastFilling{
                 }
             }
         } else{
-            creep.moveTo(new RoomPosition(memory.pos.x, memory.pos.y, creep.room.name))
+            moveTo(creep, new RoomPosition(memory.pos.x, memory.pos.y, creep.room.name))
         }
     }
 }

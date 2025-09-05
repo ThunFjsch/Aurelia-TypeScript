@@ -1,5 +1,5 @@
-import { moveTo } from "screeps-cartographer";
-import { helpAFriend } from "./creepHelper";
+import { creepPathMove, helpAFriend } from "./creepHelper";
+import { PathCachingService } from "services/pathCaching.service";
 
 export interface UpgraderMemory extends CreepMemory {
     controllerId: string;
@@ -7,6 +7,11 @@ export interface UpgraderMemory extends CreepMemory {
 }
 
 export class Upgrader {
+    pathCachingService: PathCachingService;
+
+        constructor(pathCaching: PathCachingService) {
+            this.pathCachingService = pathCaching;
+        }
     run(creep: Creep) {
         const memory = creep.memory as UpgraderMemory
         const controller: StructureController = Game.getObjectById(memory.controllerId) as StructureController;
@@ -19,7 +24,7 @@ export class Upgrader {
             if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                 spawn.recycleCreep(creep)
             } else{
-                moveTo(creep, spawn)
+                creepPathMove(creep, spawn, this.pathCachingService)
             }
             return
         }
@@ -28,7 +33,7 @@ export class Upgrader {
             if (shouldWork) creep.upgradeController(controller);
         } else {
             if (shouldWork) creep.upgradeController(controller);
-            moveTo(creep, controller, { reusePath: 15 })
+            creepPathMove(creep, controller, this.pathCachingService)
         }
     }
 }

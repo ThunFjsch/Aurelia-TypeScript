@@ -14,6 +14,8 @@ import { ScoutingService } from "services/scouting.service";
 import { EconomyService } from "services/economy.service";
 import { config, preTick, reconcileTraffic } from "screeps-cartographer";
 import { trafficManagerConfigSetup } from "utils/trafficManager/setup";
+import { PathCachingService } from "services/pathCaching.service";
+import { PathingService } from "services/pathing.service";
 
 const memoryService = new MemoryService();
 const stats = new Stats();
@@ -33,6 +35,9 @@ if (settings.test.profiler) {
 
 trafficManagerConfigSetup();
 
+const pathing = new PathingService()
+const pathCachingService = new PathCachingService(pathing)
+
 export const loop = () => {
   profiler.wrap(memHack(() => {
     preTick();
@@ -47,7 +52,7 @@ export const loop = () => {
     for (const index in Game.creeps) {
       const creep = Game.creeps[index];
       creeps.push(creep);
-      runRole(creep, resourceService, objectiveManager)
+      runRole(creep, resourceService, objectiveManager, pathCachingService)
     }
 
     // Automatically delete memory of missing creeps
@@ -60,8 +65,6 @@ export const loop = () => {
     roomManager.run(creeps)
     reconcileTraffic();
     stats.update();
-
-
 
     if (settings.visuals.allowVisuals) {
       for (let index in Memory.myRooms) {

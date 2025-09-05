@@ -7,13 +7,13 @@ import { ScoutingService } from "services/scouting.service";
 import { InvaderExpert, InvaderInformation } from "strategists/invaderExpert";
 import { getWorkParts } from "roomManager/spawn-helper";
 
-const pathing = new PathingService();
 const economy = new EconomyService();
 const invaderExpert = new InvaderExpert()
 
 export class ObjectiveManager {
     objectives: Objective[];
     scoutingService: ScoutingService;
+    pathing = new PathingService();
 
     constructor(ScoutingService: ScoutingService) {
         this.objectives = []
@@ -201,7 +201,7 @@ export class ObjectiveManager {
     private createUpgradingObjective(room: Room, controller: StructureController): UpgradeObjective | undefined {
         const spawn = room.find(FIND_MY_SPAWNS)[0];
         if(spawn === undefined) return;
-        const route = pathing.findPath(spawn.pos, controller.pos)
+        const route = this.pathing.findPath(spawn.pos, controller.pos)
         if (route === undefined) return
         const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
         const maxHaulerParts = energyPerTick * (route.cost / CARRY_CAPACITY)
@@ -255,7 +255,7 @@ export class ObjectiveManager {
     private createBuildingObjective(room: Room, cSite: ConstructionSite): BuildingObjective | undefined {
         const spawn = room.find(FIND_MY_SPAWNS)[0]
         if(spawn === undefined) return;
-        const route = pathing.findPath(spawn.pos, cSite.pos)
+        const route = this.pathing.findPath(spawn.pos, cSite.pos)
         if (route === undefined) return
         const energyPerTick = economy.getCurrentRoomIncome(room, this.getRoomObjectives(room));
 

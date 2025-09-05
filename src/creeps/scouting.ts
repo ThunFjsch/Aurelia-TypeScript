@@ -1,9 +1,15 @@
 import { moveTo } from "screeps-cartographer";
 import { ScoutingService } from "services/scouting.service";
+import { creepPathMove } from "./creepHelper";
+import { PathCachingService } from "services/pathCaching.service";
 
 export class Scouting {
     scoutingService = new ScoutingService();
+    pathCachingService: PathCachingService;
 
+    constructor(pathCaching: PathCachingService) {
+        this.pathCachingService = pathCaching;
+    }
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
@@ -26,10 +32,10 @@ export class Scouting {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
                     creep.signController(controller, 'Owo');
                 } else {
-                    moveTo(creep, controller)
+                    creepPathMove(creep, controller, this.pathCachingService)
                 }
             } else {
-                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined )) {
+                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined)) {
                     memory.currIndex++;
 
                     memory.route[memory.currIndex].lastVisit = Game.time
@@ -55,7 +61,7 @@ export class Scouting {
                         iterator++;
                     })
                     const room = Game.rooms[memory.home];
-                    if(source != undefined && room != undefined && room != null){
+                    if (source != undefined && room != undefined && room != null) {
                         const info = this.scoutingService.addSource(room, source)
                         if (info != undefined && info != null) {
                             Memory.sourceInfo.push(info)

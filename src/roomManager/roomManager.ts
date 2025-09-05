@@ -67,16 +67,17 @@ export class RoomManager {
 
                 planner.startRoomPlanner(room, spawn)
             }
-            constructionManager.run(room);
-            this.crudeTowerDefence(room)
 
-            if(Game.time % 15 === 0){
+            if(Game.time % 3 === 0) {
+                spawnManager.run(this.objectiveManager.objectives, room, creeps)
+                this.crudeTowerDefence(room)
+            }
+            if(Game.time % 35 === 0){
+                constructionManager.run(room);
                 this.objectiveManager.syncRoomObjectives(room, creeps)
                 const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
                 this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
             }
-
-            spawnManager.run(this.objectiveManager.objectives, room, creeps)
         }
     }
 

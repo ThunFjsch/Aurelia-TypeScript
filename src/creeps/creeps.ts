@@ -1,4 +1,3 @@
-import { roleContants } from "objectives/objectiveInterfaces";
 import { Miner } from "./mining";
 import { Hauling } from "./hauling";
 import { Upgrader } from "./upgrading";
@@ -14,12 +13,9 @@ import { CoreKiller } from "./coreKiller";
 import { Blinkie } from "./blinkie";
 import { Claimer } from "./claimer";
 import { Pioneer } from "./pioneer";
+import { PathCachingService } from "services/pathCaching.service";
+import { PathingService } from "services/pathing.service";
 
-export function runCreeps(){
-    Object.entries(Game.creeps).forEach((creep) => {
-        creep
-    })
-}
 
 class Roles {
     mining: Miner;
@@ -35,26 +31,26 @@ class Roles {
     blinkie: Blinkie;
     claimer: Claimer;
     pioneer: Pioneer;
-    constructor(objectiveManager: ObjectiveManager){
-        this.mining = new Miner();
-        this.hauling = new Hauling();
-        this.upgrading = new Upgrader();
-        this.building = new Building();
-        this.maintaining = new Maintaining(objectiveManager);
+    constructor(objectiveManager: ObjectiveManager, pathCaching: PathCachingService){
+        this.mining = new Miner(pathCaching);
+        this.hauling = new Hauling(pathCaching);
+        this.upgrading = new Upgrader(pathCaching);
+        this.building = new Building(pathCaching);
+        this.maintaining = new Maintaining(objectiveManager, pathCaching);
         this.fastfiller = new FastFilling();
-        this.scouting = new Scouting();
-        this.reserving = new Reserving();
-        this.porting = new Porting();
-        this.coreKiller = new CoreKiller();
-        this.blinkie = new Blinkie();
-        this.claimer = new Claimer();
-        this.pioneer = new Pioneer();
+        this.scouting = new Scouting(pathCaching);
+        this.reserving = new Reserving(pathCaching);
+        this.porting = new Porting(pathCaching);
+        this.coreKiller = new CoreKiller(pathCaching);
+        this.blinkie = new Blinkie(pathCaching);
+        this.claimer = new Claimer(pathCaching);
+        this.pioneer = new Pioneer(pathCaching);
         // this.wallRepairer= new WallRepairer();
     }
 };
 
-export function runRole(creep: Creep, energyManager: ResourceService, objectiveManager: ObjectiveManager){
-        const roles: any = new Roles(objectiveManager);
+export function runRole(creep: Creep, energyManager: ResourceService, objectiveManager: ObjectiveManager, pathCaching: PathCachingService){
+        const roles: any = new Roles(objectiveManager, pathCaching);
         const role: string = creep.memory.role;
         if(roles[role] != undefined){
             roles[role].run(creep, energyManager);

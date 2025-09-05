@@ -391,7 +391,7 @@ export class SpawnManager {
             const mem: ReservMemory = {
                 home: room.name,
                 role: roleContants.RESERVING,
-                target: reserv
+                targetRoom: reserv
             }
             if (room.energyAvailable < 650) return undefined;
             let body = [CLAIM, MOVE];

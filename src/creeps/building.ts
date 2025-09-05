@@ -1,8 +1,14 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
-import { helpAFriend } from "./creepHelper";
+import { creepPathMove, helpAFriend } from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
+import { PathCachingService } from "services/pathCaching.service";
 
 export class Building {
+    pathCachingService: PathCachingService;
+
+    constructor(pathCaching: PathCachingService) {
+        this.pathCachingService = pathCaching;
+    }
     run(creep: Creep) {
         const memory = creep.memory as BuilderMemory
         //TODO: Use Id
@@ -13,7 +19,7 @@ export class Building {
             if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 2)) {
                 spawn.recycleCreep(creep)
             } else if (memory.done) {
-                moveTo(creep, spawn)
+                creepPathMove(creep, spawn, this.pathCachingService)
             }
             return;
         }
@@ -38,17 +44,17 @@ export class Building {
             memory.working = true
         }
 
-        let building: number = ERR_NOT_IN_RANGE ;
+        let building: number = ERR_NOT_IN_RANGE;
         if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2) && memory.working) {
             building = creep.build(target)
         }
-        if(building === OK) return;
+        if (building === OK) return;
         if (building === ERR_INVALID_TARGET) {
             memory.target = getCurrentConstruction(creep.room, creep);
             creep.memory = memory;
         }
         if (building != OK && building != ERR_NOT_ENOUGH_RESOURCES) {
-            building = moveTo(creep, target);
+            creepPathMove(creep, target, this.pathCachingService);
         }
     }
 }

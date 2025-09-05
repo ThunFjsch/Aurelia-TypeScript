@@ -1,3 +1,5 @@
+import { PathCachingService } from "services/pathCaching.service";
+import { creepPathMove } from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
 
 export interface CoreKillerMemory extends CreepMemory{
@@ -5,17 +7,22 @@ export interface CoreKillerMemory extends CreepMemory{
 }
 
 export class CoreKiller{
+    pathCachingService: PathCachingService;
+
+        constructor(pathCaching: PathCachingService) {
+            this.pathCachingService = pathCaching;
+        }
     run(creep: Creep){
         const memory = creep.memory as CoreKillerMemory;
 
         const target = Game.getObjectById(memory.target) as StructureInvaderCore
         if(target != null){
             if(creep.room.name != target.room.name){
-                moveTo(creep, target, {maxOps: 20000, reusePath: 50})
+                creepPathMove(creep, target, this.pathCachingService)
             } else{
                 if(creep.pos.inRangeTo(target.pos.x, target.pos.y, 1)){
                     creep.attack(target)
-                } else creep.moveTo(target)
+                } else creepPathMove(creep, target, this.pathCachingService)
             }
         } else{
             if(creep.room.name != memory.home){
@@ -26,7 +33,7 @@ export class CoreKiller{
                 if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                     spawn.recycleCreep(creep);
                 } else{
-                    moveTo(creep, spawn)
+                    creepPathMove(creep, spawn, this.pathCachingService)
                 }
             }
         }

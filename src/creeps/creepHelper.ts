@@ -1,6 +1,7 @@
 import { ResourceService } from "services/resource.service";
 import { HaulerMemory } from "./hauling";
-import { moveTo } from "screeps-cartographer";
+import { moveByPath, moveTo } from "screeps-cartographer";
+import { PathCachingService } from "services/pathCaching.service";
 
 export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory, energyManager: ResourceService) {
     if (memory.target === undefined) {
@@ -26,7 +27,7 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
             creep.memory = memory;
             return
         } else {
-            moveTo(creep, target, {reusePath: 50, maxOps: 10000, avoidCreeps: true})
+            moveTo(creep, target, { reusePath: 50, maxOps: 10000, avoidCreeps: true })
         }
     }
 }
@@ -56,9 +57,69 @@ export function helpAFriend(creep: Creep, memory: CreepMemory) {
     }
 }
 
-export function getAwayFromStructure(creep: Creep, struc: Structure){
-    if(struc === undefined) return
-    if(creep.pos.inRangeTo(struc.pos.x, struc.pos.y, 1)){
-        moveTo(creep, new RoomPosition(25,25, creep.room.name))
+export function getAwayFromStructure(creep: Creep, struc: Structure) {
+    if (struc === undefined) return
+    if (creep.pos.inRangeTo(struc.pos.x, struc.pos.y, 1)) {
+        moveTo(creep, new RoomPosition(25, 25, creep.room.name))
+    }
+}
+
+export function creepPathMove(creep: Creep, target: AnyCreep | AnyStructure | Source | ConstructionSite, pathCaching: PathCachingService) {
+    // Move using cached path
+    if (creep.memory.pathKey) {
+        const moveResult = moveByPath(creep, creep.memory.pathKey);
+        // console.log(`Move result for ${creep.name}: ${moveResult}`);
+
+        // If path is blocked or invalid, fallback to moveTo
+        if (moveResult === -2 || moveResult === ERR_INVALID_ARGS) {
+            // console.log(`Path ${creep.memory.pathKey} failed, using moveTo fallback`);
+            delete creep.memory.pathKey; // Remove invalid path key
+            moveTo(creep, target, { reusePath: 50, avoidCreeps: true, maxOps: 2000 });
+        }
+    } else {
+        creep.memory.pathKey = pathCaching.getOrCreatePath(creep.pos, target.pos)
+    }
+}
+
+export function doTransfer(creep: Creep, energyManager: ResourceService, pathCaching: PathCachingService) {
+    const transfer = (target: Creep | AnyStoreStructure, memory: HaulerMemory) => {
+        // At target - do transfer
+        creep.transfer(target, RESOURCE_ENERGY);
+        energyManager.cleanTasks(creep);
+        getAwayFromStructure(creep, target as Structure);
+
+        // Clean up memory
+        if (memory.pathKey) delete memory.pathKey;
+        delete memory.target;
+        creep.memory = memory;
+    }
+    getInTargetRange(creep, transfer,
+        pathCaching,
+        1
+    )
+}
+
+export function getInTargetRange(creep: Creep, doInRange: Function, pathCaching: PathCachingService, range: number) {
+    const memory = creep.memory as BuilderMemory | HaulerMemory | MaintainerMemory | ReservMemory | ClaimerMemory
+    if (memory === undefined || memory.target === undefined) return;
+    const target = Game.getObjectById(memory.target) as Creep | AnyStructure;
+
+    if (target === null) {
+        delete memory.target;
+        delete memory.pathKey;
+        creep.memory = memory;
+        return;
+    }
+
+    // Generate or get cached path
+    if (memory.pathKey === undefined) {
+        memory.pathKey = pathCaching.getOrCreatePath(creep.pos, target.pos);
+    }
+
+    if (creep.pos.getRangeTo(target.pos.x, target.pos.y) <= range) {
+        doInRange(target, memory)
+    } else {
+        // Move using cached path
+        creepPathMove(creep, target, pathCaching)
     }
 }
