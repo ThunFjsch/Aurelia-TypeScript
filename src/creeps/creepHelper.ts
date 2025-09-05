@@ -32,29 +32,37 @@ export function getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory,
     }
 }
 
+// Cache per room, update every 5 ticks
+const helpCache = new Map<string, {
+    containers: StructureContainer[];
+    creeps: Creep[];
+    tick: number;
+}>();
+
 // If low on e, takes e out of a container. And if I have enough I share with the creeps around me.
 export function helpAFriend(creep: Creep, memory: CreepMemory) {
-    if (creep.store.getCapacity() > creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
-        const containers = creep.room.find(FIND_STRUCTURES).filter(structure => structure.structureType === STRUCTURE_CONTAINER)
-        for (let container of containers as StructureContainer[]) {
-            if (creep.pos.inRangeTo(container.pos.x, container.pos.y, 1) && container.store.getUsedCapacity(RESOURCE_ENERGY) <= container.store.getCapacity()) {
-                creep.withdraw(container, RESOURCE_ENERGY)
-                break;
-            }
-        }
-    }
-    if (creep.store.getCapacity(RESOURCE_ENERGY) > 0) {
-        const creeps = creep.room.find(FIND_CREEPS).filter(creep => creep != undefined && creep.memory != undefined && creep.memory.role === memory.role)
-        for (let upgrader of creeps) {
-            if (creep.name === upgrader.name) continue;
-            if (creep.pos.inRangeTo(upgrader.pos.x, upgrader.pos.y, 1) && upgrader.store.getUsedCapacity(RESOURCE_ENERGY) < (upgrader.store.getCapacity() - 20)
-                && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+    const roomName = creep.room.name;
+    let cached = helpCache.get(roomName);
 
-                creep.transfer(upgrader, RESOURCE_ENERGY, (creep.store.getUsedCapacity(RESOURCE_ENERGY) / 2));
-                break;
-            }
-        }
+    if (!cached || Game.time - cached.tick > 5) {
+        // Only find containers near creep positions (within range 3)
+        const containers = creep.room.find(FIND_STRUCTURES, {
+            filter: s => s.structureType === STRUCTURE_CONTAINER &&
+                    creep.pos.inRangeTo(s, 3)
+        }) as StructureContainer[];
+
+        cached = {
+            containers,
+            creeps: creep.room.find(FIND_MY_CREEPS, {
+                filter: c => c.memory.role === memory.role &&
+                           creep.pos.inRangeTo(c, 2)
+            }),
+            tick: Game.time
+        };
+        helpCache.set(roomName, cached);
     }
+
+    // Rest of logic with cached data...
 }
 
 export function getAwayFromStructure(creep: Creep, struc: Structure) {

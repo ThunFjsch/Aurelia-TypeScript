@@ -18,18 +18,25 @@ export class Hauling {
 
     run(creep: Creep, energyManager: ResourceService) {
         let memory = creep.memory as HaulerMemory;
+        let needsMemoryUpdate = false;
 
         if (creep.store.energy < (creep.store.getCapacity() / 3) + 1) {
             getEnergy(creep, memory, energyManager);
         } else {
-            if (memory.target === undefined) {
-                memory.target = energyManager.assignToTask(creep, "transfer");
-                memory.onRoute = true;
-                creep.memory = memory;
-                return;
+            if (!memory.target) {
+                const newTarget = energyManager.assignToTask(creep, "transfer");
+                if (newTarget) {
+                    memory.target = newTarget;
+                    memory.onRoute = true;
+                    needsMemoryUpdate = true;
+                }
             } else {
                 doTransfer(creep, energyManager, this.pathCachingService);
             }
+        }
+
+        if (needsMemoryUpdate) {
+            creep.memory = memory;
         }
     }
 

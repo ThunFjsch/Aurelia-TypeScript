@@ -7,7 +7,7 @@ import { Point } from "utils/sharedTypes";
 export function assignGlobals(): void {
     global.envManager = envManager;
     global.logger = logger;
-
+    global.roomCreepCounts = global.roomCreepCounts || {};
 }
 
 declare global {
@@ -173,7 +173,7 @@ declare global {
             Memory?: Memory;
             envManager: typeof envManager
             logger: typeof logger
-
+            roomCreepCounts: any
         }
     }
 }

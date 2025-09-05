@@ -25,18 +25,17 @@ const resourceService = new ResourceService(memoryService);
 const roomManager = new RoomManager(memoryService, objectiveManager, resourceService, scoutingService);
 const visualizer = new Visualizer();
 const economyService = new EconomyService()
+const pathing = new PathingService()
+const pathCachingService = new PathCachingService(pathing)
 
+trafficManagerConfigSetup();
 assignGlobals();
+
 console.log(`Reset happened at ${Game.time}`)
 
 if (settings.test.profiler) {
   profiler.enable();
 }
-
-trafficManagerConfigSetup();
-
-const pathing = new PathingService()
-const pathCachingService = new PathCachingService(pathing)
 
 export const loop = () => {
   profiler.wrap(memHack(() => {
@@ -65,7 +64,6 @@ export const loop = () => {
     roomManager.run(creeps)
     reconcileTraffic();
     stats.update();
-
     if (settings.visuals.allowVisuals) {
       for (let index in Memory.myRooms) {
         const roomName = Memory.myRooms[index];
@@ -73,8 +71,6 @@ export const loop = () => {
         visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
       }
     }
-
-
 
     if (Game.shard.name === 'shard0' && Game.cpu.bucket === 10000) {
       Game.cpu.generatePixel();
@@ -112,7 +108,7 @@ export const loop = () => {
  */
 function hasRespawned() {
   // check for multiple calls on same tick
-  if(Object.entries(Memory).length === 0){
+  if (Object.entries(Memory).length === 0) {
     return true
   }
 

@@ -3,6 +3,7 @@ import { priority, Priority } from "utils/sharedTypes";
 import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
 import { PathingService } from "./pathing.service";
+import { getRoomCreepCounts } from "utils/global-helper";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
 const eStorageLimit = [0, 0, 0, 0, 15000, 50000, 100000, 150000, 200000];
@@ -310,43 +311,77 @@ export class ResourceService {
         this.taskList = this.taskList.filter(task => Game.getObjectById(task.targetId) != null);
     }
 
-    assignToTask(creep: Creep, type: ResRole): string | undefined {
+    private getValidTasksForCreep(creep: Creep, type: ResRole, hasFastFiller: boolean, hasPorter: boolean): Task[] {
         const rcl = creep.room.controller?.level ?? 0;
+        const role = creep.memory.role;
 
-        this.cleanTasks(creep)
-        const hasFastFiller = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.FASTFILLER && item[1].memory.home === creep.memory.home);
-        const hasPorter = Object.entries(Game.creeps).filter(item => item[1].memory.role === roleContants.PORTING && item[1].memory.home === creep.memory.home);
-        for (const task of this.taskList) {
-            if (creep.memory.home != task.home) continue;
-            if (creep.store.getFreeCapacity(RESOURCE_ENERGY) / 4 > task.amount) continue;
-            if (task.assigned.length < task.maxAssigned && task.transferType === type) {
-                if (creep.memory.role === roleContants.PORTING) {
-                    if (task.transferType === "pickup") continue;
-                    if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) continue;
-                    if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION && hasFastFiller != undefined) continue;
-                    if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) continue;
-                }
-                else if (creep.memory.role === roleContants.HAULING) {
-                    if (task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
-                    if (rcl > 2 && hasFastFiller != undefined && hasPorter != undefined && hasFastFiller.length > 2 && hasPorter.length > 3) {
-                        if (rcl > 3 && creep.room.storage != undefined) {
-                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") continue;
-                            if (task.StructureType != undefined && task.StructureType === STRUCTURE_LAB) continue;
-                        };
-                        if (task.StructureType != undefined && (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN)) continue;
-                    }
-                }
-                else if (creep.memory.role === roleContants.MAINTAINING) {
-                    if (rcl > 4) {
-                        if (task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") continue;
-                        if (task.transferType === "pickup") continue;
-                    }
+        return this.taskList.filter(task => {
+            if (creep.memory.home !== task.home) return false;
+            if (creep.store.getFreeCapacity(RESOURCE_ENERGY) / 4 > task.amount) return false;
+            if (task.assigned.length >= task.maxAssigned) return false;
+            if (task.transferType !== type) return false;
 
-                }
-                task.assigned.push(creep.name);
-                return task.targetId;
+            // Role-specific filters
+            switch (role) {
+                case roleContants.PORTING:
+                    return this.isValidPortingTask(task, hasFastFiller);
+                case roleContants.HAULING:
+                    return this.isValidHaulingTask(task, rcl, hasFastFiller, hasPorter);
+                case roleContants.MAINTAINING:
+                    return this.isValidMaintenanceTask(task, rcl);
+                default:
+                    return true;
             }
+        });
+    }
+
+    private isValidHaulingTask(task: Task, rcl: number, hasFastFiller: boolean, hasPorter: boolean): boolean {
+        if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
+
+        if (rcl > 2 && hasFastFiller && hasPorter) {
+            if (rcl > 3 && Game.rooms[task.home].storage) {
+                if (task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") return false;
+                if (task.StructureType === STRUCTURE_LAB) return false;
+            }
+            if (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN) return false;
         }
+
+        return true;
+    }
+
+    private isValidPortingTask(task: Task, hasFastFiller: boolean): boolean {
+        if (task.transferType === "pickup") return false;
+        if (task.transferType === "withdrawl" && task.StructureType != STRUCTURE_STORAGE) return false;
+        if (task.StructureType != undefined && task.StructureType === STRUCTURE_EXTENSION && hasFastFiller != undefined) return false;
+        if (task.transferType === "transfer" && task.StructureType != undefined && task.StructureType === STRUCTURE_STORAGE) return false;
+
+        return true;
+    }
+
+    private isValidMaintenanceTask(task: Task, rcl: number): boolean {
+        if (rcl > 4) {
+            if (task.StructureType != undefined && task.StructureType != STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
+            if (task.transferType === "pickup") return false;
+        }
+
+        return true;
+    }
+
+    // Simplified assignToTask
+    assignToTask(creep: Creep, type: ResRole): string | undefined {
+        this.cleanTasks(creep);
+
+        const counts = getRoomCreepCounts(creep.memory.home);
+        const hasFastFiller = (counts[roleContants.FASTFILLER] || 0) > 2;
+        const hasPorter = (counts[roleContants.PORTING] || 0) > 3;
+
+        const validTasks = this.getValidTasksForCreep(creep, type, hasFastFiller, hasPorter);
+
+        for (const task of validTasks) {
+            task.assigned.push(creep.name);
+            return task.targetId;
+        }
+
         return undefined;
     }
 
