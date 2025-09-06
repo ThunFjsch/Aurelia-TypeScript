@@ -5,7 +5,7 @@ import { SpawnManager } from "roomManager/spawnManager";
 import { ResourceService } from "services/resource.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 import { getWorkParts } from "./spawn-helper";
-import { ConstrcutionManager} from "./constructionManager";
+import { ConstrcutionManager } from "./constructionManager";
 import { Tower } from "structures/tower";
 import { ScoutingService } from "services/scouting.service";
 import { EconomyService } from "services/economy.service";
@@ -37,11 +37,11 @@ export class RoomManager {
             const roomName = Memory.myRooms[index];
             const room = Game.rooms[roomName];
 
-            if(Game.time % 50 === 0){
+            if (Game.time % 50 === 0) {
                 room.memory.containers = []
             }
 
-            if(room.memory.containers === undefined){
+            if (room.memory.containers === undefined) {
                 this.memoryService.initRoomMemory(room);
             }
 
@@ -50,13 +50,13 @@ export class RoomManager {
                 return
             }
 
-            if(room.memory.scoutPlan === undefined){
+            if (room.memory.scoutPlan === undefined) {
                 room.memory.scoutPlan = this.scoutingService.getRoomScoutRoute(room)
             }
 
-            const rcl = room.controller?.level??0;
-            if(room.memory.rclProgress.length < (rcl)){
-                room.memory.rclProgress.push({finished: Game.time, level: rcl})
+            const rcl = room.controller?.level ?? 0;
+            if (room.memory.rclProgress.length < (rcl)) {
+                room.memory.rclProgress.push({ finished: Game.time, level: rcl })
             }
 
             // The baseplanner is added in the initMemory but this allows for rebuilding the roomplan when I delete it.
@@ -68,13 +68,15 @@ export class RoomManager {
                 planner.startRoomPlanner(room, spawn)
             }
 
-            if(Game.time % 3 === 0) {
-                spawnManager.run(this.objectiveManager.objectives, room, creeps)
-                this.crudeTowerDefence(room)
-            }
-            if(Game.time % 35 === 0){
-                constructionManager.run(room);
+
+            spawnManager.run(this.objectiveManager.objectives, room, creeps)
+            this.crudeTowerDefence(room)
+            if(Game.time % 15 === 0){
                 this.objectiveManager.syncRoomObjectives(room, creeps)
+            }
+
+            if (Game.time % 35 === 0) {
+                constructionManager.run(room);
                 const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
                 this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
             }

@@ -27,7 +27,7 @@ export class PathCachingService {
         // Create new cached path
         // console.log(`Creating new cached path: ${pathKey}`);
         const newPath = cachePath(pathKey, from, to, {
-            maxOps: 2000,
+            maxOps: 10000,
             maxRooms: 16,
             // Room callback for custom costs
             // roomCallback: (roomName: string) => {

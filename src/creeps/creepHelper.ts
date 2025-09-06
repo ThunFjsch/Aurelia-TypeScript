@@ -48,21 +48,41 @@ export function helpAFriend(creep: Creep, memory: CreepMemory) {
         // Only find containers near creep positions (within range 3)
         const containers = creep.room.find(FIND_STRUCTURES, {
             filter: s => s.structureType === STRUCTURE_CONTAINER &&
-                    creep.pos.inRangeTo(s, 3)
+                    creep.pos.inRangeTo(s, 1)
         }) as StructureContainer[];
 
         cached = {
             containers,
             creeps: creep.room.find(FIND_MY_CREEPS, {
                 filter: c => c.memory.role === memory.role &&
-                           creep.pos.inRangeTo(c, 2)
+                           creep.pos.inRangeTo(c, 1)
             }),
             tick: Game.time
         };
         helpCache.set(roomName, cached);
     }
 
-    // Rest of logic with cached data...
+    if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
+        const containers = cached.containers
+        for (let container of containers as StructureContainer[]) {
+            if (creep.pos.inRangeTo(container.pos.x, container.pos.y, 1) && container.store.getUsedCapacity(RESOURCE_ENERGY) != 0) {
+                creep.withdraw(container, RESOURCE_ENERGY)
+                break;
+            }
+        }
+    }
+    if (creep.store.getCapacity(RESOURCE_ENERGY) > 0) {
+        const creeps = cached.creeps
+        for (let upgrader of creeps) {
+            if (creep.name === upgrader.name) continue;
+            if (creep.pos.inRangeTo(upgrader.pos.x, upgrader.pos.y, 1) && upgrader.store.getUsedCapacity(RESOURCE_ENERGY) < (upgrader.store.getCapacity() - 20)
+                && creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
+
+                creep.transfer(upgrader, RESOURCE_ENERGY, (creep.store.getUsedCapacity(RESOURCE_ENERGY) / 2));
+                break;
+            }
+        }
+    }
 }
 
 export function getAwayFromStructure(creep: Creep, struc: Structure) {
@@ -73,6 +93,11 @@ export function getAwayFromStructure(creep: Creep, struc: Structure) {
 }
 
 export function creepPathMove(creep: Creep, target: AnyCreep | AnyStructure | Source | ConstructionSite, pathCaching: PathCachingService) {
+    if(creep.pos.inRangeTo(target.pos.x, target.pos.y, 2)){
+        creep.move(creep.pos.getDirectionTo(target.pos.x, target.pos.y));
+        return
+    }
+
     // Move using cached path
     if (creep.memory.pathKey) {
         const moveResult = moveByPath(creep, creep.memory.pathKey);

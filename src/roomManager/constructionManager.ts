@@ -93,11 +93,12 @@ export class ConstrcutionManager {
             if (cSites != undefined && cSites.length === 0) {
                 const nextPlan = room.memory.constructionOffice.plans[0]
                 if (nextPlan === null) return room.memory.constructionOffice.finished = true;
-                if(room.lookAt(nextPlan.x, nextPlan.y).filter(v => v.structure?.structureType === STRUCTURE_WALL).length != 0){
+
+                if (this.isPositionBlocked(room, nextPlan.x, nextPlan.y)) {
                     room.memory.constructionOffice.plans.shift()
                 }
 
-                room.lookAt(nextPlan.x, nextPlan.y).filter(e => e.creep != undefined).forEach(c =>{if(c.creep != undefined){moveTo(c.creep, new RoomPosition(25,25, room.name))}})
+                room.lookAt(nextPlan.x, nextPlan.y).filter(e => e.creep != undefined).forEach(c => { if (c.creep != undefined) { moveTo(c.creep, new RoomPosition(25, 25, room.name)) } })
                 const build = room.createConstructionSite(nextPlan.x, nextPlan.y, nextPlan.type as BuildableStructureConstant)
                 if (build === ERR_INVALID_TARGET || build === ERR_RCL_NOT_ENOUGH) {
                     room.memory.constructionOffice.plans.shift()
@@ -194,11 +195,25 @@ export class ConstrcutionManager {
     private filterForStructure(structures: AnyStructure[], constant: StructureConstant) {
         return structures.filter(structure => structure.structureType === constant).length
     }
+
+    private isPositionBlocked(room: Room, x: number, y: number): boolean {
+        // Check terrain first (most efficient)
+        const terrain = room.getTerrain();
+        if (terrain.get(x, y) === TERRAIN_MASK_WALL) {
+            return true;
+        }
+
+        // Check for existing structures that would block construction
+        const structures = room.lookForAt(LOOK_STRUCTURES, x, y);
+        return structures.some(structure =>
+            structure.structureType === STRUCTURE_WALL
+        );
+    }
 }
 
 export function getCurrentConstruction(room: Room, creep?: Creep) {
     const cSite = room.find(FIND_CONSTRUCTION_SITES)[0]
-    if(room.memory.constructionOffice != undefined && room.memory.constructionOffice.finished && creep != undefined){
+    if (room.memory.constructionOffice != undefined && room.memory.constructionOffice.finished && creep != undefined) {
         (creep.memory as BuilderMemory).done = true;
         return;
     }

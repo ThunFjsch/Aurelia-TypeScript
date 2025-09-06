@@ -56,7 +56,7 @@ export class SpawnManager {
         {
             name: "scout",
             priority: priority.severe,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.SCOUTING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.SCOUTING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const scoutObj = objectives.find(obj => obj.type === roleContants.SCOUTING) as ScoutingObjective;
                 return this.spawnScout(scoutObj, room, creeps);
@@ -157,7 +157,7 @@ export class SpawnManager {
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, creeps)) {
                     const result = action.execute(objectives.filter(o => o.home === room.name), room, creeps);
-                    if (result !== undefined) {
+                    if (result !== undefined && result !== OK && result !== -3) {
                         return; // Successfully spawned something, exit
                     }
                 }
