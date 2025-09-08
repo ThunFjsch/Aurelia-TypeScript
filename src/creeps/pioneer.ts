@@ -1,15 +1,8 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
 import { moveTo } from "screeps-cartographer";
-import { creepPathMove, getInTargetRange } from "./creepHelper";
-import { PathCachingService } from "services/pathCaching.service";
+import BasicCreep from "./creepHelper";
 
-export class Pioneer {
-    pathCachingService: PathCachingService;
-
-    constructor(pathCaching: PathCachingService) {
-        this.pathCachingService = pathCaching;
-    }
-
+export class Pioneer extends BasicCreep{
     run(creep: Creep) {
         const memory = creep.memory as PioneerMemory;
         if (memory.reached === undefined) memory.reached = false;
@@ -21,7 +14,7 @@ export class Pioneer {
             if (spawn != undefined) {
                 if (creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)) {
                     spawn.recycleCreep(creep)
-                } else creepPathMove(creep, spawn, this.pathCachingService)
+                } else this.creepPathMove(creep, spawn)
             }
             if (memory.reached === false) memory.reached = true;
             if (creep.store.getFreeCapacity(RESOURCE_ENERGY) === 0) {
@@ -51,16 +44,13 @@ export class Pioneer {
 
                     const construct = (creep: Creep) => {
                         let building = creep.build(target)
-                        if (building === OK) {
-                            memory.working = true
-                        } else memory.working = false;
                         if (building === ERR_INVALID_TARGET) {
                             memory.cSite = getCurrentConstruction(creep.room, creep);
                             creep.memory = memory;
                         }
                     }
 
-                    getInTargetRange(creep, construct, this.pathCachingService, 2)
+                    this.getInTargetRange(creep, construct, 2)
                 }
             } else {
                 if (memory.sourceId === undefined) {

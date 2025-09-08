@@ -1,14 +1,7 @@
 import { moveTo } from "screeps-cartographer";
-import { creepPathMove } from "./creepHelper";
-import { PathCachingService } from "services/pathCaching.service";
+import BasicCreep from "./creepHelper";
 
-export class Claimer {
-    pathCachingService: PathCachingService;
-
-    constructor(pathCaching: PathCachingService) {
-        this.pathCachingService = pathCaching;
-    }
-
+export class Claimer extends BasicCreep{
     run(creep: Creep) {
         const memory = creep.memory as ClaimerMemory;
         if (creep.room.name != memory.target) {
@@ -21,7 +14,7 @@ export class Claimer {
                 creep.signController(controller, "Owo");
                 Memory.myRooms.push(creep.room.name)
             } else if (controller) {
-                creepPathMove(creep, controller, this.pathCachingService)
+                this.creepPathMove(creep, controller)
             }
         }
     }

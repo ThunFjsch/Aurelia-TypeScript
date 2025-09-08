@@ -1,19 +1,12 @@
-import { PathCachingService } from "services/pathCaching.service";
-import { creepPathMove } from "./creepHelper";
+import BasicCreep from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
 
-export class Blinkie{
-    pathCachingService: PathCachingService;
-
-        constructor(pathCaching: PathCachingService) {
-            this.pathCachingService = pathCaching;
-        }
-
+export class Blinkie extends BasicCreep{
     run(creep: Creep){
         const memory = creep.memory as BlinkieMemory
         if(creep.room.name != memory.target){
             const target = new RoomPosition(25,25, memory.target)
-            moveTo(creep, target)
+            moveTo(creep, target, {maxOps: 20000})
         } else{
             const hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
             const hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
@@ -33,7 +26,7 @@ export class Blinkie{
                     creep.heal(creep);
                     return
                 }
-                creepPathMove(creep, hostile,this.pathCachingService)
+                this.creepPathMove(creep, hostile)
             }
         }
     }

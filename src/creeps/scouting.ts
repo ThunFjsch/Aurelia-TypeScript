@@ -1,15 +1,9 @@
 import { moveTo } from "screeps-cartographer";
 import { ScoutingService } from "services/scouting.service";
-import { creepPathMove } from "./creepHelper";
-import { PathCachingService } from "services/pathCaching.service";
+import BasicCreep from "./creepHelper";
 
-export class Scouting {
+export class Scouting extends BasicCreep{
     scoutingService = new ScoutingService();
-    pathCachingService: PathCachingService;
-
-    constructor(pathCaching: PathCachingService) {
-        this.pathCachingService = pathCaching;
-    }
     run(creep: Creep) {
         const memory: ScoutMemory = creep.memory as ScoutMemory;
         const currTarget = memory.route[memory.currIndex]
@@ -32,7 +26,7 @@ export class Scouting {
                 if (creep.pos.inRangeTo(controller.pos.x, controller?.pos.y, 1)) {
                     creep.signController(controller, 'Owo');
                 } else {
-                    creepPathMove(creep, controller, this.pathCachingService)
+                    this.creepPathMove(creep, controller)
                 }
             } else {
                 if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined)) {

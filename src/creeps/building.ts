@@ -1,15 +1,11 @@
 import { getCurrentConstruction } from "roomManager/constructionManager";
-import { creepPathMove, helpAFriend } from "./creepHelper";
+import BasicCreep from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
-import { PathCachingService } from "services/pathCaching.service";
 
-export class Building {
-    pathCachingService: PathCachingService;
+export class Building extends BasicCreep{
 
-    constructor(pathCaching: PathCachingService) {
-        this.pathCachingService = pathCaching;
-    }
     run(creep: Creep) {
+
         const memory = creep.memory as BuilderMemory
         //TODO: Use Id
         const spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0];
@@ -19,7 +15,7 @@ export class Building {
             if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 2)) {
                 spawn.recycleCreep(creep)
             } else if (memory.done) {
-                creepPathMove(creep, spawn, this.pathCachingService)
+                this.creepPathMove(creep, spawn)
             }
             return;
         }
@@ -36,7 +32,9 @@ export class Building {
             return;
         }
 
-        helpAFriend(creep, memory);
+        this.helpAFriend(creep, memory);
+
+        const doInRange = (target: ConstructionSite) => {creep.build(target)}
 
         if (creep.store.energy === 0) {
             memory.working = false
@@ -44,17 +42,6 @@ export class Building {
             memory.working = true
         }
 
-        let building: number = ERR_NOT_IN_RANGE;
-        if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2) && memory.working) {
-            building = creep.build(target)
-        }
-        if (building === OK) return;
-        if (building === ERR_INVALID_TARGET) {
-            memory.target = getCurrentConstruction(creep.room, creep);
-            creep.memory = memory;
-        }
-        if (building != OK && building != ERR_NOT_ENOUGH_RESOURCES) {
-            creepPathMove(creep, target, this.pathCachingService);
-        }
+        this.getInTargetRange(creep, doInRange, 2);
     }
 }

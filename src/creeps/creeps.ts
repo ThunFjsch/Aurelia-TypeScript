@@ -14,7 +14,6 @@ import { Blinkie } from "./blinkie";
 import { Claimer } from "./claimer";
 import { Pioneer } from "./pioneer";
 import { PathCachingService } from "services/pathCaching.service";
-import { PathingService } from "services/pathing.service";
 
 
 class Roles {
@@ -31,13 +30,13 @@ class Roles {
     blinkie: Blinkie;
     claimer: Claimer;
     pioneer: Pioneer;
-    constructor(objectiveManager: ObjectiveManager, pathCaching: PathCachingService){
+    constructor(objectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
         this.mining = new Miner(pathCaching);
         this.hauling = new Hauling(pathCaching);
         this.upgrading = new Upgrader(pathCaching);
         this.building = new Building(pathCaching);
         this.maintaining = new Maintaining(objectiveManager, pathCaching);
-        this.fastfiller = new FastFilling();
+        this.fastfiller = new FastFilling(pathCaching);
         this.scouting = new Scouting(pathCaching);
         this.reserving = new Reserving(pathCaching);
         this.porting = new Porting(pathCaching);
@@ -49,11 +48,12 @@ class Roles {
     }
 };
 
-export function runRole(creep: Creep, energyManager: ResourceService, objectiveManager: ObjectiveManager, pathCaching: PathCachingService){
-        const roles: any = new Roles(objectiveManager, pathCaching);
-        const role: string = creep.memory.role;
-        if(roles[role] != undefined){
-            roles[role].run(creep, energyManager);
-        }
-        // else { creep.suicide() }
+export function runRole(creep: Creep, energyManager: ResourceService, objectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
+    const roles: any = new Roles(objectiveManager, pathCaching);
+    const role: string = creep.memory.role;
+    if (roles[role] != undefined) {
+        roles[role].run(creep, energyManager);
+        roles[role].chanting(creep);
     }
+    // else { creep.suicide() }
+}

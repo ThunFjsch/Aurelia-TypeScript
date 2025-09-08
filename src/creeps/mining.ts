@@ -1,14 +1,7 @@
 import { moveTo } from "screeps-cartographer";
-import { creepPathMove } from "./creepHelper";
-import { PathCachingService } from "services/pathCaching.service";
+import BasicCreep from "./creepHelper";
 
-export class Miner {
-    pathCachingService: PathCachingService;
-
-        constructor(pathCaching: PathCachingService) {
-            this.pathCachingService = pathCaching;
-        }
-
+export class Miner extends BasicCreep{
     run(creep: Creep) {
         const memory = creep.memory as MinerMemory
         const source: Source = Game.getObjectById(memory.sourceId) as Source;
@@ -16,10 +9,10 @@ export class Miner {
         if (creep.room.name != memory.targetRoom) {
             if (source === null || source === undefined || source.pos === undefined) {
                 const target = new RoomPosition(10, 25, memory.targetRoom)
-                moveTo(creep, target)
+                moveTo(creep, target, {maxOps: 20000, reusePath: 50})
                 return;
             } else {
-                creepPathMove(creep, source, this.pathCachingService)
+                this.creepPathMove(creep, source)
                 return;
             }
 
@@ -42,7 +35,7 @@ export class Miner {
                     } else {
                         if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 2)) {
                             creep.moveTo(source)
-                        } else creepPathMove(creep, source, this.pathCachingService)
+                        } else this.creepPathMove(creep, source)
                     }
                 } else {
                     if (memory.working === false) {

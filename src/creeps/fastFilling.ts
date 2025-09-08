@@ -1,6 +1,6 @@
-import { moveTo } from "screeps-cartographer";
+import BasicCreep from "./creepHelper";
 
-export class FastFilling{
+export class FastFilling extends BasicCreep{
     run(creep: Creep){
         const memory = creep.memory as FastFillerMemory;
         if(creep.store.getUsedCapacity(RESOURCE_ENERGY) < (creep.store.getFreeCapacity()/2) && memory.supply != undefined){

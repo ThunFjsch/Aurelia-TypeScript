@@ -1,24 +1,23 @@
 import { MaintenanceObjective } from "objectives/objectiveInterfaces";
 import { ObjectiveManager } from "objectives/objectiveManager";
 import { ResourceService } from "services/resource.service";
-import { creepPathMove, getEnergy } from "./creepHelper";
+import BasicCreep from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
 import { PathCachingService } from "services/pathCaching.service";
 
-export class Maintaining {
+export class Maintaining extends BasicCreep{
     objectiveManager: ObjectiveManager
-    pathCachingService: PathCachingService;
 
     constructor(ObjectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
+        super(pathCaching)
         this.objectiveManager = ObjectiveManager
-            this.pathCachingService = pathCaching;
     }
 
     run(creep: Creep, energyManager: ResourceService) {
         const memory = creep.memory as MaintainerMemory;
 
         if (creep.store.energy < (creep.store.getCapacity() / 8) + 1) {
-            getEnergy(creep, memory as MaintainerMemory, energyManager)
+            this.getEnergy(creep, memory as MaintainerMemory, energyManager)
         } else {
             if(creep.room.name != memory.home){
                 const target = new RoomPosition(25,25, memory.home)
@@ -41,7 +40,7 @@ export class Maintaining {
                 this.setNewTarget(creep, memory)
             }
             if (repair != OK) {
-                creepPathMove(creep, target as AnyStructure, this.pathCachingService);
+                this.creepPathMove(creep, target as AnyStructure);
             }
         }
     }

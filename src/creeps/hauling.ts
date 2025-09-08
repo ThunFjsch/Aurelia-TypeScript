@@ -1,7 +1,5 @@
 import { ResourceService, ResRole } from "services/resource.service";
-import { creepPathMove, doTransfer, getAwayFromStructure, getEnergy } from "./creepHelper";
-import { moveByPath, moveTo } from "screeps-cartographer";
-import { PathCachingService } from "services/pathCaching.service";
+import BasicCreep from "./creepHelper";
 
 export interface HaulerMemory extends CreepMemory {
     target?: any;
@@ -9,19 +7,13 @@ export interface HaulerMemory extends CreepMemory {
     onRoute: boolean;
 }
 
-export class Hauling {
-    pathCachingService: PathCachingService;
-
-    constructor(pathCaching: PathCachingService) {
-        this.pathCachingService = pathCaching;
-    }
-
+export class Hauling extends BasicCreep {
     run(creep: Creep, energyManager: ResourceService) {
         let memory = creep.memory as HaulerMemory;
         let needsMemoryUpdate = false;
 
         if (creep.store.energy < (creep.store.getCapacity() / 3) + 1) {
-            getEnergy(creep, memory, energyManager);
+            this.getEnergy(creep, memory, energyManager);
         } else {
             if (!memory.target) {
                 const newTarget = energyManager.assignToTask(creep, "transfer");
@@ -31,7 +23,7 @@ export class Hauling {
                     needsMemoryUpdate = true;
                 }
             } else {
-                doTransfer(creep, energyManager, this.pathCachingService);
+                this.doTransfer(creep, energyManager);
             }
         }
 
