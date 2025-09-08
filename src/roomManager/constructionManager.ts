@@ -11,7 +11,7 @@ const rclAvailableStructures: RCLAvailableStructures = {
     },
     2: {
         [STRUCTURE_EXTENSION]: 5,
-        [STRUCTURE_CONTAINER]: 1,
+        [STRUCTURE_CONTAINER]: 4,
     },
     3: {
         [STRUCTURE_EXTENSION]: 10,

@@ -5,7 +5,7 @@ export class Reserving extends BasicCreep{
     run(creep: Creep){
         const memory = creep.memory as ReservMemory
         if(creep.room.name != memory.targetRoom){
-            const controller = Game.rooms[memory.targetRoom].controller
+            const controller = Game.rooms[memory.targetRoom]?.controller
             if(controller != undefined){
                 this.creepPathMove(creep, controller)
             } else{

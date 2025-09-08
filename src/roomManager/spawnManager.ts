@@ -67,7 +67,8 @@ export class SpawnManager {
             priority: priority.medium,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => true, // Porter has its own internal logic
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                return this.spawnPorter(room, creeps);
+                // return this.spawnPorter(room, creeps);
+                return
             }
         },
         {

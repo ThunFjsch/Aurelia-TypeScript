@@ -72,13 +72,13 @@ export class RoomManager {
             spawnManager.run(this.objectiveManager.objectives, room, creeps)
             constructionManager.run(room);
             this.crudeTowerDefence(room)
+            this.objectiveManager.syncRoomObjectives(room, creeps)
             if(Game.time % 15 === 0){
-                this.objectiveManager.syncRoomObjectives(room, creeps)
             }
 
+            const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
+            this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
             if (Game.time % 35 === 0) {
-                const assignedRooms = this.objectiveManager.getRoomObjectives(room).filter(objective => objective.target != room.name);
-                this.resourceService.run(room, this.objectiveManager.getRoomHaulCapacity(room), this.getRoomAvgHauler(room, creeps), creeps, assignedRooms);
             }
         }
     }

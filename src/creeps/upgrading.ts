@@ -7,7 +7,6 @@ export interface UpgraderMemory extends CreepMemory {
 
 export class Upgrader extends BasicCreep{
     run(creep: Creep) {
-
         const memory = creep.memory as UpgraderMemory
         const controller: StructureController = Game.getObjectById(memory.controllerId) as StructureController;
         const shouldWork = creep.store.energy > 0;

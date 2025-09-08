@@ -147,7 +147,10 @@ export class ObjectiveManager {
             let hasCreeps = 0;
             creeps.forEach(creep => {
                 if (creep.memory.role === objective.type && creep.memory.home === objective.home && (creep.memory as MinerMemory).sourceId === objective.id) {
-                    hasCreeps++;
+                    const source = Game.getObjectById((creep.memory as MinerMemory).sourceId) as Source;
+                    if(source != undefined && creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)){
+                        hasCreeps++;
+                    }
                 }
             })
 
@@ -158,7 +161,7 @@ export class ObjectiveManager {
             currentReq = haulerCapacity
         }
         let prio: Priority = priority.high;
-        if (currCarry > haulerCapacity / 16) {
+        if (currCarry > haulerCapacity / 8) {
             prio = priority.low
         }
         if (currCarry > haulerCapacity) {
