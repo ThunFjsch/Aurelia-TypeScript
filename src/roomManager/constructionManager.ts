@@ -11,12 +11,12 @@ const rclAvailableStructures: RCLAvailableStructures = {
     },
     2: {
         [STRUCTURE_EXTENSION]: 5,
-        [STRUCTURE_CONTAINER]: 4,
+        [STRUCTURE_CONTAINER]: 1,
     },
     3: {
         [STRUCTURE_EXTENSION]: 10,
         [STRUCTURE_CONTAINER]: 4,
-        [STRUCTURE_TOWER]: 0,
+        [STRUCTURE_TOWER]: 1,
         [STRUCTURE_ROAD]: 0
     },
     4: {

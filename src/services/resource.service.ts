@@ -317,7 +317,7 @@ export class ResourceService {
 
         return this.taskList.filter(task => {
             if (creep.memory.home !== task.home) return false;
-            if (creep.store.getFreeCapacity(RESOURCE_ENERGY) / 4 > task.amount) return false;
+            if (creep.store.getFreeCapacity(RESOURCE_ENERGY) / 4 > task.amount && task.transferType === "withdrawl") return false;
             if (task.assigned.length >= task.maxAssigned) return false;
             if (task.transferType !== type) return false;
 
@@ -336,14 +336,18 @@ export class ResourceService {
     }
 
     private isValidHaulingTask(task: Task, rcl: number, hasFastFiller: boolean, hasPorter: boolean): boolean {
-        if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
-
         if (rcl > 2 && hasFastFiller && hasPorter) {
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
             if (rcl > 3 && Game.rooms[task.home].storage) {
                 if (task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") return false;
                 if (task.StructureType === STRUCTURE_LAB) return false;
             }
             if (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN) return false;
+        } else if(!hasFastFiller && !hasPorter){
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "transfer") return false;
+            if (task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") return false;
+        } else{
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "transfer") return false;
         }
 
         return true;
@@ -374,7 +378,7 @@ export class ResourceService {
         const counts = getRoomCreepCounts(creep.memory.home);
         const hasFastFiller = (counts[roleContants.FASTFILLER] || 0) > 2;
         const hasPorter = (counts[roleContants.PORTING] || 0) > 3;
-
+            // console.log(hasFastFiller, hasPorter)
         const validTasks = this.getValidTasksForCreep(creep, type, hasFastFiller, hasPorter);
 
         for (const task of validTasks) {

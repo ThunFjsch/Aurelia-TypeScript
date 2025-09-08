@@ -38,16 +38,16 @@ export class SpawnManager {
         {
             name: "hauler",
             priority: priority.low,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.HAULING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.HAULING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const haulingObjs = objectives.filter(obj => obj.type === roleContants.HAULING) as HaulingObjective[];
+                const haulingObjs = objectives.filter(obj => obj.type === roleContants.HAULING && obj.home === room.name) as HaulingObjective[];
                 return this.spawnHauler(haulingObjs, room, objectives, creeps);
             }
         },
         {
             name: "miner",
             priority: priority.high,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MINING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MINING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
                 const miningObjs = objectives.filter(obj => obj.type === roleContants.MINING && obj.home === room.name) as MiningObjective[];
                 return this.spawnMiner(miningObjs, room);
@@ -58,7 +58,7 @@ export class SpawnManager {
             priority: priority.severe,
             canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.SCOUTING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const scoutObj = objectives.find(obj => obj.type === roleContants.SCOUTING) as ScoutingObjective;
+                const scoutObj = objectives.find(obj => obj.type === roleContants.SCOUTING && obj.home === room.name) as ScoutingObjective;
                 return this.spawnScout(scoutObj, room, creeps);
             }
         },
@@ -81,63 +81,63 @@ export class SpawnManager {
         {
             name: "reserver",
             priority: priority.severe,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.RESERVING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.RESERVING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const reserveObj = objectives.find(obj => obj.type === roleContants.RESERVING) as ReserveObjective;
+                const reserveObj = objectives.find(obj => obj.type === roleContants.RESERVING && obj.home === room.name) as ReserveObjective;
                 return this.spawnReserver(reserveObj, room, creeps);
             }
         },
         {
             name: roleContants.CORE_KILLER,
             priority: priority.severe,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.CORE_KILLER),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.CORE_KILLER && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const coreKillObj = objectives.filter(obj => obj.type === roleContants.CORE_KILLER && obj.home === room.name) as InvaderCoreObjective[];
+                const coreKillObj = objectives.filter(obj => obj.type === roleContants.CORE_KILLER && obj.home === room.name && obj.home === room.name) as InvaderCoreObjective[];
                 return this.spawnCoreKiller(coreKillObj, room, creeps);
             }
         },
         {
             name: "builder",
             priority: priority.low,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.BUILDING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.BUILDING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const buildingObjs = objectives.filter(obj => obj.type === roleContants.BUILDING) as BuildingObjective[];
+                const buildingObjs = objectives.filter(obj => obj.type === roleContants.BUILDING && obj.home === room.name) as BuildingObjective[];
                 return this.spawnBuilder(buildingObjs, room, objectives);
             }
         },
         {
             name: "maintainer",
             priority: priority.medium,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MAINTAINING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.MAINTAINING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const maintenanceObjs = objectives.filter(obj => obj.type === roleContants.MAINTAINING) as MaintenanceObjective[];
+                const maintenanceObjs = objectives.filter(obj => obj.type === roleContants.MAINTAINING && obj.home === room.name) as MaintenanceObjective[];
                 return this.spawnMaintainer(maintenanceObjs, room, creeps);
             }
         },
         {
             name: "upgrader",
             priority: priority.veryLow,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.UPGRADING),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.UPGRADING && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const upgradeObjs = objectives.filter(obj => obj.type === roleContants.UPGRADING) as UpgradeObjective[];
+                const upgradeObjs = objectives.filter(obj => obj.type === roleContants.UPGRADING && obj.home === room.name) as UpgradeObjective[];
                 return this.spawnUpgrader(objectives, upgradeObjs, room);
             }
         },
         {
             name: "blinkie",
             priority: priority.severe,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.INVADER_DEFENCE),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.INVADER_DEFENCE && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const defenceObjs = objectives.filter(obj => obj.type === roleContants.INVADER_DEFENCE) as InvaderDefenceObjective[];
+                const defenceObjs = objectives.filter(obj => obj.type === roleContants.INVADER_DEFENCE && obj.home === room.name) as InvaderDefenceObjective[];
                 return this.spawnInvaderDefender(defenceObjs, room, creeps);
             }
         },
         {
             name: "expansioneer",
             priority: priority.medium,
-            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.EXPANSIONEER),
+            canHandle: (objectives: Objective[], room: Room, creeps: Creep[]) => objectives.some(obj => obj.type === roleContants.EXPANSIONEER && obj.home === room.name),
             execute: (objectives: Objective[], room: Room, creeps: Creep[]) => {
-                const expansions = objectives.filter(obj => obj.type === roleContants.EXPANSIONEER) as ExpansionObjective[];
+                const expansions = objectives.filter(obj => obj.type === roleContants.EXPANSIONEER && obj.home === room.name) as ExpansionObjective[];
                 return this.spawnExpansionPioneer(expansions, room, creeps);
             }
         }
@@ -157,7 +157,7 @@ export class SpawnManager {
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, creeps)) {
                     const result = action.execute(objectives.filter(o => o.home === room.name), room, creeps);
-                    if (result !== undefined && result !== OK && result !== -3) {
+                    if (result !== undefined && result !== -3 && result !== -10 ) {
                         return; // Successfully spawned something, exit
                     }
                 }
@@ -384,9 +384,7 @@ export class SpawnManager {
     private spawnReserver(objective: ReserveObjective, room: Room, creeps: Creep[]) {
         if(objective === undefined) return;
         for (let reserv of objective.toReserve) {
-            const hasReserv = creeps.find(creep => creep.memory.role === roleContants.RESERVING &&
-                creep.memory.home === room.name &&
-                (creep.memory as ReservMemory).target === reserv);
+            const hasReserv = creeps.find(creep => creep.name === `${roleContants.RESERVING} ${reserv}`);
             if (hasReserv != undefined) continue;
             const mem: ReservMemory = {
                 home: room.name,

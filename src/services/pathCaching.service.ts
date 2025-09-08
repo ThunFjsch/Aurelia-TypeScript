@@ -1,5 +1,6 @@
 import { cachePath, getCachedPath } from "screeps-cartographer";
 import { PathingService } from "./pathing.service";
+import { roleContants } from "objectives/objectiveInterfaces";
 
 export class PathCachingService {
     private pathingService: PathingService;
@@ -27,23 +28,32 @@ export class PathCachingService {
         // Create new cached path
         // console.log(`Creating new cached path: ${pathKey}`);
         const newPath = cachePath(pathKey, from, to, {
-            maxOps: 10000,
+            maxOps: 20000,
             maxRooms: 16,
             // Room callback for custom costs
-            // roomCallback: (roomName: string) => {
-            //     const room = Game.rooms[roomName];
-            //     if (!room) return false;
+            roomCallback: (roomName: string) => {
+                const room = Game.rooms[roomName];
+                if (room === undefined) return false;
+                const costs = new PathFinder.CostMatrix();
+                // Avoid creeps
+                room.find(FIND_CREEPS).forEach(creep => {
+                    if (creep.memory != undefined && (creep.memory.role === roleContants.MINING)) {
+                        costs.set(creep.pos.x, creep.pos.y, 255);
+                    }
+                    if (creep.memory != undefined && (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING || creep.memory.role === roleContants.FASTFILLER)) {
+                        costs.set(creep.pos.x, creep.pos.y, 50);
+                    }
+                });
 
-            //     const costs = new PathFinder.CostMatrix();
-            //     // Prefer roads
-            //     // room.find(FIND_STRUCTURES).forEach(struct => {
-            //     //     if (struct.structureType === STRUCTURE_ROAD) {
-            //     //         costs.set(struct.pos.x, struct.pos.y, 1);
-            //     //     }
-            //     // });
+                //     // Prefer roads
+                room.find(FIND_STRUCTURES).forEach(struct => {
+                    if (struct.structureType === STRUCTURE_ROAD) {
+                        costs.set(struct.pos.x, struct.pos.y, 1);
+                    }
+                });
 
-            //     return costs;
-            // }
+                return costs;
+            }
         });
 
         if (newPath && newPath.length > 0) {

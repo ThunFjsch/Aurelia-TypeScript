@@ -158,7 +158,7 @@ export class ObjectiveManager {
             currentReq = haulerCapacity
         }
         let prio: Priority = priority.high;
-        if (currCarry > haulerCapacity / 8) {
+        if (currCarry > haulerCapacity / 16) {
             prio = priority.low
         }
         if (currCarry > haulerCapacity) {
