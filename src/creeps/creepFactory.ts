@@ -57,7 +57,8 @@ export const CreepFactory = {
     const memory: CreepMemory = {
       home: '',role:'',
       ...def.memory,
-      ...ctx.source && { sourceId: ctx.source.id }
+      ...ctx.source && { sourceId: ctx.source.id },
+      homeSpawn: ''
     };
 
     return { body, memory };

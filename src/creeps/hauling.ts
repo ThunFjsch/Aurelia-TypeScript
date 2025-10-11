@@ -23,7 +23,12 @@ export class Hauling extends BasicCreep {
                     needsMemoryUpdate = true;
                 }
             } else {
-                this.doTransfer(creep, energyManager);
+                const spawn = Game.getObjectById(memory.homeSpawn)
+                if(creep.memory.home != creep.room.name && spawn != undefined){
+                    this.creepPathMove(creep, spawn as AnyStructure)
+                } else{
+                    this.doTransfer(creep, energyManager);
+                }
             }
         }
 

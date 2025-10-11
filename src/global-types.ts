@@ -106,6 +106,7 @@ declare global {
         working?: boolean;
         blocking?: number;
         pathKey?: string;
+        homeSpawn: string
     }
 
     interface PioneerMemory extends CreepMemory{

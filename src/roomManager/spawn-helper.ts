@@ -40,8 +40,8 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
 
 export function generateBody(preset: BodyPartConstant[], cost: number, energy: number, maxWorkParts: number, workpartsInTemplate: number = 1): BodyPartConstant[] {
     let body: BodyPartConstant[] = [];
-    const maxLength = 50/preset.length
-    for (let i = cost; i <= energy; i += cost) {
+    const maxLength = Math.floor(50/preset.length)
+    for (let i = 0; i <= energy; i += cost) {
         if(maxWorkParts < workpartsInTemplate * (i/cost)){
             body.push(...preset)
             break;

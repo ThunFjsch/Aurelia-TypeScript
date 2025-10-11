@@ -1,91 +1,148 @@
 import { cachePath, getCachedPath } from "screeps-cartographer";
-import { PathingService } from "./pathing.service";
 import { roleContants } from "objectives/objectiveInterfaces";
 
-export class PathCachingService {
-    private pathingService: PathingService;
-
-    constructor(pathingService: PathingService) {
-        this.pathingService = pathingService;
+declare global {
+    interface Memory {
+        pathCacheMeta?: { [key: string]: { created: number; lastUsed: number } };
+        failedPaths?: { [key: string]: number };
     }
+}
+
+export class PathCachingService {
+    private roomCache: {
+        [roomName: string]: {
+            creeps: Creep[];
+            structures: Structure[];
+            tick: number;
+        }
+    } = {};
 
     /**
-     * Get or create a cached path between two positions
-     * Returns a path key that can be used with moveByPath
+     * Get or create a cached path between two positions.
+     * Returns a path key that can be used with moveByPath().
      */
     getOrCreatePath(from: RoomPosition, to: RoomPosition): string {
-        // Create a unique key for this path
         const pathKey = this.generatePathKey(from, to);
 
-        // Check if path already exists
-        const existingPath = getCachedPath(pathKey);
+        // Initialize memory objects
+        if (!Memory.failedPaths) Memory.failedPaths = {};
+        if (!Memory.pathCacheMeta) Memory.pathCacheMeta = {};
 
+        // Skip retrying failed paths too soon
+        if (Memory.failedPaths[pathKey] && Game.time - Memory.failedPaths[pathKey] < 25) {
+            return "";
+        }
+
+        const existingPath = getCachedPath(pathKey);
         if (existingPath && existingPath.length > 0) {
-            // console.log(`Using existing cached path: ${pathKey}`);
+            Memory.pathCacheMeta[pathKey] = {
+                created: Memory.pathCacheMeta[pathKey]?.created ?? Game.time,
+                lastUsed: Game.time
+            };
             return pathKey;
         }
 
-        // Create new cached path
-        // console.log(`Creating new cached path: ${pathKey}`);
         const newPath = cachePath(pathKey, from, to, {
-            maxOps: 20000,
+            maxOps: 10000,
             maxRooms: 16,
-            // Room callback for custom costs
-            roomCallback: (roomName: string) => {
-                const room = Game.rooms[roomName];
-                if (room === undefined) return false;
-                const costs = new PathFinder.CostMatrix();
-                // Avoid creeps
-                room.find(FIND_CREEPS).forEach(creep => {
-                    if (creep.memory != undefined && (creep.memory.role === roleContants.MINING)) {
-                        costs.set(creep.pos.x, creep.pos.y, 255);
-                    }
-                    if (creep.memory != undefined && (creep.memory.role === roleContants.UPGRADING || creep.memory.role === roleContants.BUILDING || creep.memory.role === roleContants.FASTFILLER)) {
-                        costs.set(creep.pos.x, creep.pos.y, 50);
-                    }
-                });
-
-                //     // Prefer roads
-                room.find(FIND_STRUCTURES).forEach(struct => {
-                    if (struct.structureType === STRUCTURE_ROAD) {
-                        costs.set(struct.pos.x, struct.pos.y, 1);
-                    }
-                });
-
-                return costs;
-            }
+            roomCallback: (roomName: string) => this.getRoomCostMatrix(roomName)
         });
 
         if (newPath && newPath.length > 0) {
-            // console.log(`Cached path created with ${newPath.length} steps`);
+            Memory.pathCacheMeta[pathKey] = {
+                created: Game.time,
+                lastUsed: Game.time
+            };
             return pathKey;
         } else {
-            console.log(`Failed to create path from ${from} to ${to}`);
+            Memory.failedPaths[pathKey] = Game.time;
+            // Optionally log failed paths
+            // console.log(`⚠️ Failed to create path: ${pathKey}`);
             return "";
         }
     }
 
     /**
-     * Generate a unique key for a path between two positions
+     * Create a rounded path key to avoid overspecific path generation.
      */
     private generatePathKey(from: RoomPosition, to: RoomPosition): string {
-        return `path_${from.roomName}_${from.x}_${from.y}_to_${to.roomName}_${to.x}_${to.y}`;
+        const round = (val: number, factor = 2) => Math.floor(val / factor) * factor;
+
+        const fx = round(from.x);
+        const fy = round(from.y);
+        const tx = round(to.x);
+        const ty = round(to.y);
+
+        return `path_${from.roomName}_${fx}_${fy}_to_${to.roomName}_${tx}_${ty}`;
     }
 
     /**
-     * Clear a specific cached path
+     * Generates a cost matrix for a room, avoiding certain creeps and preferring roads.
+     */
+    private getRoomCostMatrix(roomName: string): CostMatrix | false {
+        const room = Game.rooms[roomName];
+        if (!room) return false;
+        this.cleanupOldPaths()
+        if (!this.roomCache[roomName] || Game.time - this.roomCache[roomName].tick > 150) {
+            this.roomCache[roomName] = {
+                creeps: room.find(FIND_CREEPS),
+                structures: room.find(FIND_STRUCTURES),
+                tick: Game.time
+            };
+        }
+
+        const costs = new PathFinder.CostMatrix();
+        const { creeps, structures } = this.roomCache[roomName];
+
+        for (const creep of creeps) {
+            const role = creep.memory?.role;
+            if (role === roleContants.MINING) {
+                costs.set(creep.pos.x, creep.pos.y, 255); // Hard avoid
+            } else if ([roleContants.UPGRADING, roleContants.BUILDING, roleContants.FASTFILLER].includes(role as roleContants)) {
+                costs.set(creep.pos.x, creep.pos.y, 50); // Soft avoid
+            }
+        }
+
+        for (const struct of structures) {
+            if (struct.structureType === STRUCTURE_ROAD) {
+                costs.set(struct.pos.x, struct.pos.y, 1); // Prefer roads
+            }
+        }
+
+        return costs;
+    }
+
+    /**
+     * Clear a specific cached path (metadata only).
      */
     clearPath(from: RoomPosition, to: RoomPosition): void {
         const pathKey = this.generatePathKey(from, to);
-        // Note: Cartographer doesn't expose a direct clear method
-        // Paths will be automatically cleaned up based on their TTL
-        console.log(`Marked path for cleanup: ${pathKey}`);
+        delete Memory.pathCacheMeta?.[pathKey];
+        delete Memory.failedPaths?.[pathKey];
+        // Note: Cartographer handles actual path data expiration
+        console.log(`🧹 Marked path for cleanup: ${pathKey}`);
     }
 
     /**
-     * Get path information for debugging
+     * Get a cached path by key for debugging or direct use.
      */
     getPathInfo(pathKey: string): RoomPosition[] | undefined {
         return getCachedPath(pathKey);
+    }
+
+    /**
+     * Optionally call this periodically to clean up unused paths.
+     */
+    cleanupOldPaths(maxAge = 3000) {
+        if (!Memory.pathCacheMeta) return;
+
+        for (const key in Memory.pathCacheMeta) {
+            const meta = Memory.pathCacheMeta[key];
+            if (Game.time - meta.lastUsed > maxAge) {
+                delete Memory.pathCacheMeta[key];
+                delete Memory.failedPaths?.[key];
+                // You could also implement a call to clear the path in cartographer if supported
+            }
+        }
     }
 }

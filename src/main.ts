@@ -25,8 +25,7 @@ const resourceService = new ResourceService(memoryService);
 const roomManager = new RoomManager(memoryService, objectiveManager, resourceService, scoutingService);
 const visualizer = new Visualizer();
 const economyService = new EconomyService()
-const pathing = new PathingService()
-const pathCachingService = new PathCachingService(pathing)
+const pathCachingService = new PathCachingService()
 
 trafficManagerConfigSetup();
 assignGlobals();
@@ -71,7 +70,6 @@ export const loop = () => {
         visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
       }
     }
-
     if (Game.shard.name === 'shard0' && Game.cpu.bucket === 10000) {
       Game.cpu.generatePixel();
     }

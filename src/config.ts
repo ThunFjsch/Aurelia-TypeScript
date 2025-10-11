@@ -66,7 +66,7 @@ export const settings: settings = {
         showStamps: true,
         distanceTransform: false,
         showStats: true,
-        showObjectives: false,
+        showObjectives: true,
         showResourceTasks: false,
         showConstruction: false
     },
