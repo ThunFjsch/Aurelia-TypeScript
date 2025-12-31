@@ -4,10 +4,9 @@ import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
 import { PathingService } from "./pathing.service";
 import { getRoomCreepCounts } from "utils/global-helper";
-import { uniqueId } from "lodash";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 0, 15000, 50000, 100000, 150000, 200000];
+const eStorageLimit = [0, 0, 0, 200000, 200000, 200000, 200000, 200000, 200000];
 
 export interface Task {
     id: string;
@@ -56,7 +55,7 @@ export class ResourceService {
         this.memoryService = MemoryService;
     }
 
-    run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[], objectives: Objective[]) {
+    run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[], objectives: Objective[]): Task[] {
         this.cleanUp();
 
         // Clear caches periodically (every 100 ticks)
@@ -69,7 +68,7 @@ export class ResourceService {
 
         // Collect all room data once
         const roomData = this.collectRoomData(room, room.find(FIND_MY_SPAWNS)[0]);
-        if (!roomData.spawn) return;
+        if (!roomData.spawn) return [];
 
         // Process storage requests
         if (roomData.storage) {
@@ -91,6 +90,8 @@ export class ResourceService {
             const bScore = b.amount / (b.distance * (b.priority * 10));
             return bScore - aScore;
         });
+
+        return this.taskList;
     }
 
     private collectRoomData(room: Room, spawn: StructureSpawn): RoomData {
@@ -122,8 +123,8 @@ export class ResourceService {
         this.processDroppedResources(roomData.droppedEnergy, avgHauler, haulCapacity, roomData.spawn, home);
 
         // Process withdrawals
-        this.processWithdrawals(roomData.tombstones, avgHauler, priority.severe, roomData.spawn, home);
-        this.processWithdrawals(roomData.ruins, avgHauler, priority.severe, roomData.spawn, home);
+        this.processWithdrawals(roomData.tombstones, avgHauler, priority.medium, roomData.spawn, home);
+        this.processWithdrawals(roomData.ruins, avgHauler, priority.medium, roomData.spawn, home);
 
         // Process transfers
         this.processTransfers(creeps, avgHauler, roomData, home);
@@ -216,7 +217,7 @@ export class ResourceService {
 
             switch (memory.type) {
                 case roleContants.MINING:
-                    this.createWithdrawlTask(container, avgHauler, priority.severe, distance, home);
+                    this.createWithdrawlTask(container, avgHauler, priority.high, distance, home);
                     break;
                 case roleContants.UPGRADING:
                     this.createTransferTask(container, avgHauler, priority.veryLow, distance, home);
@@ -268,8 +269,11 @@ export class ResourceService {
 
     // Simplified task creation methods
     private createPickupTask(resource: Resource, avgHauler: number, prio: Priority, distance: number, home: string) {
-        const trips = this.getTrips(resource.amount, avgHauler);
+        const trips = Math.floor(this.getTrips(resource.amount, avgHauler));
         const taskId = resource.id;
+        if(resource.amount > 1000){
+            prio = priority.high
+        }
 
         const existingTask = this.taskList.find(t => t.id === taskId);
         if (existingTask) {
@@ -324,8 +328,11 @@ export class ResourceService {
         const amount = target.store.getFreeCapacity(RESOURCE_ENERGY);
         if (amount === 0) return;
 
-        const trips = this.getTrips(amount, avgHauler);
+        let trips = this.getTrips(amount, avgHauler);
         const taskId = target.id;
+        if((target as StructuresToRefill).structureType === STRUCTURE_SPAWN){
+            trips = trips * 2;
+        }
 
         const existingTask = this.taskList.find(t => t.targetId === taskId);
         if (existingTask) {
@@ -356,12 +363,12 @@ export class ResourceService {
 
         // Transfer to storage
         if (energyUsed < limit) {
-            const amount = Math.min(limit - energyUsed, storage.store.getFreeCapacity(RESOURCE_ENERGY));
-            const trips = this.getTrips(amount, avgHauler);
+            const amount = Math.min(limit - energyUsed, storage.store.getFreeCapacity(RESOURCE_ENERGY)) *2;
+            const trips = this.getTrips(amount, avgHauler) * 2;
             const taskId = storage.id + "transfer";
 
             const existingTask = this.taskList.find(t => t.id === taskId);
-            if (existingTask) {
+            if (existingTask && trips != 0) {
                 existingTask.maxAssigned = trips;
                 existingTask.amount = amount;
             } else {
@@ -385,7 +392,6 @@ export class ResourceService {
         if (energyUsed > 0) {
             const trips = this.getTrips(energyUsed, avgHauler);
             const taskId = storage.id + "withdrawl";
-
             const existingTask = this.taskList.find(t => t.id === taskId);
             if (existingTask) {
                 existingTask.maxAssigned = trips;
@@ -409,7 +415,7 @@ export class ResourceService {
     }
 
     getTrips(capacity: number, avgHauler: number): number {
-        return capacity / (avgHauler * CARRY_CAPACITY)*2;
+        return capacity / ((avgHauler) * CARRY_CAPACITY);
     }
 
     cleanUp() {

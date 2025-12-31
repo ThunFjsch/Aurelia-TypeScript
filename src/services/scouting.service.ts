@@ -17,7 +17,7 @@ export class ScoutingService {
             return
         };
         let sourceInfo: SourceInfo;
-        if(route.cost < 75){
+        if(route.cost < 150){
             const energyPerTick = this.getEnergyPerTickForSource(source);
             let my = false;
             if(room.controller?.my) my = true;
@@ -68,30 +68,35 @@ export class ScoutingService {
 
         // Start with adjacent rooms
         const startExits = Game.map.describeExits(roomObject.name);
-        Object.values(startExits).forEach(exitRoom => {
-            if (exitRoom) {
-                queue.push({ name: exitRoom, distance: 1 });
-            }
-        });
+        if (startExits) {
+            Object.values(startExits).forEach(exitRoom => {
+                if (exitRoom) {
+                    queue.push({ name: exitRoom, distance: 1 });
+                }
+            });
+        }
 
-        while (queue.length > 0 && result.length < 20) { // Limit total rooms
+        while (queue.length > 0 && result.length < 20) {
             const current = queue.shift()!;
 
             if (visited.has(current.name)) continue;
             visited.add(current.name);
 
             const exits = Game.map.describeExits(current.name);
-            result.push({roomName: current.name, lastVisit: 0});
+            if (exits) {
+                result.push({roomName: current.name, lastVisit: 0});
 
-            // Add neighboring rooms to queue if within range
-            if (current.distance < 3) {
-                Object.values(exits).forEach(exitRoom => {
-                    if (exitRoom && !visited.has(exitRoom)) {
-                        queue.push({ name: exitRoom, distance: current.distance + 1 });
-                    }
-                });
+                // Add neighboring rooms to queue if within range
+                if (current.distance < 3) {
+                    Object.values(exits).forEach(exitRoom => {
+                        if (exitRoom && !visited.has(exitRoom)) {
+                            queue.push({ name: exitRoom, distance: current.distance + 1 });
+                        }
+                    });
+                }
             }
         }
+
         return result;
     }
 

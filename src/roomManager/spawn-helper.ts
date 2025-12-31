@@ -14,8 +14,12 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
                 body.push(MOVE)
                 body.push(MOVE)
             }
+            if(energyCap < 650 && objective.distance > 15){
+                body = [WORK, WORK, MOVE]
+            }
             return body;
         }
+
     } else if (objective.type === roleContants.HAULING) {
         const preset = [CARRY, MOVE]
         let energy = energyCap;

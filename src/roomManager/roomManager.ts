@@ -50,7 +50,7 @@ export class RoomManager {
                 return
             }
 
-            if (room.memory.scoutPlan === undefined) {
+            if (room.memory.scoutPlan === undefined && room.energyCapacityAvailable >= 300) {
                 room.memory.scoutPlan = this.scoutingService.getRoomScoutRoute(room)
             }
 

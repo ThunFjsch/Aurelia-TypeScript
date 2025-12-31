@@ -159,9 +159,16 @@ export class SpawnManager {
         const spawn = room.find(FIND_MY_SPAWNS)[0];
         if (!spawn || spawn.spawning) return;
 
+
         // Create context with cached data
         const context: SpawnContext = this.createSpawnContext(spawn, creeps, room);
 
+        let parts = 0;
+        for(const name in Game.creeps){
+            if(Game.creeps[name] != undefined && Game.creeps[name].memory.home === room.name)
+                parts += Game.creeps[name].body.length
+        }
+        if(parts > 500) return;
         // Group objectives by priority
         const objectivesByPriority = this.groupObjectivesByPriority(objectives);
 
@@ -240,7 +247,7 @@ export class SpawnManager {
 
             }
         })
-        const requiredWorkParts = this.economyService.requiredHaulerParts(this.economyService.getCurrentRoomIncome(room, objectives), 15);
+        const requiredWorkParts = this.economyService.requiredHaulerParts(this.economyService.getCurrentRoomIncome(room, objectives), 20);
         let creepAmount = rcl;
         if(rcl < 4){
             creepAmount = creepAmount/2
@@ -282,7 +289,7 @@ export class SpawnManager {
             numberOfRooms++;
         })
         const avg = totalTime / numberOfRooms;
-        if (avg < 10000) {
+        if (true) {
             const body = [MOVE];
             const memory: ScoutMemory = {
                 home: room.name,
@@ -378,7 +385,7 @@ export class SpawnManager {
                     objective.spots = 1
                 }
 
-                if (objective.maxWorkParts > currWorkParts && objective.spots - assignedCreeps.length != 0) {
+                if (objective.maxWorkParts > currWorkParts && objective.spots - assignedCreeps.length > 0) {
                     const body = createCreepBody(objective, room, currWorkParts, objective.maxWorkParts)
                     if (objective.path === undefined) return;
                     const memory: MinerMemory = {
@@ -405,8 +412,8 @@ export class SpawnManager {
             if ((expRoom === undefined || !expRoom.controller?.my) && !claimer) {
                 returnValue = this.spawnClaimer(room, expansion.target, ctx);
             } else if (returnValue === undefined) {
-                const pioneers = ctx.creeps.filter(c => c.memory.role === roleContants.PIONEER && (c.memory as ClaimerMemory).target === expansion.target);
-                if (pioneers.length < 6) {
+                const pioneers = ctx.creeps.filter(c => c.memory.role === roleContants.PIONEER);
+                if (pioneers.length < 4) {
                     returnValue = this.spawnPioneer(room, expansion.target, ctx)
                 }
             }
@@ -454,7 +461,7 @@ export class SpawnManager {
             if (room.energyAvailable < 650) return undefined;
             let body = [CLAIM, MOVE];
             if (room.storage && room.energyAvailable >= 1250) {
-                body = [CLAIM, CLAIM, MOVE]
+                body = [CLAIM, CLAIM, MOVE, MOVE]
             }
             const retValue = ctx.spawn.spawnCreep(
                 body,
@@ -610,7 +617,12 @@ export class SpawnManager {
     }
 
     private spawnBlinkie(room: Room, target: string, ctx: SpawnContext) {
-        const body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL, HEAL]
+        let body = []
+        if(room.energyAvailable < 600){
+            body = [TOUGH,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK]
+        } else {
+            body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL, HEAL]
+        }
         const name = generateName(roleContants.INVADER_DEFENCE)
         const memory: BlinkieMemory = {
             home: room.name,
