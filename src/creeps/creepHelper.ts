@@ -3,6 +3,7 @@ import { HaulerMemory } from "./hauling";
 import { moveByPath, moveTo } from "screeps-cartographer";
 import { PathCachingService } from "services/pathCaching.service";
 import { roleContants } from "objectives/objectiveInterfaces";
+import { memoize } from "lodash";
 
 export default class BasicCreep {
     private chants = new Map<roleContants, string[]>();
@@ -128,9 +129,15 @@ export default class BasicCreep {
 
         if (creep.memory.pathKey) {
             const moveResult = moveByPath(creep, creep.memory.pathKey);
-            if (moveResult === -2 || moveResult === ERR_INVALID_ARGS) {
-                delete creep.memory.pathKey;
-                moveTo(creep, target, { reusePath: 50, avoidCreeps: true, maxOps: 2000 });
+            if (moveResult != OK) {
+                moveTo(creep, target, { reusePath: 50, avoidCreeps: true, maxOps: 10000, avoidObstacleStructures: false})
+                if (Memory?.pathCacheMeta != undefined && Memory?.pathCacheMeta[creep.memory?.pathKey] != undefined){
+                    delete Memory?.pathCacheMeta[creep.memory?.pathKey]
+                    delete creep.memory.pathKey;
+                } else{
+                    delete creep.memory.pathKey;
+                }
+                moveTo(creep, target, { reusePath: 50, avoidCreeps: true, maxOps: 10000, avoidObstacleStructures: false});
             }
         } else {
             creep.memory.pathKey = this.pathCachingService.getOrCreatePath(creep.pos, target.pos);
@@ -146,7 +153,12 @@ export default class BasicCreep {
             if (memory.pathKey) delete memory.pathKey;
             delete memory.target;
         };
-        this.getInTargetRange(creep, transfer, 1);
+        if(transfer === undefined || transfer === null){
+            this.getInTargetRange(creep, Game.rooms[creep.memory.home].find(FIND_MY_SPAWNS)[0] as any, 5);
+        } else{
+
+            this.getInTargetRange(creep, transfer, 1);
+        }
     }
 
     getInTargetRange(
@@ -169,5 +181,20 @@ export default class BasicCreep {
         } else {
             this.creepPathMove(creep, target);
         }
+    }
+
+    getExitToRoom(fromRoom: string, toRoom: string): RoomPosition | null {
+        const route = Game.map.findRoute(fromRoom, toRoom);
+        if (route === ERR_NO_PATH || route.length === 0) return null;
+
+        const firstStep = route[0];
+        const exitDir = firstStep.exit;
+
+        // Get exit positions in current room
+        const exits = Game.rooms[fromRoom]?.find(exitDir);
+        if (!exits || exits.length === 0) return null;
+
+        // Return middle exit or a random one
+        return exits[Math.floor(exits.length / 2)];
     }
 }

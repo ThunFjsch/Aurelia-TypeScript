@@ -12,14 +12,14 @@ export class Scouting extends BasicCreep{
             creep.memory = memory
             return
         }
-        const targetRoomPos = new RoomPosition(25, 25, currTarget.roomName)
-
         if (currTarget.lastVisit != 0 && Game.time - (currTarget.lastVisit ?? 0) > 20000) {
             memory.currIndex++
         }
 
         if (creep.room.name != currTarget.roomName) {
-            moveTo(creep, targetRoomPos)
+            const exitPos = this.getExitToRoom(creep.room.name, currTarget.roomName);
+            if(exitPos != undefined && exitPos.x != undefined && exitPos.y != undefined)
+                creep.moveTo(exitPos.x, exitPos.y);
         } else if (creep.room.name === currTarget.roomName) {
             const controller = creep.room.controller;
             if (controller != undefined && (controller.sign === undefined || controller.sign.username != 'ThunFisch') && controller.sign?.username != 'Screeps') {
@@ -29,18 +29,16 @@ export class Scouting extends BasicCreep{
                     this.creepPathMove(creep, controller)
                 }
             } else {
-                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined)) {
+                if (creep.room.find(FIND_HOSTILE_STRUCTURES).find(structure => structure.structureType === "keeperLair") || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined)) { // || (creep.room.controller?.owner?.username != 'ThunFisch' && creep.room.controller?.owner != undefined)
                     memory.currIndex++;
 
                     memory.route[memory.currIndex].lastVisit = Game.time
-                    const room = Game.rooms[memory.home];
 
                     creep.memory = memory
                     return;
                 }
                 const sources = creep.room.find(FIND_SOURCES)
                 if (sources.length === 0) {
-                    memory.currIndex++;
                     creep.memory = memory;
                     return
                 }
@@ -73,4 +71,6 @@ export class Scouting extends BasicCreep{
         }
         creep.memory = memory
     }
+
+
 }

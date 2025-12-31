@@ -21,6 +21,11 @@ export class Hauling extends BasicCreep {
                     memory.target = newTarget;
                     memory.onRoute = true;
                     needsMemoryUpdate = true;
+                } else{
+                    if (creep.pos.getRangeTo(Game.rooms[creep.memory.home].find(FIND_MY_SPAWNS)[0].pos) <= 5) {
+                    } else {
+                        this.creepPathMove(creep, Game.rooms[creep.memory.home].find(FIND_MY_SPAWNS)[0]);
+                    }
                 }
             } else {
                 const spawn = Game.getObjectById(memory.homeSpawn)

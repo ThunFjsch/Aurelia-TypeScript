@@ -9,8 +9,9 @@ export class Reserving extends BasicCreep{
             if(controller != undefined){
                 this.creepPathMove(creep, controller)
             } else{
-                const target = new RoomPosition(10,25, memory.targetRoom);
-                moveTo(creep, target, {maxOps: 20000})
+                const exitPos = this.getExitToRoom(creep.room.name, (creep.memory as ReservMemory).targetRoom);
+            if(exitPos != undefined && exitPos.x != undefined && exitPos.y != undefined)
+                creep.moveTo(exitPos.x, exitPos.y, {maxOps: 20000});
             }
         } else{
             const controller = creep.room.controller

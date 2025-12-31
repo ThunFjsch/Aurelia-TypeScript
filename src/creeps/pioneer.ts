@@ -6,7 +6,7 @@ export class Pioneer extends BasicCreep{
     run(creep: Creep) {
         const memory = creep.memory as PioneerMemory;
         if (memory.reached === undefined) memory.reached = false;
-        if (creep.room.name != memory.target && !memory.reached) {
+        if (creep.room.name != memory.target && !memory.reached && memory.target.length < 7) {
             const target = new RoomPosition(25, 25, memory.target);
             moveTo(creep, target)
         } else {
@@ -28,6 +28,7 @@ export class Pioneer extends BasicCreep{
             if (memory.working) {
                 if (memory.cSite === undefined) {
                     memory.cSite = getCurrentConstruction(creep.room, creep);
+                    memory.target = memory.cSite ?? "0000000000";
                 } else {
                     const target = Game.getObjectById(memory.cSite) as ConstructionSite;
                     if (target === null) {
@@ -50,11 +51,15 @@ export class Pioneer extends BasicCreep{
                         }
                     }
 
-                    this.getInTargetRange(creep, construct, 2)
+                    if (creep.pos.getRangeTo(target.pos) <= 2) {
+                        construct(creep);
+                    } else {
+                        this.creepPathMove(creep, target);
+                    }
                 }
             } else {
                 if (memory.sourceId === undefined) {
-                    memory.sourceId = creep.room.find(FIND_SOURCES_ACTIVE)[0].id
+                    memory.sourceId = creep.room.find(FIND_SOURCES_ACTIVE)[1].id
                 }
                 const source = Game.getObjectById(memory.sourceId) as Source;
                 if (source === null) return;

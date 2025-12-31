@@ -12,20 +12,19 @@ export class Blinkie extends BasicCreep{
             const hostile = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS);
             if(hostile){
                 if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 1)){
-                    creep.moveTo(25,25)
                     creep.rangedAttack(hostile)
                     creep.heal(creep);
-                    return;
+                    creep.attack(hostile)
                 }
-                if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 2)){
-                    creep.rangedAttack(hostile)
-                    creep.heal(creep);
-                    return
-                }
-                if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 3)){
-                    creep.heal(creep);
-                    return
-                }
+                // if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 2)){
+                //     creep.rangedAttack(hostile)
+                //     creep.heal(creep);
+                //     return
+                // }
+                // if(creep.pos.inRangeTo(hostile.pos.x, hostile.pos.y, 3)){
+                //     creep.heal(creep);
+                //     return
+                // }
                 this.creepPathMove(creep, hostile)
             }
         }
