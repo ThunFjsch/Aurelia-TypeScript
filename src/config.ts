@@ -24,7 +24,6 @@ interface Stats{
     startX: number;
     startY: number;
     innerBoxStyle: PolyStyle;
-    outerBoxStyle: PolyStyle;
 }
 
 interface Visuals{
@@ -51,7 +50,6 @@ export const settings: settings = {
         startX: 1,
         startY: 1,
         innerBoxStyle: innerBoxStyle,
-        outerBoxStyle: outerBoxStyle
     },
     avoidedRooms: [],
     env: 'development',
@@ -67,11 +65,11 @@ export const settings: settings = {
         distanceTransform: false,
         showStats: true,
         showObjectives: true,
-        showResourceTasks: false,
+        showResourceTasks: true,
         showConstruction: false
     },
     objective: {
-        startX: 14,
-        startY: 1
+        startX: 1,
+        startY: 25
     }
 }

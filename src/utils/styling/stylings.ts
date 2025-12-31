@@ -4,14 +4,14 @@ export const affirmingGreen = '#008000'
 
 export const innerBoxStyle: PolyStyle = {
     fill: interfaceFill,
-    opacity: 1
+    opacity: 0.2
 }
 
-export const outerBoxStyle = {
+export const outerBoxStyle: PolyStyle = {
     fill: interfaceFill,
     stroke: interfaceBorder,
     strokeWidth: 1,
-    opacity: 1
+    opacity: 0.2
 }
 
 export const defaultTextStyle: TextStyle = {

@@ -42,7 +42,6 @@ export function getGradientColor(value: number, max: number): string {
 export function drawTextBox(room: Room, info: string[], width: number, startX: number, startY: number) {
     const height = info.length + 1
 
-    room.visual.rect(startX, startY, width, height, settings.stats.outerBoxStyle);
     room.visual.rect(startX, startY, width, height, settings.stats.innerBoxStyle);
 
     startX++; startY++;   // margin +· 1

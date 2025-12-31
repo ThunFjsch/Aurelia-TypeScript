@@ -10,26 +10,19 @@ import { drawTextBox } from "utils/styling/stylingHelper";
 
             let startX = settings.stats.startX;
             let startY = settings.stats.startY;
-            const width = 11;
+            const width = 50;
+            let parts = 0;
+            for(const name in Game.creeps){
+                if(Game.creeps[name] != undefined && Game.creeps[name].memory.home === room.name)
+                    parts += Game.creeps[name].body.length
+            }
             const info = [
-                'Performance',
-                `time: ${stats.time.toString()}`,
-                'cpu: ' + stats.cpu.used.toString() + " / " + stats.cpu.limit.toString(),
-                `Bucket: ${stats.cpu.bucket}`,
-                `Average(${average}): ${stats.cpu.avg}`,
-                `used Heap: ${stats.heap.used}`,
-                ``,
-                `${room.name}`,
-                `income: ${economyService.getCurrentRoomIncome(room, objectives).toFixed(2)}`,
-                `sources: ${objectives.filter(o => o.type === roleContants.MINING).length}`,
-                `h Capacity: ${haulerObjective?.maxHaulerParts.toFixed(2)}`,
-                `h curr: ${haulerObjective?.currParts}`,
-                ``,
-                `Progress:`
+                `${room.name} | time: ${stats.time.toString()} | cpu: ${stats.cpu.used.toString()}/${stats.cpu.limit.toString()} | Bucket: ${stats.cpu.bucket} | Average(${average}): ${stats.cpu.avg} | h Capacity: ${haulerObjective?.maxHaulerParts.toFixed(2)} | h curr: ${haulerObjective?.currParts} | total parts: ${parts}`,
+                // `Progress:`
             ]
-            room.memory.rclProgress.forEach(prog => {
-                info.push(`${prog.level}: ${prog.finished - room.memory.rclProgress[0].finished}`)
-            })
+            // room.memory.rclProgress.forEach(prog => {
+            //     info.push(`${prog.level}: ${prog.finished - room.memory.rclProgress[0].finished}`)
+            // })
 
             drawTextBox(room, info, width, startX, startY);
     }
