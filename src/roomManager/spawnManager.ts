@@ -185,7 +185,7 @@ export class SpawnManager {
                         room,
                         context
                     );
-                    if (result !== undefined && result !== -3 && result !== -10) {
+                    if (result !== undefined && result !== -3 && result !== -10 && result !== -6) {
                         return; // Successfully spawned something
                     }
                 }
@@ -542,7 +542,7 @@ export class SpawnManager {
 
             let cost = E_FOR_UPGRADER
             if ((room.controller?.level ?? 0) >= 4) {
-                cost = E_FOR_UPGRADER + 0.5
+                cost = E_FOR_UPGRADER
             }
             let currNeed = income / cost;
             if (currWork < currNeed && income > (maxIncome / 3)) {

@@ -70,7 +70,7 @@ export const loop = () => {
         visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
       }
     }
-    if (Game.shard.name != 'shard3' && Game.cpu.bucket === 10000) {
+    if (Game.shard.name === 'shard1' || Game.shard.name === 'shard2' && Game.cpu.bucket === 10000) {
       Game.cpu.generatePixel();
     }
   })

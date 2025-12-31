@@ -195,7 +195,7 @@ export class ObjectiveManager {
         let currCarry = 0;
         for (const creep of creeps) {
             const memory = Memory.creeps[creep.name]
-            if (memory.role === roleContants.HAULING && memory.home === room.name) currCarry += getWorkParts([creep], CARRY);
+            if ((memory.role === roleContants.HAULING || memory.role === roleContants.PORTING)  && memory.home === room.name) currCarry += getWorkParts([creep], CARRY);
         }
 
         let currentReq = this.getCurrentHaulerCapacity(room, creeps);
@@ -396,7 +396,7 @@ export class ObjectiveManager {
             maxIncome: -expendeture,
             target: room.name,
             type: roleContants.MAINTAINING,
-            priority: priority.medium,
+            priority: priority.high,
             maxHaulerParts: 0,
             toRepair: toRepair,
             distance: 0,

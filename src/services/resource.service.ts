@@ -269,7 +269,7 @@ export class ResourceService {
 
     // Simplified task creation methods
     private createPickupTask(resource: Resource, avgHauler: number, prio: Priority, distance: number, home: string) {
-        const trips = Math.floor(this.getTrips(resource.amount, avgHauler));
+        const trips = this.getTrips(resource.amount, avgHauler);
         const taskId = resource.id;
         if(resource.amount > 1000){
             prio = priority.high
@@ -300,7 +300,7 @@ export class ResourceService {
         const amount = target.store.getUsedCapacity(RESOURCE_ENERGY);
         if (amount === 0) return;
 
-        const trips = this.getTrips(amount, avgHauler);
+        const trips = Math.floor(this.getTrips(amount, avgHauler));
         const taskId = target.id;
 
         const existingTask = this.taskList.find(t => t.targetId === taskId);
@@ -329,6 +329,9 @@ export class ResourceService {
         if (amount === 0) return;
 
         let trips = this.getTrips(amount, avgHauler);
+        if((target as StructuresToRefill).structureType === STRUCTURE_TOWER){
+            trips = Math.floor(trips);
+        }
         const taskId = target.id;
         if((target as StructuresToRefill).structureType === STRUCTURE_SPAWN){
             trips = trips * 2;

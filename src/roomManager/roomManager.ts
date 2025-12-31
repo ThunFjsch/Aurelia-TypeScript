@@ -71,7 +71,7 @@ export class RoomManager {
 
             this.crudeTowerDefence(room)
             this.objectiveManager.syncRoomObjectives(room, creeps)
-            if(Game.time % 15 === 0 || this.objectiveManager.getRoomObjectives(room).length === 0){
+            if(Game.time % 5 === 0 || this.objectiveManager.getRoomObjectives(room).length === 0){
                 constructionManager.run(room);
             }
             if(Game.time % 3 === 0){
