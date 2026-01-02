@@ -14,6 +14,7 @@ import { Blinkie } from "./blinkie";
 import { Claimer } from "./claimer";
 import { Pioneer } from "./pioneer";
 import { PathCachingService } from "services/pathCaching.service";
+import { WallRepair } from "./wallrepair";
 
 
 class Roles {
@@ -30,6 +31,7 @@ class Roles {
     blinkie: Blinkie;
     claimer: Claimer;
     pioneer: Pioneer;
+    wallrepair: WallRepair;
     constructor(objectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
         this.mining = new Miner(pathCaching);
         this.hauling = new Hauling(pathCaching);

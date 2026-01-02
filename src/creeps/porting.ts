@@ -9,6 +9,10 @@ export class Porting extends BasicCreep{
             this.getEnergy(creep, memory, energyManager);
 
         } else {
+            const targetExists = Game.getObjectById(memory.target);
+            if(!targetExists){
+                memory.target === undefined
+            }
             if (memory.target === undefined) {
                 memory.target = energyManager.assignToTask(creep, "transfer");
                 memory.onRoute = true;

@@ -4,6 +4,7 @@ import { MemoryService } from "./memory.service";
 import { RCL } from "roomManager/constructionManager";
 import { PathingService } from "./pathing.service";
 import { getRoomCreepCounts } from "utils/global-helper";
+import { HaulerMemory } from "creeps/hauling";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
 const eStorageLimit = [0, 0, 0, 200000, 200000, 200000, 200000, 200000, 200000];
@@ -177,7 +178,7 @@ export class ResourceService {
         const upgraders = creepsByRole[roleContants.UPGRADING] || [];
         for (const creep of upgraders) {
             const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
-            this.createTransferTask(creep, avgHauler, priority.veryLow, distance, home);
+            this.createTransferTask(creep, avgHauler, priority.medium, distance, home);
         }
 
         // Process builders
@@ -191,8 +192,8 @@ export class ResourceService {
         const priorityMap: { [key: string]: Priority } = {
             [STRUCTURE_TOWER]: priority.severe,
             [STRUCTURE_SPAWN]: roomData.containers.length === 0 ? priority.severe : priority.high,
-            [STRUCTURE_EXTENSION]: priority.high,
-            [STRUCTURE_LAB]: priority.high
+            [STRUCTURE_EXTENSION]: priority.medium,
+            [STRUCTURE_LAB]: priority.veryLow
         };
 
         for (const structure of roomData.structures) {
@@ -220,7 +221,7 @@ export class ResourceService {
                     this.createWithdrawlTask(container, avgHauler, priority.high, distance, home);
                     break;
                 case roleContants.UPGRADING:
-                    this.createTransferTask(container, avgHauler, priority.veryLow, distance, home);
+                    this.createTransferTask(container, avgHauler, priority.medium, distance, home);
                     break;
                 case roleContants.FASTFILLER:
                     this.createTransferTask(container, avgHauler, priority.severe, distance, home);
@@ -329,7 +330,7 @@ export class ResourceService {
         if (amount === 0) return;
 
         let trips = this.getTrips(amount, avgHauler);
-        if((target as StructuresToRefill).structureType === STRUCTURE_TOWER){
+        if((target as StructuresToRefill).structureType === STRUCTURE_TOWER || (target as StructuresToRefill).structureType === STRUCTURE_CONTAINER){
             trips = Math.floor(trips);
         }
         const taskId = target.id;
@@ -405,7 +406,7 @@ export class ResourceService {
                     targetId: storage.id,
                     assigned: [],
                     maxAssigned: trips,
-                    priority: priority.high,
+                    priority: priority.veryLow,
                     transferType: 'withdrawl',
                     amount: energyUsed,
                     ResourceType: RESOURCE_ENERGY,
@@ -437,6 +438,7 @@ export class ResourceService {
 
         if (validTasks.length > 0) {
             validTasks[0].assigned.push(creep.name);
+            (creep.memory as HaulerMemory).take = 'withdrawl';
             return validTasks[0].targetId;
         }
 
@@ -473,18 +475,23 @@ export class ResourceService {
     private isValidHaulingTask(task: Task, rcl: number, hasFastFiller: boolean, hasPorter: boolean): boolean {
         const storage = Game.rooms[task.home].storage;
 
-        if (hasFastFiller && hasPorter && storage) {
+
+        if (hasFastFiller && hasPorter && storage && storage?.store.getUsedCapacity(RESOURCE_ENERGY) <= eStorageLimit[rcl]) {
             if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
             if (task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") return false;
             if (task.StructureType === STRUCTURE_LAB) return false;
             if (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN) return false;
         } else if (!hasFastFiller && !hasPorter) {
             if (task.StructureType === STRUCTURE_CONTAINER && task.transferType === "transfer") return false;
-            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
         } else if (hasFastFiller && !hasPorter) {
             if (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN) return false;
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl" && storage && storage?.store.energy < eStorageLimit[rcl]) return false;
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "transfer") return false;
+        } else if (hasFastFiller && hasPorter && storage && storage?.store.getUsedCapacity(RESOURCE_ENERGY) >= eStorageLimit[rcl]) {
+            if (task.StructureType === STRUCTURE_EXTENSION || task.StructureType === STRUCTURE_SPAWN) return false;
             if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
-        } else {
+            if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;
+        }else {
             if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "transfer") return false;
         }
 

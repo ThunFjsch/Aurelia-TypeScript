@@ -32,7 +32,6 @@ export class PlannerDefence {
     }
 
     placeWalls(room: Room) {
-
         testMinCut(false, room);
         const walls = room.memory.basePlanner.cuts;
         if (!walls) return;
@@ -56,7 +55,7 @@ export class PlannerDefence {
             if (!closest) continue;
 
             const info: PlacedStructure = {
-                type: 'road',
+                type: 'rampart',
                 x: closest.x,
                 y: closest.y,
             };
@@ -68,15 +67,17 @@ export class PlannerDefence {
         }
 
         for (const wall of walls) {
-            if (room.memory.basePlanner.stamps.includes({ x: wall.x, y: wall.y, type: 'road' })) continue;
+            if (room.memory.basePlanner.stamps.some(s => s.x === wall.x && s.y === wall.y && s.type === 'road')) continue;
+
             const info: PlacedStructure = {
-                type: 'road',
+                type: 'rampart',
                 x: wall.x,
                 y: wall.y,
             };
             room.memory.basePlanner.stamps.push(info);
         }
-        return walls
+
+        return walls;
     }
 
 

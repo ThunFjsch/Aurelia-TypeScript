@@ -5,7 +5,10 @@ import BasicCreep from "./creepHelper";
 import { moveTo } from "screeps-cartographer";
 import { PathCachingService } from "services/pathCaching.service";
 
-export class Maintaining extends BasicCreep{
+
+const wallLimits = [0, 0, 0, 0, 0, 50000, 1500000, 500000, 3000000];
+
+export class WallRepair extends BasicCreep{
     objectiveManager: ObjectiveManager
 
     constructor(ObjectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
@@ -14,10 +17,11 @@ export class Maintaining extends BasicCreep{
     }
 
     run(creep: Creep, energyManager: ResourceService) {
-        const memory = creep.memory as MaintainerMemory;
+        const memory = creep.memory as WallRepairMemory;
 
         if (creep.store.energy === 0) {
-            this.getEnergy(creep, memory as MaintainerMemory, energyManager)
+            memory.repairTarget = undefined
+            this.getEnergy(creep, memory as WallRepairMemory, energyManager)
         } else {
             if(creep.room.name != memory.home){
                 const target = new RoomPosition(25,25, memory.home)
@@ -28,7 +32,7 @@ export class Maintaining extends BasicCreep{
                 this.setNewTarget(creep, memory)
             }
             const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
-            if(target === null || target.hits === target.hitsMax){
+            if(target === null || target.hits === wallLimits[creep.room.controller?.level??0]){
                 this.setNewTarget(creep, memory);
                 return;
             }
@@ -46,10 +50,8 @@ export class Maintaining extends BasicCreep{
     }
 
     setNewTarget(creep: Creep, memory: MaintainerMemory): void {
-        const objective = this.objectiveManager.getRoomObjectives(creep.room)
-            .find(objective => objective.type === creep.memory.role && objective.home === creep.memory.home) as MaintenanceObjective;
-        if(objective === undefined) return;
-        memory.repairTarget = objective.toRepair[0];
+        const target = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_RAMPART && s.hits < wallLimits[creep.room.controller?.level?? 0]).sort((a, b) => b.hits - a.hits)[0].id
+        memory.repairTarget = target;
         creep.memory = memory;
     }
 }

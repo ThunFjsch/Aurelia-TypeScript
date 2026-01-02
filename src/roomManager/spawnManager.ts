@@ -2,7 +2,8 @@ import {
     BuildingObjective, ExpansionObjective, HaulingObjective,
     InvaderCoreObjective, InvaderDefenceObjective, MaintenanceObjective,
     MiningObjective, Objective, ReserveObjective, roleContants,
-    ScoutingObjective, UpgradeObjective
+    ScoutingObjective, UpgradeObjective,
+    WallRepairObjective
 } from "objectives/objectiveInterfaces";
 import { E_FOR_BUILDER, E_FOR_UPGRADER, EconomyService } from "services/economy.service";
 import { Point, Priority, priority } from "utils/sharedTypes";
@@ -88,7 +89,7 @@ export class SpawnManager {
         },
         {
             role: roleContants.FASTFILLER,
-            priority: priority.high,
+            priority: priority.severe,
             canHandle: (objectives: Objective[], room: Room, ctx: SpawnContext) => true,
             execute: (objectives: Objective[], room: Room, ctx: SpawnContext) => {
                 return this.spawnFastFiller(room, ctx);
@@ -96,7 +97,7 @@ export class SpawnManager {
         },
         {
             role: roleContants.PORTING,
-            priority: priority.medium,
+            priority: priority.high,
             canHandle: (objectives: Objective[], room: Room, ctx: SpawnContext) => true,
             execute: (objectives: Objective[], room: Room, ctx: SpawnContext) => {
                 return this.spawnPorter(room, ctx, objectives)
@@ -110,6 +111,16 @@ export class SpawnManager {
             execute: (objectives: Objective[], room: Room, ctx: SpawnContext) => {
                 const maintenanceObjs = objectives.filter(obj => obj.type === roleContants.MAINTAINING && obj.home === room.name) as MaintenanceObjective[];
                 return this.spawnMaintainer(maintenanceObjs, room, ctx);
+            }
+        },
+        {
+            role: roleContants.WALLREPAIRER,
+            priority: priority.high,
+            canHandle: (objectives: Objective[], room: Room, ctx: SpawnContext) =>
+                objectives.some(obj => obj.type === roleContants.WALLREPAIRER && obj.home === room.name),
+            execute: (objectives: Objective[], room: Room, ctx: SpawnContext) => {
+                const maintenanceObjs = objectives.filter(obj => obj.type === roleContants.WALLREPAIRER && obj.home === room.name) as WallRepairObjective[];
+                return this.spawnWallRepair(maintenanceObjs, room, ctx);
             }
         },
         {
@@ -227,12 +238,13 @@ export class SpawnManager {
         let returnValue = undefined
         const rcl = room.controller?.level ?? 0;
         const storage = room.storage;
-        const porter = ctx.creepsByRole[roleContants.PORTING]??[];
+        const porter = ctx.creepsByHomeAndRole[`${room.name}-${roleContants.PORTING}`]??[];
         let workParts = 0;
         if (porter.length??0 > 0) {
             workParts = getWorkParts(porter, CARRY);
         }
         let dis = 0;
+
         objectives.forEach(o => {
             if(o.type === roleContants.BUILDING || o.type === roleContants.UPGRADING){
                 dis += o.distance;
@@ -489,8 +501,7 @@ export class SpawnManager {
                     home: room.name,
                     role: roleContants.BUILDING,
                     working: false,
-                    target: objective.targetId,
-                    route: objective.path ?? [],
+                    target: objective.targetId as Id<StructureRampart>,
                     done: false,
                     homeSpawn: ctx.spawn.id
                 }
@@ -526,8 +537,30 @@ export class SpawnManager {
         return retValue;
     }
 
+     private spawnWallRepair(objectives: WallRepairObjective[], room: Room, ctx: SpawnContext) {
+        let retValue = undefined;
+        const objective = objectives.find(objective => objective.home === room.name)
+        if (objective != undefined) {
+            const assignedCreeps = ctx.creeps.filter(creep => creep.memory.role === roleContants.WALLREPAIRER && creep.memory.home === room.name)
+            const workParts = getWorkParts(assignedCreeps, WORK);
+            if (workParts < objective.maxWorkParts) {
+                const body = createCreepBody(objective, room, workParts, objective.maxWorkParts)
+                const memory: WallRepairMemory = {
+                    home: room.name,
+                    role: roleContants.WALLREPAIRER,
+                    target: room.name,
+                    repairTarget: undefined,
+                    take: "pickup",
+                    homeSpawn: ctx.spawn.id
+                }
+                retValue = ctx.spawn.spawnCreep(body, generateName(roleContants.WALLREPAIRER), { memory });
+            }
+        }
+
+        return retValue;
+    }
+
     private spawnUpgrader(allObjectives: Objective[], objectives: UpgradeObjective[], room: Room, ctx: SpawnContext) {
-        if (room.memory.constructionOffice.finished === false) return
         let maxIncome = 0;
         allObjectives.forEach(objective => maxIncome += objective.maxIncome)
         let retValue = undefined

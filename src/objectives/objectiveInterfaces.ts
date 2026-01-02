@@ -74,6 +74,11 @@ export interface ExpansionObjective extends BaseObjective{
     type:roleContants.EXPANSIONEER;
 }
 
+export interface WallRepairObjective extends BaseObjective{
+    type:roleContants.WALLREPAIRER;
+    maxWorkParts: number;
+}
+
 export type Objective = MiningObjective |
                         HaulingObjective |
                         UpgradeObjective |
@@ -83,7 +88,8 @@ export type Objective = MiningObjective |
                         ReserveObjective |
                         InvaderCoreObjective |
                         InvaderDefenceObjective |
-                        ExpansionObjective;
+                        ExpansionObjective |
+                        WallRepairObjective;
 
 export type ObjectiveType = roleContants.MINING |
                             roleContants.HAULING |
@@ -95,7 +101,8 @@ export type ObjectiveType = roleContants.MINING |
                             roleContants.PORTING |
                             roleContants.CORE_KILLER |
                             roleContants.INVADER_DEFENCE |
-                            roleContants.EXPANSIONEER;
+                            roleContants.EXPANSIONEER |
+                            roleContants.WALLREPAIRER;
 
 export enum roleContants {
     MINING = 'mining',
@@ -112,5 +119,6 @@ export enum roleContants {
     BLINKIE = 'blinkie',
     EXPANSIONEER = 'expansioneer',
     CLAIMER = 'claimer',
-    PIONEER = 'pioneer'
+    PIONEER = 'pioneer',
+    WALLREPAIRER = 'wallrepair'
 }

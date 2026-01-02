@@ -129,12 +129,20 @@ declare global {
     }
 
     interface BuilderMemory extends CreepMemory {
-        target: string | undefined;
-        route: RoomPosition[];
-        done: boolean;
+        target?: Id<ConstructionSite | Structure>
+        isRepairing?: boolean;
+        working?: boolean;
+        done?: boolean;
+        home: string;
     }
 
     interface MaintainerMemory extends CreepMemory {
+        target: string | undefined;
+        take: ResRole;
+        repairTarget: string | undefined;
+    }
+
+    interface WallRepairMemory extends CreepMemory {
         target: string | undefined;
         take: ResRole;
         repairTarget: string | undefined;

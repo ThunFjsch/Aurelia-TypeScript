@@ -10,7 +10,7 @@ export class CoreKiller extends BasicCreep{
         const memory = creep.memory as CoreKillerMemory;
 
         const target = Game.getObjectById(memory.target) as StructureInvaderCore
-        if(target != null){
+        if(target != null && target != undefined){
             if(creep.room.name != target.room.name){
                 this.creepPathMove(creep, target)
             } else{

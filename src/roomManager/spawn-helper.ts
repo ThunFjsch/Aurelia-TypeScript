@@ -35,7 +35,7 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
     } else if(objective.type === roleContants.BUILDING){
         const preset = [WORK, CARRY, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK], energyCap, workPartsLeft)
-    } else if(objective.type === roleContants.MAINTAINING && currWorkParts < objective.maxWorkParts) {
+    } else if((objective.type === roleContants.MAINTAINING || objective.type === roleContants.WALLREPAIRER) && currWorkParts < objective.maxWorkParts) {
         const preset = [WORK, CARRY, MOVE, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK],  energyCap, workPartsLeft)
     }

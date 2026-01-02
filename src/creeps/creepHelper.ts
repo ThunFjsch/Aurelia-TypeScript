@@ -41,7 +41,6 @@ export default class BasicCreep {
     getEnergy(creep: Creep, memory: HaulerMemory | MaintainerMemory, energyManager: ResourceService) {
         if (!memory.target) {
             memory.target = energyManager.assignToTask(creep, 'withdrawl');
-            memory.take = 'withdrawl';
         }
         if (!memory.target) {
             memory.target = energyManager.assignToTask(creep, 'pickup');
@@ -146,17 +145,18 @@ export default class BasicCreep {
 
     doTransfer(creep: Creep, energyManager: ResourceService) {
         const transfer = (target: Creep | AnyStoreStructure, memory: HaulerMemory) => {
-            creep.transfer(target, RESOURCE_ENERGY);
+            const temp = creep.transfer(target, RESOURCE_ENERGY)
+            if (temp === OK){
+                if (memory.pathKey) delete memory.pathKey;
+                delete memory.target;
             energyManager.cleanTasks(creep);
             this.getAwayFromStructure(creep, target as Structure);
-
-            if (memory.pathKey) delete memory.pathKey;
-            delete memory.target;
+            }
+            return temp
         };
         if(transfer === undefined || transfer === null){
             this.getInTargetRange(creep, Game.rooms[creep.memory.home].find(FIND_MY_SPAWNS)[0] as any, 5);
         } else{
-
             this.getInTargetRange(creep, transfer, 1);
         }
     }

@@ -85,10 +85,10 @@ export class ConstrcutionManager {
         if (room.memory.constructionOffice.lastJob < rcl && room.memory.constructionOffice.finished && room.memory.constructionOffice.plans.length === 0) {
             this.checkForConstruction(room, rcl);
         }
-        else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length === 0) {
+        else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished === false && room.memory.constructionOffice.plans.length === 0) {
             room.memory.constructionOffice.finished = true;
         }
-        else if (room.memory.constructionOffice.lastJob === rcl && room.memory.constructionOffice.finished == false && room.memory.constructionOffice.plans.length > 0) {
+        else if (room.memory.constructionOffice.lastJob === rcl  && room.memory.constructionOffice.plans.length > 0) { //&& room.memory.constructionOffice.finished == false
             const cSites = room.find(FIND_CONSTRUCTION_SITES);
             if (cSites != undefined && cSites.length === 0) {
                 const nextPlan = room.memory.constructionOffice.plans[0]
@@ -128,8 +128,8 @@ export class ConstrcutionManager {
         const remainingStructure = this.getRemainingStructure(rcl, currentStructures);
         const memory = room.memory;
         for (let index in remainingStructure) {
-            let remaining = remainingStructure[index as StructureConstant]?.valueOf() ?? 0;
-            if (0 < remaining) {
+            let remaining = remainingStructure[index as StructureConstant] ?? 0;
+            if (remaining > 0) {
                 if (memory.basePlanner.stamps === undefined) {
                     memory.basePlanner.stamps = []
                 }
@@ -156,7 +156,7 @@ export class ConstrcutionManager {
             tower: this.filterForStructure(structures, STRUCTURE_TOWER),
             extension: this.filterForStructure(structures, STRUCTURE_EXTENSION),
             container: this.filterForStructure(structures, STRUCTURE_CONTAINER),
-            rampart: this.filterForStructure(structures, STRUCTURE_RAMPART) + this.filterForStructure(structures, STRUCTURE_WALL),
+            rampart: this.filterForStructure(structures, STRUCTURE_RAMPART),
             terminal: this.filterForStructure(structures, STRUCTURE_TERMINAL),
             lab: this.filterForStructure(structures, STRUCTURE_LAB),
             road: this.filterForStructure(structures, STRUCTURE_ROAD),
