@@ -27,6 +27,7 @@ declare global {
         globalReset: number;
         respawn?: boolean;
         sourceInfo: SourceInfo[];
+        sourceInfoSorted?: boolean; // Flag to track if sourceInfo has been sorted
         logs: any[];
         env: string;
         profiler?: ProfilerMemory;

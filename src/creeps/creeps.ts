@@ -46,12 +46,24 @@ class Roles {
         this.blinkie = new Blinkie(pathCaching);
         this.claimer = new Claimer(pathCaching);
         this.pioneer = new Pioneer(pathCaching);
-        // this.wallRepairer= new WallRepairer();
+        this.wallrepair= new WallRepair(objectiveManager, pathCaching);
     }
 };
 
+// Cache the Roles instance to avoid recreating it every tick
+let cachedRoles: Roles | null = null;
+let cachedObjectiveManager: ObjectiveManager | null = null;
+let cachedPathCaching: PathCachingService | null = null;
+
 export function runRole(creep: Creep, energyManager: ResourceService, objectiveManager: ObjectiveManager, pathCaching: PathCachingService) {
-    const roles: any = new Roles(objectiveManager, pathCaching);
+    // Only recreate Roles if dependencies changed
+    if (!cachedRoles || cachedObjectiveManager !== objectiveManager || cachedPathCaching !== pathCaching) {
+        cachedRoles = new Roles(objectiveManager, pathCaching);
+        cachedObjectiveManager = objectiveManager;
+        cachedPathCaching = pathCaching;
+    }
+
+    const roles: any = cachedRoles;
     const role: string = creep.memory.role;
     if (roles[role] != undefined) {
         roles[role].run(creep, energyManager);

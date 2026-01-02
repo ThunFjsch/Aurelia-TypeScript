@@ -41,6 +41,7 @@ export class MemoryService {
                 }
             }
         }
+        (Memory as any).sourceInfoSorted = true; // Mark as sorted after initialization
         return sourceInfos;
     }
 
@@ -73,7 +74,10 @@ export class MemoryService {
                 })
             }
             const info = scoutingService.addSource(room,source);
-            if(info) Memory.sourceInfo.push(info)
+            if(info) {
+                Memory.sourceInfo.push(info);
+                (Memory as any).sourceInfoSorted = false; // Reset sorted flag when sourceInfo is modified
+            }
         })
     }
 

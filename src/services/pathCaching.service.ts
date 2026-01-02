@@ -82,7 +82,10 @@ export class PathCachingService {
     private getRoomCostMatrix(roomName: string): CostMatrix | false {
         const room = Game.rooms[roomName];
         if (!room) return false;
-        this.cleanupOldPaths()
+        // Only cleanup paths periodically (every 100 ticks) instead of on every call
+        if (Game.time % 100 === 0) {
+            this.cleanupOldPaths();
+        }
         if (!this.roomCache[roomName] || Game.time - this.roomCache[roomName].tick > 150) {
             this.roomCache[roomName] = {
                 creeps: room.find(FIND_CREEPS),
