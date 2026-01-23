@@ -36,21 +36,59 @@ if (settings.test.profiler) {
   profiler.enable();
 }
 
+
+// Initialize global cache if it doesn't exist
+if (!global.roomCreepCounts) {
+    global.roomCreepCounts = {};
+}
+
 export const loop = () => {
   profiler.wrap(memHack(() => {
     preTick();
     // console.log(`Current game tick is ${Game.time}`);
-    if (hasRespawned() || Memory.respawn) {
+    if (Memory.respawn || Memory.myRooms === undefined) {
       logger.info('Colony has respawned')
       memoryService.initGlobalMemory();
       return;
     }
+    // ============================================================
+    // PHASE 1: PRE-PROCESSING - Build all data structures once
+    // ============================================================
 
-    const creeps: Creep[] = []
-    for (const index in Game.creeps) {
-      const creep = Game.creeps[index];
-      creeps.push(creep);
-      runRole(creep, resourceService, objectiveManager, pathCachingService)
+    const creeps: Creep[] = [];
+    const creepsByRoom = new Map<string, Creep[]>();
+    const creepsByRole = new Map<string, Creep[]>();
+    const creepsByHome = new Map<string, Creep[]>(); // Additional: index by home room
+
+    // Single iteration through all creeps - builds all indexes at once
+    for (const name in Game.creeps) {
+        const creep = Game.creeps[name];
+        creeps.push(creep);
+
+        // Index by current room
+        const roomName = creep.room.name;
+        if (!creepsByRoom.has(roomName)) {
+            creepsByRoom.set(roomName, []);
+        }
+        creepsByRoom.get(roomName)!.push(creep);
+
+        // Index by role
+        const role = creep.memory.role;
+        if (role) {
+            if (!creepsByRole.has(role)) {
+                creepsByRole.set(role, []);
+            }
+            creepsByRole.get(role)!.push(creep);
+        }
+
+        // Index by home room (useful for many operations)
+        const home = creep.memory.home;
+        if (home) {
+            if (!creepsByHome.has(home)) {
+                creepsByHome.set(home, []);
+            }
+            creepsByHome.get(home)!.push(creep);
+        }
     }
 
     // Automatically delete memory of missing creeps
@@ -60,84 +98,85 @@ export const loop = () => {
       }
     }
 
-    roomManager.run(creeps)
+    // ============================================================
+    // PHASE 2: DISTRIBUTE PRE-SORTED DATA TO SERVICES
+    // ============================================================
+
+    // Pass pre-sorted data to all services that need it
+    resourceService.setCreepsByRoom(creepsByRoom);
+    resourceService.setCreepsByRole(creepsByRole);
+    roomManager.setCreepData(creepsByRoom, creepsByRole);
+
+    // If you have BasicCreep or other services, pass data to them too
+    // Example: basicCreepService.setCreepsByRoom(creepsByRoom);
+
+    // ============================================================
+    // PHASE 3: RUN INDIVIDUAL CREEP LOGIC
+    // ============================================================
+
+    // Now run each creep with the optimized context
+    // The roles will benefit from the pre-sorted data passed to services
+    for (const creep of creeps) {
+        runRole(creep, resourceService, objectiveManager, pathCachingService);
+    }
+
+    // ============================================================
+    // PHASE 4: ROOM-LEVEL OPERATIONS
+    // ============================================================
+
+    // Room manager now has access to pre-sorted creeps
+    roomManager.run();
+
+    // ============================================================
+    // PHASE 5: GLOBAL OPERATIONS
+    // ============================================================
+
+    // Traffic reconciliation
     reconcileTraffic();
+
+    // Stats update
     stats.update();
+
+    // ============================================================
+    // PHASE 6: VISUALIZATION (if enabled)
+    // ============================================================
+
     if (settings.visuals.allowVisuals) {
-      for (let index in Memory.myRooms) {
-        const roomName = Memory.myRooms[index];
-        const room = Game.rooms[roomName];
-        visualizer.visualizeRoom(room, stats.getStatInfo(), stats.avgSize, objectiveManager.getRoomObjectives(room), resourceService, economyService)
-      }
+        for (let index in Memory.myRooms) {
+            const roomName = Memory.myRooms[index];
+            const room = Game.rooms[roomName];
+
+            visualizer.visualizeRoom(
+                room,
+                stats.getStatInfo(),
+                stats.avgSize,
+                objectiveManager.getRoomObjectives(room),
+                resourceService,
+                economyService
+            );
+        }
     }
-    if (Game.shard.name === 'shard1' || Game.shard.name === 'shard2' && Game.cpu.bucket === 10000) {
-      Game.cpu.generatePixel();
+
+    // ============================================================
+    // PHASE 7: PIXEL GENERATION
+    // ============================================================
+
+    if ((Game.shard.name === 'shard1' || Game.shard.name === 'shard2') && Game.cpu.bucket === 10000) {
+        // Game.cpu.generatePixel();
     }
-  })
-  )
-}
-// }));
 
-/**
- * global.hasRespawned()
- *
- * @author:  SemperRabbit
- * @version: 1.1
- * @date:    180331
- * @return:  boolean whether this is the first tick after a respawn or not
- *
- * The checks are set as early returns in case of failure, and are ordered
- * from the least CPU intensive checks to the most. The checks are as follows:
- *
- *      If it has returned true previously during this tick, return true again
- *      Check Game.time === 0 (returns true for sim room "respawns")
- *      There are no creeps
- *      There is only 1 room in Game.rooms
- *      The 1 room has a controller
- *      The controller is RCL 1 with no progress
- *      The controller is in safemode with the initial value
- *      There is only 1 StructureSpawn
- *
- * The only time that all of these cases are true, is the first tick of a respawn.
- * If all of these are true, you have respawned.
- *
- * v1.1 (by qnz): - fixed a condition where room.controller.safeMode can be SAFE_MODE_DURATION too
- *                - improved performance of creep number check (https://jsperf.com/isempty-vs-isemptyobject/23)
- */
-function hasRespawned() {
-  // check for multiple calls on same tick
-  if (Object.entries(Memory).length === 0) {
-    return true
-  }
+    // ============================================================
+    // OPTIONAL: PERFORMANCE MONITORING
+    // ============================================================
 
-  // check for 0 creeps
-  for (const creepName in Game.creeps) {
-    return false
-  }
-
-  // check for only 1 room
-  const rNames = Object.keys(Game.rooms)
-  if (rNames.length !== 1) {
-    return false
-  }
-
-  // check for controller, progress and safe mode
-  const room = Game.rooms[rNames[0]]
-  if (
-    !room.controller ||
-    !room.controller.my ||
-    room.controller.level !== 1 ||
-    room.controller.progress ||
-    !room.controller.safeMode ||
-    room.controller.safeMode <= SAFE_MODE_DURATION - 1
-  ) {
-    return false
-  }
-
-  // check for 1 spawn
-  if (Object.keys(Game.spawns).length > 1) {
-    return false
-  }
-
-  return true;
-}
+    // Log CPU usage every 100 ticks
+    if (Game.time % 100 === 0) {
+        const cpuUsed = Game.cpu.getUsed();
+        const cpuLimit = Game.cpu.limit;
+        const bucketLevel = Game.cpu.bucket;
+        // Warn if approaching CPU limit
+        if (cpuUsed > cpuLimit * 0.9) {
+            console.log(`⚠️ WARNING: High CPU usage (${(cpuUsed/cpuLimit*100).toFixed(1)}%)`);
+        }
+    }
+  }))}

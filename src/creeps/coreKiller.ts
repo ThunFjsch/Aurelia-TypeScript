@@ -3,11 +3,13 @@ import { moveTo } from "screeps-cartographer";
 
 export interface CoreKillerMemory extends CreepMemory{
     target: string;
+    spawn: Id<StructureSpawn>;
 }
 
 export class CoreKiller extends BasicCreep{
     run(creep: Creep){
         const memory = creep.memory as CoreKillerMemory;
+
 
         const target = Game.getObjectById(memory.target) as StructureInvaderCore
         if(target != null && target != undefined){
@@ -23,7 +25,10 @@ export class CoreKiller extends BasicCreep{
                 const to = new RoomPosition(25,25,memory.home)
                 moveTo(creep, to, {maxOps: 20000})
             } else{
-                const spawn = creep.room.find(FIND_MY_SPAWNS)[0]
+                let spawn = Game.getObjectById(memory.spawn);
+                if(spawn === null){
+                    spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0]
+                }
                 if(creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)){
                     spawn.recycleCreep(creep);
                 } else{

@@ -130,7 +130,8 @@ declare global {
     }
 
     interface BuilderMemory extends CreepMemory {
-        target?: Id<ConstructionSite | Structure>
+        target?: Id<ConstructionSite | Structure>;
+        spawn: Id<StructureSpawn>;
         isRepairing?: boolean;
         working?: boolean;
         done?: boolean;

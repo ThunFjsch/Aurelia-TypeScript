@@ -6,7 +6,7 @@ import { moveTo } from "screeps-cartographer";
 import { PathCachingService } from "services/pathCaching.service";
 
 
-const wallLimits = [0, 0, 0, 0, 0, 50000, 1500000, 500000, 3000000];
+const wallLimits = [0, 0, 0, 0, 0, 150000, 500000, 2000000, 5000000];
 
 export class WallRepair extends BasicCreep{
     objectiveManager: ObjectiveManager
@@ -32,7 +32,7 @@ export class WallRepair extends BasicCreep{
                 this.setNewTarget(creep, memory)
             }
             const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
-            if(target === null || target.hits === wallLimits[creep.room.controller?.level??0]){
+            if(target === null || target === undefined || target.hits === wallLimits[creep.room.controller?.level??0]){
                 this.setNewTarget(creep, memory);
                 return;
             }
@@ -50,7 +50,7 @@ export class WallRepair extends BasicCreep{
     }
 
     setNewTarget(creep: Creep, memory: MaintainerMemory): void {
-        const target = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_RAMPART && s.hits < wallLimits[creep.room.controller?.level?? 0]).sort((a, b) => b.hits - a.hits)[0].id
+        const target = creep.room.find(FIND_STRUCTURES).filter(s => s.structureType === STRUCTURE_RAMPART && s.hits < wallLimits[creep.room.controller?.level?? 0]).sort((a, b) => a.hits - b.hits)[0].id
         memory.repairTarget = target;
         creep.memory = memory;
     }

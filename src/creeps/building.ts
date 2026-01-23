@@ -5,7 +5,10 @@ import { moveTo } from "screeps-cartographer";
 export class Building extends BasicCreep{
     run(creep: Creep) {
         const memory = creep.memory as BuilderMemory
-        const spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0];
+        let spawn = Game.getObjectById(memory.spawn);
+        if(spawn === null){
+            spawn = Game.rooms[memory.home].find(FIND_MY_SPAWNS)[0]
+        }
 
         if (memory.target === undefined) {
             // First check for ramparts needing repair
@@ -19,7 +22,7 @@ export class Building extends BasicCreep{
             }
 
             creep.memory = memory;
-            if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 2)) {
+            if (memory.done && creep.pos.inRangeTo(spawn.pos.x, spawn.pos.y, 1)) {
                 spawn.recycleCreep(creep)
             } else if (memory.done) {
                 this.creepPathMove(creep, spawn)

@@ -16,32 +16,49 @@ export class Maintaining extends BasicCreep{
     run(creep: Creep, energyManager: ResourceService) {
         const memory = creep.memory as MaintainerMemory;
 
+        // Always try to repair when alive, get energy only when completely empty
+        if(creep.room.name != memory.home){
+            const target = new RoomPosition(25,25, memory.home)
+            moveTo(creep, target)
+            return
+        }
+
+        // Get energy only when completely empty, but continue repair work otherwise
         if (creep.store.energy === 0) {
             this.getEnergy(creep, memory as MaintainerMemory, energyManager)
-        } else {
-            if(creep.room.name != memory.home){
-                const target = new RoomPosition(25,25, memory.home)
-                moveTo(creep, target)
-                return
-            }
-            if (memory.repairTarget === undefined) {
-                this.setNewTarget(creep, memory)
-            }
-            const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
-            if(target === null || target.hits === target.hitsMax){
-                this.setNewTarget(creep, memory);
-                return;
-            }
-            let repair: number = ERR_NOT_IN_RANGE
-            if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 2)) {
-                repair = creep.repair(target);
-            }
-            if (repair === ERR_INVALID_TARGET) {
-                this.setNewTarget(creep, memory)
-            }
-            if (repair != OK) {
-                this.creepPathMove(creep, target as AnyStructure);
-            }
+            return;
+        }
+
+        // Always try to repair - update target if needed
+        if (memory.repairTarget === undefined) {
+            this.setNewTarget(creep, memory)
+        }
+
+        const target = Game.getObjectById(memory.repairTarget as Id<Structure>) as Structure;
+
+        // If target is invalid or fully repaired, find a new one
+        if(target === null || target.hits >= target.hitsMax){
+            this.setNewTarget(creep, memory);
+            return;
+        }
+
+        // Try to repair - use any available energy
+        let repair: number = ERR_NOT_IN_RANGE
+        if (creep.pos.inRangeTo(target.pos.x, target.pos.y, 3)) {
+            repair = creep.repair(target);
+        }
+
+        if (repair === ERR_INVALID_TARGET) {
+            this.setNewTarget(creep, memory)
+            return;
+        }
+
+        // Move to target if not in range, or if repair succeeded but we still have energy
+        if (repair === ERR_NOT_IN_RANGE) {
+            this.creepPathMove(creep, target as AnyStructure);
+        } else if (repair === OK && creep.store.energy > 0) {
+            // Continue repairing if we have energy and target still needs repair
+            // This allows continuous repair even with low energy
         }
     }
 
@@ -49,7 +66,30 @@ export class Maintaining extends BasicCreep{
         const objective = this.objectiveManager.getRoomObjectives(creep.room)
             .find(objective => objective.type === creep.memory.role && objective.home === creep.memory.home) as MaintenanceObjective;
         if(objective === undefined) return;
-        memory.repairTarget = objective.toRepair[0];
-        creep.memory = memory;
+
+        // Find structure with lowest hits ratio (normalized) instead of just lowest hits
+        let bestTarget: string | undefined = undefined;
+        let lowestRatio = 1.0; // Start with 100% (fully repaired)
+
+        for (const structureId of objective.toRepair) {
+            const structure = Game.getObjectById(structureId as Id<Structure>) as Structure | null;
+            if (structure === null) continue;
+
+            // Skip if already fully repaired
+            if (structure.hits >= structure.hitsMax) continue;
+
+            // Calculate hits ratio (lower is worse, needs more repair)
+            const hitsRatio = structure.hits / structure.hitsMax;
+
+            if (hitsRatio < lowestRatio) {
+                lowestRatio = hitsRatio;
+                bestTarget = structureId;
+            }
+        }
+
+        if (bestTarget) {
+            memory.repairTarget = bestTarget;
+            creep.memory = memory;
+        }
     }
 }

@@ -7,7 +7,7 @@ import { getRoomCreepCounts } from "utils/global-helper";
 import { HaulerMemory } from "creeps/hauling";
 
 export type ResRole = 'pickup' | 'transfer' | 'withdrawl';
-const eStorageLimit = [0, 0, 0, 200000, 200000, 200000, 200000, 200000, 200000];
+export const eStorageLimit = [0, 0, 0, 200000, 200000, 200000, 200000, 200000, 200000];
 
 export interface Task {
     id: string;
@@ -45,6 +45,12 @@ interface RoomData {
     ruins: Ruin[];
 }
 
+// Cache structure for room data
+interface RoomDataCache {
+    data: RoomData;
+    tick: number;
+}
+
 export class ResourceService {
     taskList: Task[] = [];
     memoryService: MemoryService;
@@ -52,8 +58,67 @@ export class ResourceService {
     private distanceCache: DistanceCache = {};
     private pathCache: Map<string, number> = new Map();
 
+    // Pre-sorted creep data from main loop
+    private creepsByRoom: Map<string, Creep[]> | null = null;
+    private creepsByRole: Map<string, Creep[]> | null = null;
+
+    // Room data caching
+    private roomDataCache: Map<string, RoomDataCache> = new Map();
+
     constructor(MemoryService: MemoryService) {
         this.memoryService = MemoryService;
+    }
+
+    /**
+     * Called from main loop to provide pre-sorted creep data
+     */
+    setCreepsByRoom(creepsByRoom: Map<string, Creep[]>): void {
+        this.creepsByRoom = creepsByRoom;
+    }
+
+    /**
+     * Called from main loop to provide creeps indexed by role
+     */
+    setCreepsByRole(creepsByRole: Map<string, Creep[]>): void {
+        this.creepsByRole = creepsByRole;
+    }
+
+    /**
+     * Get creeps in a specific room - uses pre-sorted data
+     */
+    private getCreepsInRoom(roomName: string): Creep[] {
+        if (this.creepsByRoom) {
+            return this.creepsByRoom.get(roomName) || [];
+        }
+
+        // Fallback if pre-sorted data isn't available
+        const room = Game.rooms[roomName];
+        return room ? room.find(FIND_MY_CREEPS) : [];
+    }
+
+    /**
+     * Get creeps by role - uses pre-sorted data
+     */
+    private getCreepsByRole(role: string, roomName?: string): Creep[] {
+        if (this.creepsByRole) {
+            const roleCreeps = this.creepsByRole.get(role) || [];
+            if (roomName) {
+                return roleCreeps.filter(c => c.memory.home === roomName);
+            }
+            return roleCreeps;
+        }
+
+        // Fallback - iterate through all creeps
+        const creeps: Creep[] = [];
+        for (const name in Game.creeps) {
+            const creep = Game.creeps[name];
+            if (creep.memory.role === role) {
+                if (!roomName || creep.memory.home === roomName) {
+                    creeps.push(creep);
+                }
+            }
+        }
+        return creeps;
     }
 
     run(room: Room, haulCapacity: number, avgHauler: number, creeps: Creep[], objectives: Objective[]): Task[] {
@@ -63,13 +128,19 @@ export class ResourceService {
         if (Game.time % 100 === 0) {
             this.distanceCache = {};
             this.pathCache.clear();
+            this.roomDataCache.clear();
         }
 
         const rcl: RCL = (room.controller?.level ?? 0) as RCL;
 
-        // Collect all room data once
+        // Collect all room data once with caching
         const roomData = this.collectRoomData(room, room.find(FIND_MY_SPAWNS)[0]);
         if (!roomData.spawn) return [];
+
+        // Ensure avgHauler is at least 1 to prevent division by zero in getTrips
+        if (avgHauler <= 0) {
+            avgHauler = 1;
+        }
 
         // Process storage requests
         if (roomData.storage) {
@@ -96,6 +167,12 @@ export class ResourceService {
     }
 
     private collectRoomData(room: Room, spawn: StructureSpawn): RoomData {
+        // Check cache first
+        const cached = this.roomDataCache.get(room.name);
+        if (cached && Game.time - cached.tick < 5) {
+            return cached.data;
+        }
+
         const structures = room.find(FIND_STRUCTURES);
         const myStructures = room.find(FIND_MY_STRUCTURES);
 
@@ -107,7 +184,7 @@ export class ResourceService {
             }
         }
 
-        return {
+        const data: RoomData = {
             spawn: spawn,
             storage: myStructures.find(s => s.structureType === STRUCTURE_STORAGE) as StructureStorage,
             structures: structures as AnyStoreStructure[],
@@ -117,6 +194,11 @@ export class ResourceService {
             tombstones: room.find(FIND_TOMBSTONES),
             ruins: room.find(FIND_RUINS)
         };
+
+        // Cache the result
+        this.roomDataCache.set(room.name, { data, tick: Game.time });
+
+        return data;
     }
 
     private processRoom(roomData: RoomData, creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, home: string) {
@@ -127,8 +209,8 @@ export class ResourceService {
         this.processWithdrawals(roomData.tombstones, avgHauler, priority.medium, roomData.spawn, home);
         this.processWithdrawals(roomData.ruins, avgHauler, priority.medium, roomData.spawn, home);
 
-        // Process transfers
-        this.processTransfers(creeps, avgHauler, roomData, home);
+        // Process transfers - use pre-sorted creeps if available
+        this.processTransfers(home, avgHauler, roomData);
 
         // Process containers
         this.processContainers(roomData, avgHauler, home);
@@ -136,26 +218,24 @@ export class ResourceService {
 
     private processDroppedResources(resources: Resource[], avgHauler: number, haulCapacity: number, spawn: StructureSpawn, home: string) {
         // Pre-calculate and cache distances
-        if (spawn === undefined) return;
-        const resourcesWithDistance = resources.map(res => {
-            if (res != undefined) {
-                return ({
-                    resource: res,
-                    distance: this.getCachedDistance(spawn.pos, res.pos),
-                    score: res.amount / this.getCachedDistance(spawn.pos, res.pos)
-                });
-            }
-            return;
-        })
+        if (spawn === undefined || !resources || resources.length === 0) return;
 
-        if (resourcesWithDistance === undefined) return;
+        const resourcesWithDistance = resources
+            .filter(res => res != undefined && res.amount > 0)
+            .map(res => ({
+                resource: res,
+                distance: this.getCachedDistance(spawn.pos, res.pos),
+                score: res.amount / Math.max(1, this.getCachedDistance(spawn.pos, res.pos))
+            }))
+            .filter(item => item.distance > 0);
+
+        if (resourcesWithDistance.length === 0) return;
 
         // Sort by score
-        resourcesWithDistance.sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
+        resourcesWithDistance.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
         // Process sorted resources
         for (const item of resourcesWithDistance) {
-            if (item === undefined) continue;
             this.createPickupTask(item.resource, avgHauler, priority.low, item.distance, home);
         }
     }
@@ -163,32 +243,36 @@ export class ResourceService {
     private processWithdrawals(items: withdrawlToTakeFrom[], avgHauler: number, prio: Priority, spawn: StructureSpawn, home: string) {
         // Filter once
         const validItems = items.filter(item => item.store.getUsedCapacity(RESOURCE_ENERGY) > 0);
-        if(validItems == undefined||spawn === undefined) return
+        if(validItems == undefined || spawn === undefined) return
+
         for (const item of validItems) {
             const distance = this.getCachedDistance(spawn.pos, item.pos);
             this.createWithdrawlTask(item, avgHauler, prio, distance, home);
         }
     }
 
-    private processTransfers(creeps: Creep[], avgHauler: number, roomData: RoomData, home: string) {
-        // Group creeps by role for efficient filtering
-        const creepsByRole = _.groupBy(creeps.filter(c => roomData.spawn != undefined && c.memory.home === roomData.spawn.room.name), 'memory.role');
+    private processTransfers(home: string, avgHauler: number, roomData: RoomData) {
+        // Use pre-sorted creeps by role if available, otherwise fallback to filtering
+        const upgraders = this.getCreepsByRole(roleContants.UPGRADING, home);
+        const builders = this.getCreepsByRole(roleContants.BUILDING, home);
 
         // Process upgraders
-        const upgraders = creepsByRole[roleContants.UPGRADING] || [];
         for (const creep of upgraders) {
-            const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
-            this.createTransferTask(creep, avgHauler, priority.medium, distance, home);
+            if (creep.memory.home === home) {
+                const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
+                this.createTransferTask(creep, avgHauler, priority.medium, distance, home);
+            }
         }
 
         // Process builders
-        const builders = creepsByRole[roleContants.BUILDING] || [];
         for (const creep of builders) {
-            const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
-            this.createTransferTask(creep, avgHauler, priority.high, distance, home);
+            if (creep.memory.home === home) {
+                const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
+                this.createTransferTask(creep, avgHauler, priority.high, distance, home);
+            }
         }
 
-        // Process structures
+        // Process structures - explicitly handle spawn first to ensure it's always processed
         const priorityMap: { [key: string]: Priority } = {
             [STRUCTURE_TOWER]: priority.severe,
             [STRUCTURE_SPAWN]: roomData.containers.length === 0 ? priority.severe : priority.high,
@@ -196,9 +280,23 @@ export class ResourceService {
             [STRUCTURE_LAB]: priority.veryLow
         };
 
+        // Explicitly process spawn - always create task if it needs energy
+        if (roomData.spawn && roomData.spawn.store) {
+            const freeCapacity = roomData.spawn.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (freeCapacity > 0) {
+                const spawnPrio = roomData.containers.length === 0 ? priority.severe : priority.high;
+                const distance = this.getCachedDistance(roomData.spawn.pos, roomData.spawn.pos);
+                this.createTransferTask(roomData.spawn, avgHauler, spawnPrio, distance, home);
+            }
+        }
+
+        // Process other structures
         for (const structure of roomData.structures) {
+            // Skip spawn as we already processed it explicitly
+            if (structure.structureType === STRUCTURE_SPAWN) continue;
+
             const prio = priorityMap[structure.structureType];
-            if (prio !== undefined) {
+            if (prio !== undefined && structure.store && structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0) {
                 const distance = this.getCachedDistance(roomData.spawn.pos, structure.pos);
                 this.createTransferTask(structure as StructuresToRefill, avgHauler, prio, distance, home);
             }
@@ -235,7 +333,7 @@ export class ResourceService {
             const remoteRoom = Game.rooms[objective.target];
             if (!remoteRoom) continue;
 
-            const remoteData = this.collectRoomData(remoteRoom, Game.rooms[objective.home].find(FIND_MY_SPAWNS)[0]);
+            const remoteData = this.collectRoomData(remoteRoom, spawn)
             this.processRoom(remoteData, creeps, avgHauler, haulCapacity, prio, home);
         }
     }
@@ -270,7 +368,8 @@ export class ResourceService {
 
     // Simplified task creation methods
     private createPickupTask(resource: Resource, avgHauler: number, prio: Priority, distance: number, home: string) {
-        const trips = this.getTrips(resource.amount, avgHauler);
+        let trips = this.getTrips(resource.amount, avgHauler) * 1.2;
+        trips = Math.max(1, Math.ceil(trips));
         const taskId = resource.id;
         if(resource.amount > 1000){
             prio = priority.high
@@ -301,7 +400,8 @@ export class ResourceService {
         const amount = target.store.getUsedCapacity(RESOURCE_ENERGY);
         if (amount === 0) return;
 
-        const trips = Math.floor(this.getTrips(amount, avgHauler));
+        let trips = Math.floor(this.getTrips(amount, avgHauler));
+        trips = Math.max(1, trips);
         const taskId = target.id;
 
         const existingTask = this.taskList.find(t => t.targetId === taskId);
@@ -337,6 +437,8 @@ export class ResourceService {
         if((target as StructuresToRefill).structureType === STRUCTURE_SPAWN){
             trips = trips * 2;
         }
+
+        trips = Math.max(1, Math.ceil(trips));
 
         const existingTask = this.taskList.find(t => t.targetId === taskId);
         if (existingTask) {
@@ -419,14 +521,16 @@ export class ResourceService {
     }
 
     getTrips(capacity: number, avgHauler: number): number {
-        return capacity / ((avgHauler) * CARRY_CAPACITY);
+        const haulerCapacity = Math.max(avgHauler, 1) * CARRY_CAPACITY;
+        if (haulerCapacity === 0) return 0;
+        return capacity / haulerCapacity;
     }
 
     cleanUp() {
         this.taskList = this.taskList.filter(task => Game.getObjectById(task.targetId) != null);
     }
 
-    // Optimized task assignment with pre-computed filters
+    // Optimized task assignment with priority loop
     assignToTask(creep: Creep, type: ResRole): string | undefined {
         this.cleanTasks(creep);
 
@@ -434,29 +538,36 @@ export class ResourceService {
         const hasFastFiller = (counts[roleContants.FASTFILLER] || 0) >= 1;
         const hasPorter = (counts[roleContants.PORTING] || 0) > 2;
 
-        const validTasks = this.getValidTasksForCreep(creep, type, hasFastFiller, hasPorter);
+        // Iterate through priorities from highest to lowest
+        for (const priorityValue of [priority.severe, priority.high, priority.medium, priority.low, priority.veryLow]) {
+            const validTasks = this.getValidTasksForCreep(creep, type, hasFastFiller, hasPorter, priorityValue);
 
-        if (validTasks.length > 0) {
-            validTasks[0].assigned.push(creep.name);
-            (creep.memory as HaulerMemory).take = 'withdrawl';
-            return validTasks[0].targetId;
+            if (validTasks.length > 0) {
+                validTasks[0].assigned.push(creep.name);
+                (creep.memory as HaulerMemory).take = 'withdrawl';
+                return validTasks[0].targetId;
+            }
         }
 
         return undefined;
     }
 
-    private getValidTasksForCreep(creep: Creep, type: ResRole, hasFastFiller: boolean, hasPorter: boolean): Task[] {
+    private getValidTasksForCreep(creep: Creep, type: ResRole, hasFastFiller: boolean, hasPorter: boolean, priorityFilter: Priority): Task[] {
         const rcl = creep.room.controller?.level ?? 0;
         const role = creep.memory.role;
         const home = creep.memory.home;
         const capacity = creep.store.getFreeCapacity(RESOURCE_ENERGY);
 
         return this.taskList.filter(task => {
+            // Priority filter - only consider tasks of this priority
+            if (task.priority !== priorityFilter) return false;
+
             // Basic filters
             if (task.home !== home) return false;
             if (task.assigned.length >= task.maxAssigned) return false;
             if (task.transferType !== type) return false;
-            if (capacity / 8 > task.amount && (task.transferType === "withdrawl" || task.transferType === 'pickup')) return false;
+            // Only filter out small withdrawl tasks if creep has very little capacity - allow pickup of any amount
+            if (capacity < 50 && capacity / 8 > task.amount && task.transferType === "withdrawl") return false;
 
             // Role-specific filters
             switch (role) {
@@ -474,7 +585,6 @@ export class ResourceService {
 
     private isValidHaulingTask(task: Task, rcl: number, hasFastFiller: boolean, hasPorter: boolean): boolean {
         const storage = Game.rooms[task.home].storage;
-
 
         if (hasFastFiller && hasPorter && storage && storage?.store.getUsedCapacity(RESOURCE_ENERGY) <= eStorageLimit[rcl]) {
             if (task.StructureType === STRUCTURE_STORAGE && task.transferType === "withdrawl") return false;

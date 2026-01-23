@@ -7,8 +7,9 @@ export class Pioneer extends BasicCreep{
         const memory = creep.memory as PioneerMemory;
         if (memory.reached === undefined) memory.reached = false;
         if (creep.room.name != memory.target && !memory.reached && memory.target.length < 7) {
-            const target = new RoomPosition(25, 25, memory.target);
-            moveTo(creep, target)
+            const exitPos = this.getExitToRoom(creep.room.name, memory.target);
+            if(exitPos != undefined && exitPos.x != undefined && exitPos.y != undefined)
+                creep.moveTo(exitPos.x, exitPos.y);
         } else {
             const spawn = creep.room.find(FIND_MY_SPAWNS)[0];
             if (spawn != undefined) {
@@ -59,14 +60,17 @@ export class Pioneer extends BasicCreep{
                 }
             } else {
                 if (memory.sourceId === undefined) {
-                    memory.sourceId = creep.room.find(FIND_SOURCES_ACTIVE)[1].id
-                }
-                const source = Game.getObjectById(memory.sourceId) as Source;
-                if (source === null) return;
-                if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
-                    creep.harvest(source)
+                    const sourceId = creep.room.find(FIND_SOURCES_ACTIVE)[1];
+                    if(sourceId != undefined)
+                        memory.sourceId = sourceId.id
                 } else {
-                    moveTo(creep, source)
+                    const source = Game.getObjectById(memory.sourceId) as Source;
+                    if (source === null || source.energy === 0) return;
+                    if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
+                        creep.harvest(source)
+                    } else {
+                        moveTo(creep, source)
+                    }
                 }
             }
         }

@@ -3,11 +3,36 @@ import { HaulerMemory } from "./hauling";
 import { moveByPath, moveTo } from "screeps-cartographer";
 import { PathCachingService } from "services/pathCaching.service";
 import { roleContants } from "objectives/objectiveInterfaces";
-import { memoize } from "lodash";
+
+// Global cache that persists between ticks
+interface RoomCache {
+    spawns: StructureSpawn[];
+    extensions: StructureExtension[];
+    towers: StructureTower[];
+    containers: StructureContainer[];
+    creeps: Creep[];
+    tick: number;
+}
+
+interface SpawnCache {
+    spawn: StructureSpawn | null;
+    tick: number;
+}
 
 export default class BasicCreep {
     private chants = new Map<roleContants, string[]>();
     pathCachingService: PathCachingService;
+
+    // Caching structures
+    private roomCache = new Map<string, RoomCache>();
+    private spawnCache = new Map<string, SpawnCache>();
+    private helpCache = new Map<string, {
+        creeps: Creep[];
+        tick: number;
+    }>();
+
+    // Store pre-sorted data from main loop
+    private creepsByRoom: Map<string, Creep[]> | null = null;
 
     constructor(pathCaching: PathCachingService) {
         this.chants.set(roleContants.HAULING, ['🚛 📡', '⛐', '📦📍✅']);
@@ -20,6 +45,72 @@ export default class BasicCreep {
         this.chants.set(roleContants.SCOUTING, ['🕵️‍♂️', '⛺', '🌲🔎🌲']);
 
         this.pathCachingService = pathCaching;
+    }
+
+    /**
+     * Called from main loop to provide pre-sorted creep data
+     */
+    setCreepsByRoom(creepsByRoom: Map<string, Creep[]>): void {
+        this.creepsByRoom = creepsByRoom;
+    }
+
+    /**
+     * Get room structures with caching
+     */
+    private getRoomStructures(room: Room): RoomCache {
+        let cached = this.roomCache.get(room.name);
+
+        if (!cached || Game.time - cached.tick > 10) {
+            cached = {
+                spawns: room.find(FIND_MY_SPAWNS),
+                extensions: room.find(FIND_MY_STRUCTURES, {
+                    filter: s => s.structureType === STRUCTURE_EXTENSION
+                }) as StructureExtension[],
+                towers: room.find(FIND_MY_STRUCTURES, {
+                    filter: s => s.structureType === STRUCTURE_TOWER
+                }) as StructureTower[],
+                containers: room.find(FIND_STRUCTURES, {
+                    filter: s => s.structureType === STRUCTURE_CONTAINER
+                }) as StructureContainer[],
+                creeps: room.find(FIND_MY_CREEPS),
+                tick: Game.time
+            };
+            this.roomCache.set(room.name, cached);
+        }
+
+        return cached;
+    }
+
+    /**
+     * Get home spawn with long-term caching (spawns rarely change)
+     */
+    private getHomeSpawn(roomName: string): StructureSpawn | null {
+        let cached = this.spawnCache.get(roomName);
+
+        if (!cached || Game.time - cached.tick > 100) {
+            const room = Game.rooms[roomName];
+            const spawns = room?.find(FIND_MY_SPAWNS);
+            cached = {
+                spawn: spawns?.[0] ?? null,
+                tick: Game.time
+            };
+            this.spawnCache.set(roomName, cached);
+        }
+
+        return cached.spawn;
+    }
+
+    /**
+     * Get creeps in room - uses pre-sorted data from main if available
+     */
+    private getCreepsInRoom(roomName: string): Creep[] {
+        // Use pre-sorted data if available
+        if (this.creepsByRoom) {
+            return this.creepsByRoom.get(roomName) || [];
+        }
+
+        // Fallback to cached find
+        return this.getRoomStructures(Game.rooms[roomName])?.creeps || [];
     }
 
     chanting(creep: Creep) {
@@ -65,32 +156,16 @@ export default class BasicCreep {
         moveTo(creep, target, { reusePath: 50, maxOps: 10000, avoidCreeps: true });
     }
 
-    private helpCache = new Map<string, {
-        containers: StructureContainer[];
-        creeps: Creep[];
-        tick: number;
-    }>();
-
     helpAFriend(creep: Creep, memory: CreepMemory) {
-        const roomName = creep.room.name;
-        let cached = this.helpCache.get(roomName);
-
-        if (!cached || Game.time - cached.tick > 15) {
-            const containers = creep.room.find(FIND_STRUCTURES, {
+        const containers = creep.room.find(FIND_STRUCTURES, {
                 filter: s => s.structureType === STRUCTURE_CONTAINER &&
                     creep.pos.inRangeTo(s, 1)
             }) as StructureContainer[];
-
-            const creeps = creep.room.find(FIND_MY_CREEPS, {
+        const creeps = creep.room.find(FIND_MY_CREEPS, {
                 filter: c => c.memory.role === memory.role && creep.pos.inRangeTo(c, 1)
             });
-
-            cached = { containers, creeps, tick: Game.time };
-            this.helpCache.set(roomName, cached);
-        }
-
         if (creep.store.getFreeCapacity(RESOURCE_ENERGY) > creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
-            for (const container of cached.containers) {
+            for (const container of containers) {
                 if (container.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
                     creep.withdraw(container, RESOURCE_ENERGY);
                     break;
@@ -99,7 +174,7 @@ export default class BasicCreep {
         }
 
         if (creep.store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
-            for (const otherCreep of cached.creeps) {
+            for (const otherCreep of creeps) {
                 if (creep.name === otherCreep.name) continue;
 
                 const otherEnergy = otherCreep.store.getUsedCapacity(RESOURCE_ENERGY);
@@ -149,13 +224,18 @@ export default class BasicCreep {
             if (temp === OK){
                 if (memory.pathKey) delete memory.pathKey;
                 delete memory.target;
-            energyManager.cleanTasks(creep);
-            this.getAwayFromStructure(creep, target as Structure);
+                energyManager.cleanTasks(creep);
+                this.getAwayFromStructure(creep, target as Structure);
             }
             return temp
         };
+
         if(transfer === undefined || transfer === null){
-            this.getInTargetRange(creep, Game.rooms[creep.memory.home].find(FIND_MY_SPAWNS)[0] as any, 5);
+            // Use cached spawn lookup instead of expensive find
+            const homeSpawn = this.getHomeSpawn(creep.memory.home);
+            if (homeSpawn) {
+                this.getInTargetRange(creep, homeSpawn as any, 5);
+            }
         } else{
             this.getInTargetRange(creep, transfer, 1);
         }
