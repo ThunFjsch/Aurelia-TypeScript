@@ -10,7 +10,7 @@ import { drawTextBox } from "utils/styling/stylingHelper";
 
             let startX = settings.stats.startX;
             let startY = settings.stats.startY;
-            const width = 50;
+            const width = 30;
             let parts = 0;
             for(const name in Game.creeps){
                 if(Game.creeps[name] != undefined && Game.creeps[name].memory.home === room.name)

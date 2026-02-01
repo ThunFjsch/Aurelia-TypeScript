@@ -12,6 +12,7 @@ export const eStorageLimit = [0, 0, 0, 200000, 200000, 200000, 200000, 200000, 2
 export interface Task {
     id: string;
     targetId: string;
+    roomName: string;
     priority: Priority;
     assigned: string[];
     maxAssigned: number;
@@ -149,11 +150,11 @@ export class ResourceService {
 
         // Process main room
         let prio: Priority = priority.medium;
-        this.processRoom(roomData, creeps, avgHauler, haulCapacity, prio, room.name);
+        this.processRoom(roomData, creeps, avgHauler, haulCapacity, prio, room.name, room);
 
         // Process remote rooms
         if (objectives.length > 0) {
-            this.processRemoteRooms(objectives, creeps, avgHauler, haulCapacity, prio, roomData.spawn, room.name);
+            this.processRemoteRooms(objectives, creeps, avgHauler, haulCapacity, prio, roomData.spawn, room.name, room);
         }
 
         // Sort tasks once at the end using pre-calculated distances
@@ -201,7 +202,7 @@ export class ResourceService {
         return data;
     }
 
-    private processRoom(roomData: RoomData, creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, home: string) {
+    private processRoom(roomData: RoomData, creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, home: string, room: Room) {
         // Process dropped resources with cached distances
         this.processDroppedResources(roomData.droppedEnergy, avgHauler, haulCapacity, roomData.spawn, home);
 
@@ -210,10 +211,10 @@ export class ResourceService {
         this.processWithdrawals(roomData.ruins, avgHauler, priority.medium, roomData.spawn, home);
 
         // Process transfers - use pre-sorted creeps if available
-        this.processTransfers(home, avgHauler, roomData);
+        this.processTransfers(home, avgHauler, roomData, room);
 
         // Process containers
-        this.processContainers(roomData, avgHauler, home);
+        this.processContainers(roomData, avgHauler, home, room);
     }
 
     private processDroppedResources(resources: Resource[], avgHauler: number, haulCapacity: number, spawn: StructureSpawn, home: string) {
@@ -251,10 +252,11 @@ export class ResourceService {
         }
     }
 
-    private processTransfers(home: string, avgHauler: number, roomData: RoomData) {
+    private processTransfers(home: string, avgHauler: number, roomData: RoomData, room: Room) {
         // Use pre-sorted creeps by role if available, otherwise fallback to filtering
         const upgraders = this.getCreepsByRole(roleContants.UPGRADING, home);
         const builders = this.getCreepsByRole(roleContants.BUILDING, home);
+        const remoteBuilder = this.getCreepsByRole(roleContants.REMOTE_BUILDING, home);
 
         // Process upgraders
         for (const creep of upgraders) {
@@ -268,6 +270,14 @@ export class ResourceService {
         for (const creep of builders) {
             if (creep.memory.home === home) {
                 const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos) + 50;
+                this.createTransferTask(creep, avgHauler, priority.high, distance, home);
+            }
+        }
+
+        // Process builders
+        for (const creep of remoteBuilder) {
+            if (creep.memory.home === home) {
+                const distance = this.getCachedDistance(roomData.spawn.pos, creep.pos);
                 this.createTransferTask(creep, avgHauler, priority.high, distance, home);
             }
         }
@@ -303,7 +313,7 @@ export class ResourceService {
         }
     }
 
-    private processContainers(roomData: RoomData, avgHauler: number, home: string) {
+    private processContainers(roomData: RoomData, avgHauler: number, home: string, room: Room) {
         for (const container of roomData.containers) {
             const memory = roomData.containerMemory.get(container.id);
 
@@ -319,7 +329,7 @@ export class ResourceService {
                     this.createWithdrawlTask(container, avgHauler, priority.high, distance, home);
                     break;
                 case roleContants.UPGRADING:
-                    this.createTransferTask(container, avgHauler, priority.medium, distance, home);
+                        this.createTransferTask(container, avgHauler, priority.medium, distance, home);
                     break;
                 case roleContants.FASTFILLER:
                     this.createTransferTask(container, avgHauler, priority.severe, distance, home);
@@ -328,13 +338,13 @@ export class ResourceService {
         }
     }
 
-    private processRemoteRooms(objectives: Objective[], creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, spawn: StructureSpawn, home: string) {
+    private processRemoteRooms(objectives: Objective[], creeps: Creep[], avgHauler: number, haulCapacity: number, prio: Priority, spawn: StructureSpawn, home: string, room: Room) {
         for (const objective of objectives) {
             const remoteRoom = Game.rooms[objective.target];
             if (!remoteRoom) continue;
 
             const remoteData = this.collectRoomData(remoteRoom, spawn)
-            this.processRoom(remoteData, creeps, avgHauler, haulCapacity, prio, home);
+            this.processRoom(remoteData, creeps, avgHauler, haulCapacity, prio, home, room);
         }
     }
 
@@ -390,6 +400,7 @@ export class ResourceService {
                 amount: resource.amount,
                 ResourceType: RESOURCE_ENERGY,
                 StructureType: undefined,
+                roomName: resource.room?.name?? home,
                 distance,
                 home
             });
@@ -420,6 +431,7 @@ export class ResourceService {
                 ResourceType: RESOURCE_ENERGY,
                 StructureType: (target as AnyStoreStructure).structureType,
                 distance,
+                roomName: target.room?.name?? home,
                 home
             });
         }
@@ -456,6 +468,7 @@ export class ResourceService {
                 ResourceType: RESOURCE_ENERGY,
                 StructureType: (target as AnyStoreStructure).structureType,
                 distance,
+                roomName: target.room.name,
                 home
             });
         }
@@ -489,6 +502,7 @@ export class ResourceService {
                     ResourceType: RESOURCE_ENERGY,
                     StructureType: STRUCTURE_STORAGE,
                     distance: 30,
+                    roomName: storage.room.name,
                     home
                 });
             }
@@ -506,6 +520,7 @@ export class ResourceService {
                 this.taskList.push({
                     id: taskId,
                     targetId: storage.id,
+                    roomName: storage.room.name,
                     assigned: [],
                     maxAssigned: trips,
                     priority: priority.veryLow,

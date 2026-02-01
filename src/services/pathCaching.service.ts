@@ -11,8 +11,7 @@ declare global {
 export class PathCachingService {
     private roomCache: {
         [roomName: string]: {
-            creeps: Creep[];
-            structures: Structure[];
+            costMatrix: CostMatrix;
             tick: number;
         }
     } = {};
@@ -43,7 +42,7 @@ export class PathCachingService {
         }
 
         const newPath = cachePath(pathKey, from, to, {
-            maxOps: 10000,
+            maxOps: 20000,
             maxRooms: 16,
             roomCallback: (roomName: string) => this.getRoomCostMatrix(roomName)
         });
@@ -80,40 +79,45 @@ export class PathCachingService {
      * Generates a cost matrix for a room, avoiding certain creeps and preferring roads.
      */
     private getRoomCostMatrix(roomName: string): CostMatrix | false {
-        const room = Game.rooms[roomName];
-        if (!room) return false;
-        // Only cleanup paths periodically (every 100 ticks) instead of on every call
-        if (Game.time % 100 === 0) {
-            this.cleanupOldPaths();
-        }
-        if (!this.roomCache[roomName] || Game.time - this.roomCache[roomName].tick > 150) {
-            this.roomCache[roomName] = {
-                creeps: room.find(FIND_CREEPS),
-                structures: room.find(FIND_STRUCTURES),
-                tick: Game.time
-            };
-        }
+    const room = Game.rooms[roomName];
+    if (room === undefined) return false;
 
-        const costs = new PathFinder.CostMatrix();
-        const { creeps, structures } = this.roomCache[roomName];
-
-        for (const creep of creeps) {
-            const role = creep.memory?.role;
-            if (role === roleContants.MINING) {
-                costs.set(creep.pos.x, creep.pos.y, 255); // Hard avoid
-            } else if ([roleContants.UPGRADING, roleContants.BUILDING, roleContants.FASTFILLER].includes(role as roleContants)) {
-                costs.set(creep.pos.x, creep.pos.y, 50); // Soft avoid
-            }
-        }
-
-        for (const struct of structures) {
-            if (struct.structureType === STRUCTURE_ROAD) {
-                costs.set(struct.pos.x, struct.pos.y, 1); // Prefer roads
-            }
-        }
-
-        return costs;
+    // Only cleanup paths periodically (every 100 ticks) instead of on every call
+    if (Game.time % 100 === 0) {
+        this.cleanupOldPaths();
     }
+
+    // Cache the CostMatrix, not the objects
+    if (this.roomCache[roomName] && Game.time - this.roomCache[roomName].tick <= 10) {
+        return this.roomCache[roomName].costMatrix;
+    }
+
+    const costs = new PathFinder.CostMatrix();
+    const creeps = room.find(FIND_CREEPS);
+    const structures = room.find(FIND_STRUCTURES);
+
+    for (const creep of creeps) {
+        const role = creep.memory?.role;
+        if (role === roleContants.MINING) {
+            costs.set(creep.pos.x, creep.pos.y, 255);
+        } else if ([roleContants.UPGRADING, roleContants.BUILDING, roleContants.FASTFILLER].includes(role as roleContants)) {
+            costs.set(creep.pos.x, creep.pos.y, 50);
+        }
+    }
+
+    for (const struct of structures) {
+        if (struct.structureType === STRUCTURE_ROAD) {
+            costs.set(struct.pos.x, struct.pos.y, 1);
+        }
+    }
+
+    this.roomCache[roomName] = {
+        costMatrix: costs,
+        tick: Game.time
+    };
+
+    return costs;
+}
 
     /**
      * Clear a specific cached path (metadata only).

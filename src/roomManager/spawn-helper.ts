@@ -10,10 +10,10 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
             return body = [WORK, WORK, MOVE];
         } else {
             body = [WORK, WORK, WORK, WORK, WORK, MOVE]
-            if(objective.distance > 15 && energyCap >= 650){
-                body.push(MOVE)
-                body.push(MOVE)
-            }
+            // if(objective.distance > 15 && energyCap >= 650){
+            //     body.push(MOVE)
+            //     body.push(MOVE)
+            // }
             if(energyCap < 650 && objective.distance > 15){
                 body = [WORK, WORK, MOVE]
             }
@@ -21,22 +21,27 @@ export function createCreepBody(objective: Objective, room: Room, currWorkParts:
         }
 
     } else if (objective.type === roleContants.HAULING) {
-        const preset = [CARRY, MOVE]
+        let preset = [CARRY, MOVE]
+        let cost = BODYPART_COST[CARRY] + BODYPART_COST[MOVE]
         let energy = energyCap;
         if(numberOfStarters < 4){
             energy = room.energyAvailable;
         }
-        body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE], energy, workPartsLeft)
+        if(room.memory.hasRoads){
+            preset = [CARRY, CARRY, MOVE]
+            cost = BODYPART_COST[CARRY] + BODYPART_COST[CARRY] + BODYPART_COST[MOVE]
+        }
+        body = generateBody(preset, cost, energy, workPartsLeft)
         return body
     } else if (objective.type === roleContants.UPGRADING) {
         const preset = [WORK, WORK, CARRY, MOVE]
         body = generateBody(preset, BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK] + BODYPART_COST[WORK], energyCap, workPartsLeft, 2)
         return body;
-    } else if(objective.type === roleContants.BUILDING){
+    } else if(objective.type === roleContants.BUILDING || objective.type === roleContants.REMOTE_BUILDING){
         const preset = [WORK, CARRY, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[CARRY] + BODYPART_COST[MOVE] + BODYPART_COST[WORK], energyCap, workPartsLeft)
     } else if((objective.type === roleContants.MAINTAINING || objective.type === roleContants.WALLREPAIRER) && currWorkParts < objective.maxWorkParts) {
-        const preset = [WORK, CARRY, MOVE, MOVE]
+        const preset = [WORK, CARRY, MOVE]
         return body = generateBody(preset, BODYPART_COST[CARRY]+ BODYPART_COST[MOVE] + BODYPART_COST[MOVE] + BODYPART_COST[WORK],  energyCap, workPartsLeft)
     }
     return body;

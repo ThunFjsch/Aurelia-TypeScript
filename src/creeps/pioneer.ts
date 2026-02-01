@@ -28,12 +28,12 @@ export class Pioneer extends BasicCreep{
 
             if (memory.working) {
                 if (memory.cSite === undefined) {
-                    memory.cSite = getCurrentConstruction(creep.room, creep);
+                    memory.cSite = getCurrentConstruction(creep.room, creep)?.id;
                     memory.target = memory.cSite ?? "0000000000";
                 } else {
                     const target = Game.getObjectById(memory.cSite) as ConstructionSite;
                     if (target === null) {
-                        memory.cSite = getCurrentConstruction(creep.room, creep);
+                        memory.cSite = getCurrentConstruction(creep.room, creep)?.id;
                         creep.memory = memory;
                         return;
                     }
@@ -47,7 +47,7 @@ export class Pioneer extends BasicCreep{
                     const construct = (creep: Creep) => {
                         let building = creep.build(target)
                         if (building === ERR_INVALID_TARGET) {
-                            memory.cSite = getCurrentConstruction(creep.room, creep);
+                            memory.cSite = getCurrentConstruction(creep.room, creep)?.id;
                             creep.memory = memory;
                         }
                     }

@@ -47,8 +47,8 @@ export const settings: settings = {
         profiler: true
     },
     stats:{
-        startX: 1,
-        startY: 1,
+        startX: 0,
+        startY: 0,
         innerBoxStyle: innerBoxStyle,
     },
     avoidedRooms: [],
@@ -69,7 +69,7 @@ export const settings: settings = {
         showConstruction: false
     },
     objective: {
-        startX: 1,
-        startY: 25
+        startX: 8,
+        startY: 3
     }
 }

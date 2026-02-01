@@ -16,7 +16,8 @@ export class PlannerCore {
                     type: type as StructureConstant,
                     x: centerX - FastFillerStamp.center.x + rel.x,
                     y: centerY - FastFillerStamp.center.y + rel.y,
-                    priority: rel.priority ?? priority.medium
+                    priority: rel.priority ?? priority.medium,
+                    requiredRCL: 2
                 });
             }
         }
@@ -79,7 +80,8 @@ export class PlannerCore {
                     type: type as StructureConstant,
                     x: best.x + rel.x - stamp.center.x,
                     y: best.y + rel.y - stamp.center.y,
-                    priority: rel.priority ?? priority.medium
+                    priority: rel.priority ?? priority.medium,
+                    requiredRCL: 5
                 });
             }
         }

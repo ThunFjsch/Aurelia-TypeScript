@@ -200,7 +200,7 @@ export function scoreStampAt(
             }, 0);
 
             score += dtScore;         // Prefer open space
-            score += baseDist * 2;    // Closeness to base
+            score += baseDist;    // Closeness to base
             score += centerDist;      // Closeness to other structures
         }
     }

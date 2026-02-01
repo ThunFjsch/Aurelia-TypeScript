@@ -42,12 +42,12 @@ export function getGradientColor(value: number, max: number): string {
 export function drawTextBox(room: Room, info: string[], width: number, startX: number, startY: number) {
     const height = info.length + 1
 
-    room.visual.rect(startX, startY, width, height, settings.stats.innerBoxStyle);
+    // room.visual.rect(startX, startY, width, height, settings.stats.innerBoxStyle);
 
     startX++; startY++;   // margin +· 1
     for(let i in info){
         if(startX > 49 || startY > 49) return
-        room.visual.text(info[i], new RoomPosition(startX, startY, room.name), { ...defaultTextStyle, align: 'left' });
+        room.visual.text(info[i], new RoomPosition(startX, startY, room.name), { ...defaultTextStyle, align: 'left', font: 0.5 });
         startY++;
     }
 }

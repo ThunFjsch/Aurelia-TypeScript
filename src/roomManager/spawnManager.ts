@@ -1,7 +1,7 @@
 import {
     BuildingObjective, ExpansionObjective, HaulingObjective,
     InvaderCoreObjective, InvaderDefenceObjective, MaintenanceObjective,
-    MiningObjective, Objective, ReserveObjective, roleContants,
+    MiningObjective, Objective, RemoteBuildingObjective, ReserveObjective, roleContants,
     ScoutingObjective, UpgradeObjective,
     WallRepairObjective
 } from "objectives/objectiveInterfaces";
@@ -12,6 +12,7 @@ import { HaulerMemory } from "creeps/hauling";
 import { UpgraderMemory } from "creeps/upgrading";
 import { CoreKillerMemory } from "creeps/coreKiller";
 import { eStorageLimit } from "services/resource.service";
+import { RemoteBuilderMemory } from "creeps/remoteBuilding";
 
 interface SpawnAction {
     readonly role: roleContants;
@@ -161,6 +162,16 @@ export class SpawnManager {
                 const upgradeObjs = objectives.filter(obj => obj.type === roleContants.UPGRADING && obj.home === room.name) as UpgradeObjective[];
                 return this.spawnUpgrader(objectives, upgradeObjs, room, ctx);
             }
+        },
+        {
+            role: roleContants.REMOTE_BUILDING,
+            priority: priority.high,
+            canHandle: (objectives: Objective[], room: Room, ctx: SpawnContext) =>
+                objectives.some(obj => obj.type === roleContants.REMOTE_BUILDING && obj.home === room.name),
+            execute: (objectives: Objective[], room: Room, ctx: SpawnContext) => {
+                const upgradeObjs = objectives.filter(obj => obj.type === roleContants.REMOTE_BUILDING && obj.home === room.name) as RemoteBuildingObjective[];
+                return this.spawnRemoteBuilder(upgradeObjs, room, objectives, ctx);
+            }
         }
     ];
 
@@ -186,6 +197,14 @@ export class SpawnManager {
         }
         if(parts > 550) return;
 
+        // Build set of remote rooms currently under attack
+        const attackedRemotes = new Set<string>();
+        for (const obj of objectives) {
+            if (obj.type === roleContants.INVADER_DEFENCE && obj.target !== room.name) {
+                attackedRemotes.add(obj.target);
+            }
+        }
+
         const objectivesByPriority = this.groupObjectivesByPriority(objectives);
 
         for (let currentPrio = priority.severe; currentPrio <= priority.veryLow; currentPrio++) {
@@ -194,8 +213,18 @@ export class SpawnManager {
 
             for (const action of this.spawnActions) {
                 if (action.canHandle(currentObjectives, room, context)) {
+                    // Filter out objectives targeting attacked remotes,
+                    // but only for non-defence actions
+                    const isDefenceAction =
+                        action.role === roleContants.BLINKIE ||
+                        action.role === roleContants.CORE_KILLER;
+
+                    const filteredObjectives = isDefenceAction
+                        ? objectives.filter(o => o.home === room.name)
+                        : objectives.filter(o => o.home === room.name && !attackedRemotes.has(o.target));
+
                     const result = action.execute(
-                        objectives.filter(o => o.home === room.name),
+                        filteredObjectives,
                         room,
                         context
                     );
@@ -606,16 +635,41 @@ export class SpawnManager {
         return undefined;
     }
 
+    private spawnRemoteBuilder(objectives: RemoteBuildingObjective[], room: Room, allObjectives: Objective[], ctx: SpawnContext) {
+        for (const objective of objectives) {
+            const builders = ctx.creeps.filter(c => c.memory.role === roleContants.REMOTE_BUILDING && (c.memory as RemoteBuilderMemory).targetRoom === objective.targetRoom)
+            const currWork = getWorkParts(builders, WORK);
+            let currNeed = this.economyService.getCurrentRoomIncome(room, allObjectives);
+            if (currWork < 2 && builders[0] === undefined) {
+                const body = createCreepBody(objective, room, currWork, currNeed);
+                const memory: RemoteBuilderMemory = {
+                    home: room.name,
+                    role: roleContants.REMOTE_BUILDING,
+                    working: false,
+                    targetRoom: objective.targetRoom,
+                    done: false,
+                    homeSpawn: ctx.spawn.id
+                };
+
+                if (!ctx.spawn.spawning) {
+                    return ctx.spawn.spawnCreep(body, generateName(roleContants.REMOTE_BUILDING), { memory });
+                }
+            }
+        }
+
+        return undefined;
+    }
+
     private spawnMaintainer(objectives: MaintenanceObjective[], room: Room, ctx: SpawnContext) {
         const objective = objectives.find(objective => objective.home === room.name);
         if (objective != undefined) {
             const maintainers = this.getCreepsOfRole(room, roleContants.MAINTAINING);
             const workParts = getWorkParts(maintainers, WORK);
 
-            if (workParts < objective.maxWorkParts) {
+            if (maintainers.length === 0) {
                 const body = createCreepBody(objective, room, workParts, objective.maxWorkParts);
                 const memory: MaintainerMemory = {
-                    home: room.name,
+                    home: objective.target,
                     role: roleContants.MAINTAINING,
                     target: objective.toRepair[0],
                     working: false,
@@ -654,6 +708,7 @@ export class SpawnManager {
     }
 
     private spawnUpgrader(allObjectives: Objective[], objectives: UpgradeObjective[], room: Room, ctx: SpawnContext) {
+        if(room.memory.constructionOffice.finished === false) return
         let maxIncome = 0;
         let minusIncome = 0;
         allObjectives.forEach(objective => {
@@ -746,8 +801,8 @@ export class SpawnManager {
 
     private spawnBlinkie(room: Room, target: string, ctx: SpawnContext) {
         let body = [];
-        if(room.energyAvailable < 600){
-            body = [TOUGH,MOVE,MOVE,MOVE,MOVE,ATTACK,ATTACK,ATTACK];
+        if(room.energyAvailable < 750){
+            body = [TOUGH,MOVE,MOVE,RANGED_ATTACK,RANGED_ATTACK];
         } else {
             body = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, RANGED_ATTACK, RANGED_ATTACK, RANGED_ATTACK, HEAL, HEAL, HEAL];
         }

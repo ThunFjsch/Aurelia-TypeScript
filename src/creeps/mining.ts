@@ -21,7 +21,9 @@ export class Miner extends BasicCreep{
             if (source != null && source.energyCapacity > 0) {
                 let harvest = -6;
                 if (creep.pos.inRangeTo(source.pos.x, source.pos.y, 1)) {
-                    if (memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y)) {
+                    memory.working = false;
+                    creep.memory = memory;
+                    if ((memory.containerPos != undefined && (creep.pos.x != memory.containerPos.x || creep.pos.y != memory.containerPos.y))) {
                         moveTo(creep, new RoomPosition(memory.containerPos.x, memory.containerPos.y, creep.room.name), {maxOps: 20000});
                     }
                     harvest = creep.harvest(source);
@@ -38,6 +40,8 @@ export class Miner extends BasicCreep{
                             creep.moveTo(source)
                         } else this.creepPathMove(creep, source)
                     }
+                    memory.working = false;
+                    creep.memory = memory;
                 } else {
                     if (memory.working === false) {
                         memory.working = true;

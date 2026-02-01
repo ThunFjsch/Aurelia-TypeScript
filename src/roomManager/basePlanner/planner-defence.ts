@@ -41,16 +41,14 @@ export class PlannerDefence {
 
         if (room.memory.basePlanner.stamps === undefined) return;
 
-        // Step 2: Get all existing roads
-        const roads: RoomPosition[] = room.memory.basePlanner.stamps
-            .filter(s => s.type === 'road')
-            .map(s => new RoomPosition(s.x, s.y, room.name));
-
         // Step 3: Group wall sections
         const wallSections = this.groupWallSectionsFromGrid(wallPoints);
 
         // Step 4: Process each wall section
         for (const section of wallSections) {
+            // Step 2: Get all existing roads
+            const roads: RoomPosition[] = this.getRoadNetwork(room);
+
             const closest = this.findClosestWallTile(section, roads, room.name);
             if (!closest) continue;
 
@@ -62,7 +60,7 @@ export class PlannerDefence {
             room.memory.basePlanner.stamps.push(info);
 
             // Optional: Connect it to the network
-            const connection = this.infrastructure.connectToRoadNetwork(room, { x: closest.x, y: closest.y }, roads);
+            const connection = this.infrastructure.connectToRoadNetwork(room, { x: closest.x, y: closest.y }, roads, 2);
             room.memory.basePlanner.stamps.push(...connection);
         }
 
@@ -191,4 +189,9 @@ export class PlannerDefence {
         return selected;
     }
 
+    getRoadNetwork(room: Room): RoomPosition[] {
+    return (room.memory.basePlanner.stamps || [])
+      .filter(s => s.type === STRUCTURE_ROAD)
+      .map(s => new RoomPosition(s.x, s.y, room.name));
+  }
 }
